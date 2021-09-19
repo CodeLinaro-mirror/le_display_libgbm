@@ -1,10 +1,14 @@
 
+gbm_h_sources = ${srcdir}/inc/gbm*.h
+gbm_includedir = $(includedir)
+gbm_include_HEADERS = $(gbm_h_sources)
+
 AM_CFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs -std=c++11
-AM_CFLAGS+= -I./inc -I$(WORKSPACE)/vendor/qcom/opensource/commonsys-intf/display/include
+AM_CFLAGS+= -I./inc
 AM_CFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DBUILD_HAS_WAYLAND_SUPPORT -DVENUS_COLOR_FORMAT
 
 AM_CPPFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs -std=c++11
-AM_CPPFLAGS+= -I./inc -I$(WORKSPACE)/vendor/qcom/opensource/commonsys-intf/display/include
+AM_CPPFLAGS+= -I./inc
 AM_CPPFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DBUILD_HAS_WAYLAND_SUPPORT -DVENUS_COLOR_FORMAT
 
 if ENABLE_COMPILEWITHDRM
