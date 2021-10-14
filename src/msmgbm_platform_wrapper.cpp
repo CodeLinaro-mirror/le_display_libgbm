@@ -871,8 +871,13 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
     case GBM_FORMAT_RAW_OPAQUE:
       break;
     case GBM_FORMAT_NV21_ZSL:
+#ifdef ENABLE_CAM_MIMAS
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_512, width));
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_512, height));
+#else
       *alignedw = ALIGN(width, 64);
       *alignedh = ALIGN(height, 64);
+#endif
       break;
     case GBM_FORMAT_NV12_HEIF:
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_512, width));
