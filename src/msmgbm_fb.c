@@ -50,11 +50,7 @@
 #include <msmgbm.h>
 #include <msmgbm_common.h>
 #include <linux/version.h>
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,4,0)
-#include <media/msm_media_info.h>
-#else
-#include "msm_media_info.h"
-#endif
+#include <display/media/mmm_color_fmt.h>
 #include <linux/msm_mdp.h>
 #ifdef BUILD_HAS_WAYLAND_SUPPORT
 #include <wayland-server.h>

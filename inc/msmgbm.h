@@ -38,6 +38,7 @@ extern "C" {
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <display/drm/sde_drm.h>
 
 //Enables debug log
 #ifdef GBM_DEBUG

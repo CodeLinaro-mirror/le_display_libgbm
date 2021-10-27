@@ -36,11 +36,7 @@
 #include <linux/version.h>
 
 #ifdef VENUS_COLOR_FORMAT
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,4,0)
-#include <media/msm_media_info.h>
-#else
-#include "msm_media_info.h"
-#endif
+#include <display/media/mmm_color_fmt.h>
 #else
 #define VENUS_Y_STRIDE(args...) 0
 #define VENUS_Y_SCANLINES(args...) 0
