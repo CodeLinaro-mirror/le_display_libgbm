@@ -83,7 +83,15 @@ void GetHeapInfo(uint64_t usage, std::string *dma_heap_name, uint32_t flags) {
   std::string heap_name = secure ? "qcom,display" : "qcom,system";
   std::string ion_heap_name = secure ? "secure_display" : "system";
 
-  if (usage & GBM_BO_ALLOC_SECURE_HEAP_QTI) {
+  if (usage & GBM_BO_ALLOC_CARVEOUT_HEAP_LEFT_QTI) {
+    heap_name = "qcom,lsr_lefteye";
+  } else if (usage & GBM_BO_ALLOC_CARVEOUT_HEAP_RIGHT_QTI) {
+    heap_name = "qcom,lsr_righteye";
+  } else if (usage & GBM_BO_ALLOC_CARVEOUT_HEAP_DEPTH_QTI) {
+    heap_name = "qcom,lsr_depth";
+  } else if (usage & GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI) {
+    heap_name = "qcom,lsr_misc";
+  } else if (usage & GBM_BO_ALLOC_SECURE_HEAP_QTI) {
     heap_name = "qcom,secure-pixel";
     ion_heap_name = "secure_heap";
     buffer_allocator_.MapNameToIonHeap(heap_name, ion_heap_name, flags,
@@ -123,5 +131,6 @@ int AllocBuffer(uint64_t usage, uint32_t size, uint32_t align) {
   std::string dma_heap_name;
   uint32_t ionflags = GetIonAllocFlags(usage);
   GetHeapInfo(usage, &dma_heap_name, ionflags);
+
   return buffer_allocator_.Alloc(dma_heap_name, size, ionflags, align);
 }

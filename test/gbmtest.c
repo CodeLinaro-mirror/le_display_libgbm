@@ -2391,6 +2391,51 @@ static int test_secure_buffer_alloc_free()
     return 1;
 }
 
+/*
+ * Tests carveout buffer alloc/free.
+ */
+static int test_carveout_buffer_alloc_free()
+{
+    int i;
+    struct gbm_bo *gb_bo = NULL;
+    int ret;
+    int meta_fd;
+    uint32_t align_wdth;
+    uint32_t align_hght;
+
+    printf("test_alloc_free run\n");
+    const uint64_t usage[4] = {GBM_BO_ALLOC_CARVEOUT_HEAP_LEFT_QTI,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_RIGHT_QTI,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_DEPTH_QTI,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI,
+                              };
+    for (int i = 0; i < 4; i++) {
+      gb_bo = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, usage[i]);
+      CHECK(check_bo(gb_bo));
+
+      ret=gbm_perform(GBM_PERFORM_GET_BO_ALIGNED_WIDTH, gb_bo, &align_wdth);
+      if(ret == GBM_ERROR_NONE)
+          printf("GET BO Aligned width=%d success\n",align_wdth);
+      else{
+          printf("GET BO Aligned width failed\n");
+          return 0;
+      }
+
+      ret=gbm_perform(GBM_PERFORM_GET_BO_ALIGNED_HEIGHT, gb_bo, &align_hght);
+      if(ret == GBM_ERROR_NONE)
+          printf("GET BO Aligned height=%d success\n",align_hght);
+      else{
+          printf("GET BO Aligned height failed\n");
+          return 0;
+      }
+
+
+      gbm_bo_destroy(gb_bo);
+    }
+
+    return 1;
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2419,8 +2464,10 @@ int gbm_test_help() {
   printf("24 Test  alloc with modifiers \n");
   printf("25 Test plane info \n");
   printf("26 for BO secure buffer Create/Destroy \n");
+  printf("27 for Tests carveout buffer alloc/free \n");
   return 0;
 }
+
 int main(int argc, char *argv[])
 {
     int result=1;
@@ -2548,6 +2595,11 @@ int main(int argc, char *argv[])
         case 26:
             result &= test_init();
             result &= test_secure_buffer_alloc_free();
+            result &= test_destroy();
+            break;
+        case 27:
+            result &= test_init();
+            result &= test_carveout_buffer_alloc_free();
             result &= test_destroy();
             break;
         default:

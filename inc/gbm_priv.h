@@ -106,6 +106,10 @@ extern "C" {
 #define GBM_BO_ALLOC_CAMERA_HEAP_QTI		0x00001000 /*BO allocation from camera heap*/
 #define GBM_BO_ALLOC_IOMMU_HEAP_QTI		0x00002000 /*BO allocation from IOMMU heap*/
 #define GBM_BO_ALLOC_MM_HEAP_QTI		0x00004000 /*BO allocation from MM heap*/
+#define GBM_BO_ALLOC_CARVEOUT_HEAP_LEFT_QTI         0x10000000 /*BO allocation from Carveout heap*/
+#define GBM_BO_ALLOC_CARVEOUT_HEAP_RIGHT_QTI        0x20000000 /*BO allocation from Carveout heap*/
+#define GBM_BO_ALLOC_CARVEOUT_HEAP_DEPTH_QTI        0x40000000 /*BO allocation from Carveout heap*/
+#define GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI         0x80000000 /*BO allocation from Carveout heap*/
 
 /** These usage flags are used to inform GBM backend about the usage of the allcated BO.*/
 #define GBM_BO_USAGE_PROTECTED_QTI		0x00008000 /*BO allocation flag to get protected BO*/
