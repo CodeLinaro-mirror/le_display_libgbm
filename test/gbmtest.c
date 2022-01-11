@@ -1,5 +1,8 @@
 //**************************************************************************************************
 /*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017 - 2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -89,6 +92,10 @@ static int fd;
 static struct gbm_device *gbm;
 
 static const uint32_t format_list[] = {
+    GBM_FORMAT_R8,
+    GBM_FORMAT_RG88,
+    GBM_FORMAT_R16,
+    GBM_FORMAT_RG1616,
     GBM_FORMAT_RGB565,
     GBM_FORMAT_RGB888,
     GBM_FORMAT_XRGB8888,
