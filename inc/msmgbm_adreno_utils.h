@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017-2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -38,6 +41,10 @@ typedef enum {
   ADRENO_PIXELFORMAT_R10G10B10A2_UNORM = 24,  // Vertex, Normalized GL_UNSIGNED_INT_10_10_10_2_OES
   ADRENO_PIXELFORMAT_R8G8B8A8 = 28,
   ADRENO_PIXELFORMAT_R8G8B8A8_SRGB = 29,
+  ADRENO_PIXELFORMAT_R16G16_UNORM = 35,
+  ADRENO_PIXELFORMAT_R8G8_UNORM = 49,
+  ADRENO_PIXELFORMAT_R16_UNORM = 56,
+  ADRENO_PIXELFORMAT_R8_UNORM = 61,
   ADRENO_PIXELFORMAT_B5G6R5 = 85,
   ADRENO_PIXELFORMAT_B5G5R5A1 = 86,
   ADRENO_PIXELFORMAT_B8G8R8A8 = 90,

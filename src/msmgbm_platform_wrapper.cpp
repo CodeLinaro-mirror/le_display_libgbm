@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -292,6 +295,10 @@ int platform_wrap::is_valid_rgb_fmt(int format){
     int is_supported;
     switch(format)
     {
+        case GBM_FORMAT_R8:
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_RGB888:
         case GBM_FORMAT_RGBA8888:
@@ -313,6 +320,7 @@ int platform_wrap::is_valid_rgb_fmt(int format){
 uint32_t platform_wrap::get_bpp_for_uncmprsd_rgb_fmt(int format) {
   uint32_t bpp = 0;
   switch (format) {
+    case GBM_FORMAT_RG1616:
     case GBM_FORMAT_RGBA8888:
     case GBM_FORMAT_RGBX8888:
     case GBM_FORMAT_BGRA8888:
@@ -325,12 +333,16 @@ uint32_t platform_wrap::get_bpp_for_uncmprsd_rgb_fmt(int format) {
     case GBM_FORMAT_RGB888:
       bpp = 3;
       break;
+    case GBM_FORMAT_RG88:
+    case GBM_FORMAT_R16:
     case GBM_FORMAT_RGB565:
     case GBM_FORMAT_BGR565:
     case GBM_FORMAT_RGBA5551:
     case GBM_FORMAT_RGBA4444:
       bpp = 2;
       break;
+    case GBM_FORMAT_R8:
+      bpp = 1;
     default:
       LOG(LOG_ERR," New format request\n");
       break;
@@ -344,6 +356,10 @@ uint32_t platform_wrap::get_bpp_for_uncmprsd_rgb_fmt(int format) {
 */
 bool platform_wrap::is_valid_uncmprsd_rgb_fmt(int format) {
   switch (format) {
+    case GBM_FORMAT_R8:
+    case GBM_FORMAT_RG88:
+    case GBM_FORMAT_R16:
+    case GBM_FORMAT_RG1616:
     case GBM_FORMAT_XRGB8888:
     case GBM_FORMAT_XBGR8888:
     case GBM_FORMAT_ARGB8888:
@@ -392,6 +408,7 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
 
 
     switch (format) {
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_BGRX8888:
@@ -413,6 +430,8 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_RGB888:
             size = alignedw * alignedh * 3;
             break;
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGBA5551:
@@ -420,6 +439,7 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_RAW16:
             size = alignedw * alignedh * 2;
             break;
+        case GBM_FORMAT_R8:
         case GBM_FORMAT_RAW8:
             size = alignedw * alignedh * 1;
             break;

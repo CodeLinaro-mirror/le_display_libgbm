@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -151,6 +154,18 @@ enum gbm_bo_format {
 /* color index */
 #define GBM_FORMAT_C8		        __gbm_fourcc_code('C', '8', ' ', ' ') /* [7:0] C */
 #define GBM_FORMAT_C8_LINEAR		__gbm_fourcc_code('C', '8', 'L', 'R') /* [7:0] C */
+
+/* 8 bpp Red */
+#define GBM_FORMAT_R8		__gbm_fourcc_code('R', '8', ' ', ' ') /* [7:0] R */
+
+/* 16 bpp Red */
+#define GBM_FORMAT_R16		__gbm_fourcc_code('R', '1', '6', ' ') /* [15:0] R little endian */
+
+/* 16 bpp RG */
+#define GBM_FORMAT_RG88		__gbm_fourcc_code('R', 'G', '8', '8') /* [15:0] R:G 8:8 little endian */
+
+/* 32 bpp RG */
+#define GBM_FORMAT_RG1616	__gbm_fourcc_code('R', 'G', '3', '2') /* [31:0] R:G 16:16 little endian */
 
 /* 8 bpp RGB */
 #define GBM_FORMAT_RGB332	__gbm_fourcc_code('R', 'G', 'B', '8') /* [7:0] R:G:B 3:3:2 */
