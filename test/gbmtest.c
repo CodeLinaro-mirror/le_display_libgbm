@@ -204,6 +204,8 @@ static char *get_format_string(uint32_t format)
             return "GBM_FORMAT_YCbCr_420_P010_UBWC";
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
             return "GBM_FORMAT_YCbCr_420_TP10_UBWC";
+        case GBM_FORMAT_C8:
+            return "GBM_FORMAT_C8";
         default:
             return "NA";
     }
@@ -2411,6 +2413,48 @@ static int test_carveout_buffer_alloc_free()
     return 1;
 }
 
+static int gbm_format_c8_test() {
+  struct gbm_bo *bo;
+  int error = GBM_ERROR_NONE;
+
+  bo = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_C8, GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI);
+  CHECK(check_bo(bo));
+  printf("INFO: Allocated bo Format: %s, width: %d height:%d stride:%d \n",
+                                          get_format_string(bo->format),
+                                          gbm_bo_get_width(bo),
+                                          gbm_bo_get_height(bo),
+                                          gbm_bo_get_stride(bo));
+
+  int ubwc_status;
+  error = gbm_perform(GBM_PERFORM_GET_UBWC_STATUS, bo, &ubwc_status);
+  if (error != GBM_ERROR_NONE) {
+    printf("ERROR: Not able to get UBWC status\n");
+    return 0;
+  }
+
+  if(!ubwc_status) {
+    printf("ERROR: allocated buffer is not ubwc\n");
+    return 0;
+  }
+
+  generic_buf_layout_t buf_lyt;
+  error = gbm_perform(GBM_PERFORM_GET_PLANE_INFO, bo, &buf_lyt);
+  if (error != GBM_ERROR_NONE) {
+    printf("ERROR: Not able to get plane info\n");
+    return 0;
+  }
+
+  for(int i = 0; i < buf_lyt.num_planes; i++) {
+    printf("INFO: plane %d, buf_lyt.planes[%d].top_left %d, buf_lyt.planes[%d].v_increment %d, \
+            buf_lyt.planes[%d].stride %d\n", i, i, buf_lyt.planes[i].top_left, i,
+            buf_lyt.planes[i].v_increment, i, buf_lyt.planes[i].stride);
+  }
+
+  gbm_bo_destroy(bo);
+
+  return 1;
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2438,6 +2482,7 @@ int gbm_test_help() {
   printf("23 Test plane info \n");
   printf("24 for BO secure buffer Create/Destroy \n");
   printf("25 for Tests carveout buffer alloc/free \n");
+  printf("26 for Tests GBM_FORMAT_C8 alloc/free \n");
   return 0;
 }
 
@@ -2564,6 +2609,11 @@ int main(int argc, char *argv[])
         case 25:
             result &= test_init();
             result &= test_carveout_buffer_alloc_free();
+            result &= test_destroy();
+            break;
+        case 26:
+            result &= test_init();
+            result &= gbm_format_c8_test();
             result &= test_destroy();
             break;
         default:

@@ -405,6 +405,7 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
         case GBM_FORMAT_BLOB:
+        case GBM_FORMAT_C8:
 #ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
 #endif
@@ -450,6 +451,7 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
         case GBM_FORMAT_BLOB:
+        case GBM_FORMAT_C8:
 #ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
 #endif
@@ -2781,46 +2783,65 @@ void get_yuv_sp_plane_info(int width, int height, int bpp,
     buf_lyt->planes[1].stride = width * bpp;
 }
 
+void get_c8_info(unsigned int y_meta_stride, unsigned int y_stride, unsigned int y_meta_height,
+                 unsigned int y_meta_size, generic_buf_layout_t *buf_lyt) {
+    int bpp = 1;
+    buf_lyt->num_planes = DUAL_PLANES;
+
+    buf_lyt->planes[0].stride = y_meta_stride;
+    buf_lyt->planes[1].stride = y_stride;
+
+    buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = 0;
+    buf_lyt->planes[1].top_left = buf_lyt->planes[1].offset = y_meta_size;
+
+    buf_lyt->planes[0].v_increment = y_meta_stride * bpp;
+    buf_lyt->planes[1].v_increment = y_stride * bpp;
+}
 
 void get_yuv_ubwc_sp_plane_info(int width, int height,
                           int color_format, generic_buf_layout_t *buf_lyt)
 {
-   // UBWC buffer has these 4 planes in the following sequence:
-   // Y_Meta_Plane, Y_Plane, UV_Meta_Plane, UV_Plane
-   unsigned int y_meta_stride, y_meta_height, y_meta_size;
-   unsigned int y_stride, y_height, y_size;
-   unsigned int c_meta_stride, c_meta_height, c_meta_size;
-   unsigned int alignment = 4096;
+    // UBWC buffer has these 4 planes in the following sequence:
+    // Y_Meta_Plane, Y_Plane, UV_Meta_Plane, UV_Plane
+    unsigned int y_meta_stride, y_meta_height, y_meta_size;
+    unsigned int y_stride, y_height, y_size;
+    unsigned int c_meta_stride, c_meta_height, c_meta_size;
+    unsigned int alignment = 4096;
 
-   y_meta_stride = MMM_COLOR_FMT_Y_META_STRIDE(color_format, width);
-   y_meta_height = MMM_COLOR_FMT_Y_META_SCANLINES(color_format, height);
-   y_meta_size = ALIGN((y_meta_stride * y_meta_height), alignment);
+    y_meta_stride = MMM_COLOR_FMT_Y_META_STRIDE(color_format, width);
+    y_meta_height = MMM_COLOR_FMT_Y_META_SCANLINES(color_format, height);
+    y_meta_size = ALIGN((y_meta_stride * y_meta_height), alignment);
 
-   y_stride = MMM_COLOR_FMT_Y_STRIDE(color_format, width);
-   y_height = MMM_COLOR_FMT_Y_SCANLINES(color_format, height);
-   y_size = ALIGN((y_stride * y_height), alignment);
+    y_stride = MMM_COLOR_FMT_Y_STRIDE(color_format, width);
+    y_height = MMM_COLOR_FMT_Y_SCANLINES(color_format, height);
+    y_size = ALIGN((y_stride * y_height), alignment);
 
-   c_meta_stride = MMM_COLOR_FMT_UV_META_STRIDE(color_format, width);
-   c_meta_height = MMM_COLOR_FMT_Y_META_SCANLINES(color_format, height);
-   c_meta_size = ALIGN((c_meta_stride * c_meta_height), alignment);
+    c_meta_stride = MMM_COLOR_FMT_UV_META_STRIDE(color_format, width);
+    c_meta_height = MMM_COLOR_FMT_Y_META_SCANLINES(color_format, height);
+    c_meta_size = ALIGN((c_meta_stride * c_meta_height), alignment);
 
-   buf_lyt->num_planes = DUAL_PLANES;
+    if (buf_lyt->pixel_format == GBM_FORMAT_C8) {
+        get_c8_info(y_meta_stride, y_stride, y_meta_height, y_meta_size, buf_lyt);
+        return;
+    }
 
-   buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = y_meta_size;
-   buf_lyt->planes[1].top_left = buf_lyt->planes[1].offset = y_meta_size + y_size + c_meta_size;
-   buf_lyt->planes[2].top_left = buf_lyt->planes[2].offset = y_meta_size + y_size + c_meta_size + 1;
-   buf_lyt->planes[0].v_increment = y_stride;
-   buf_lyt->planes[1].v_increment = MMM_COLOR_FMT_UV_STRIDE(color_format, width);
+    buf_lyt->num_planes = DUAL_PLANES;
+    buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = y_meta_size;
+    buf_lyt->planes[1].top_left = buf_lyt->planes[1].offset = y_meta_size + y_size + c_meta_size;
+    buf_lyt->planes[2].top_left = buf_lyt->planes[2].offset = y_meta_size +
+                                                              y_size + c_meta_size + 1;
+    buf_lyt->planes[0].v_increment = y_stride;
+    buf_lyt->planes[1].v_increment = MMM_COLOR_FMT_UV_STRIDE(color_format, width);
 
-   if(color_format == MMM_COLOR_FMT_NV12_BPP10_UBWC ||
-      color_format == MMM_COLOR_FMT_NV12_UBWC ||
-      color_format == MMM_COLOR_FMT_P010_UBWC) {
-     buf_lyt->num_planes = 4;
-     buf_lyt->planes[0].stride = MMM_COLOR_FMT_Y_META_STRIDE(color_format, width);
-     buf_lyt->planes[1].stride = MMM_COLOR_FMT_Y_STRIDE(color_format, width);
-     buf_lyt->planes[2].stride = MMM_COLOR_FMT_UV_META_STRIDE(color_format, width);
-     buf_lyt->planes[3].stride = MMM_COLOR_FMT_UV_STRIDE(color_format, width);
-   }
+    if(color_format == MMM_COLOR_FMT_NV12_BPP10_UBWC ||
+       color_format == MMM_COLOR_FMT_NV12_UBWC ||
+       color_format == MMM_COLOR_FMT_P010_UBWC) {
+        buf_lyt->num_planes = 4;
+        buf_lyt->planes[0].stride = MMM_COLOR_FMT_Y_META_STRIDE(color_format, width);
+        buf_lyt->planes[1].stride = MMM_COLOR_FMT_Y_STRIDE(color_format, width);
+        buf_lyt->planes[2].stride = MMM_COLOR_FMT_UV_META_STRIDE(color_format, width);
+        buf_lyt->planes[3].stride = MMM_COLOR_FMT_UV_STRIDE(color_format, width);
+    }
 }
 
 int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
@@ -2987,6 +3008,10 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
             case GBM_FORMAT_P010:
                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                       CHROMA_STEP, buf_lyt);
+                break;
+            case GBM_FORMAT_C8:
+                get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                           MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
                 break;
             default:
                  res = GBM_ERROR_UNSUPPORTED;
