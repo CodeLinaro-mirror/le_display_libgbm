@@ -40,6 +40,7 @@
 #define INT(exp) static_cast<int>(exp)
 #define UINT(exp) static_cast<unsigned int>(exp)
 #define ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
+#define MIMAS_ALIGN(x, align) ((0 == x%align) ? x : x - x%align + align)
 #define ASTC_BLOCK_SIZE 16
 
 bool g_ubwc_disable = false;
@@ -601,7 +602,11 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedw = ALIGN(width, 16);
       break;
     case GBM_FORMAT_RAW12:
+#ifdef ENABLE_CAM_MIMAS
+      *alignedw = MIMAS_ALIGN(width * 12 / 8, 48);
+#else
       *alignedw = ALIGN(width * 12 / 8, 16);
+#endif
       break;
     case GBM_FORMAT_RAW10:
       *alignedw = ALIGN(width * 10 / 8, 16);
