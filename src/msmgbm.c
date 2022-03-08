@@ -2186,23 +2186,33 @@ void* msmgbm_cpu_map_ionfd(int ion_fd, unsigned int size, struct meta_data_t *me
 
 void* msmgbm_bo_meta_map(struct gbm_bo *bo)
 {
-        struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
-        uint32_t mt_size;
-        void *mt_cpuaddr;
+    if (!bo) {
+        LOG(LOG_ERR, "Failed to map buffer : bo is NULL\n");
+        return NULL;
+    }
 
-        if(msm_gbm_bo) {
-            mt_cpuaddr = msm_gbm_bo->mt_cpuaddr;
-        } else {
-            LOG(LOG_INFO, "This is not optimized path for mapping metadata bo\n");
-            mt_size = query_metadata_size();
-            mt_cpuaddr = msmgbm_cpu_map_metafd(bo->ion_metadata_fd, mt_size);
-        }
+    struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
+    uint32_t mt_size;
+    void *mt_cpuaddr;
 
-        return mt_cpuaddr;
+    if(msm_gbm_bo) {
+        mt_cpuaddr = msm_gbm_bo->mt_cpuaddr;
+    } else {
+        LOG(LOG_INFO, "This is not optimized path for mapping metadata bo\n");
+        mt_size = query_metadata_size();
+        mt_cpuaddr = msmgbm_cpu_map_metafd(bo->ion_metadata_fd, mt_size);
+    }
+
+    return mt_cpuaddr;
 }
 
 void* msmgbm_bo_cpu_map(struct gbm_bo *bo)
 {
+    if (!bo) {
+        LOG(LOG_ERR, "Failed to map buffer : bo is NULL\n");
+        return NULL;
+    }
+
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
     struct meta_data_t *mt_cpuaddr;
     void *cpuaddr = NULL;
