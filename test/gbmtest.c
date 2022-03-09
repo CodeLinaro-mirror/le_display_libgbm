@@ -1922,6 +1922,138 @@ static int test_validate_p010_format()
 }
 
 /*
+ * Tests focussed on validating GBM_FORMAT_R8 format
+ *  following apis are validated for above format
+ */
+static int test_validate_r8_format()
+{
+  int i;
+  struct gbm_bo *gb_bo[1000];
+  int ret;
+  void *prm;
+  int colorspace_get;
+
+  for(i = 0; i < 2; i++) {
+      printf("test_alloc_free run(%d)\n",i);
+      gb_bo[i] = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_R8, GBM_BO_USE_RENDERING);
+      CHECK(check_bo(gb_bo[i]));
+
+      prm = (void *)&colorspace_get;
+      ret = gbm_perform(GBM_PERFORM_GET_METADATA, gb_bo[i], GBM_METADATA_GET_COLOR_SPACE, prm);
+      if(ret==GBM_ERROR_NONE)
+          printf("Get Metadata Success\n");
+      else {
+          printf("Get Metadata Failed\n");
+          return 0;
+      }
+   }
+
+  for(i = 0; i < 2; i++)
+      gbm_bo_destroy(gb_bo[i]);
+
+   return 1;
+}
+
+/*
+ * Tests focussed on validating GBM_FORMAT_RG88 format
+ *  following apis are validated for above format
+ */
+static int test_validate_rg88_format()
+{
+  int i;
+  struct gbm_bo *gb_bo[1000];
+  int ret;
+  void *prm;
+  int colorspace_get;
+
+  for(i = 0; i < 2; i++) {
+      printf("test_alloc_free run(%d)\n",i);
+      gb_bo[i] = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_RG88, GBM_BO_USE_RENDERING);
+      CHECK(check_bo(gb_bo[i]));
+
+      prm = (void *)&colorspace_get;
+      ret = gbm_perform(GBM_PERFORM_GET_METADATA, gb_bo[i], GBM_METADATA_GET_COLOR_SPACE, prm);
+      if(ret==GBM_ERROR_NONE)
+          printf("Get Metadata Success\n");
+      else {
+          printf("Get Metadata Failed\n");
+          return 0;
+      }
+   }
+
+  for(i = 0; i < 2; i++)
+      gbm_bo_destroy(gb_bo[i]);
+
+   return 1;
+}
+
+/*
+ * Tests focussed on validating GBM_FORMAT_R16 format
+ *  following apis are validated for above format
+ */
+static int test_validate_r16_format()
+{
+  int i;
+  struct gbm_bo *gb_bo[1000];
+  int ret;
+  void *prm;
+  int colorspace_get;
+
+  for(i = 0; i < 2; i++) {
+      printf("test_alloc_free run(%d)\n",i);
+      gb_bo[i] = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_R16, GBM_BO_USE_RENDERING);
+      CHECK(check_bo(gb_bo[i]));
+
+      prm = (void *)&colorspace_get;
+      ret = gbm_perform(GBM_PERFORM_GET_METADATA, gb_bo[i], GBM_METADATA_GET_COLOR_SPACE, prm);
+      if(ret==GBM_ERROR_NONE)
+          printf("Get Metadata Success\n");
+      else {
+          printf("Get Metadata Failed\n");
+          return 0;
+      }
+   }
+
+  for(i = 0; i < 2; i++)
+      gbm_bo_destroy(gb_bo[i]);
+
+   return 1;
+}
+
+/*
+ * Tests focussed on validating GBM_FORMAT_RG1616 format
+ *  following apis are validated for above format
+ */
+static int test_validate_rg1616_format()
+{
+  int i;
+  struct gbm_bo *gb_bo[1000];
+  int ret;
+  void *prm;
+  int colorspace_get;
+
+  for(i = 0; i < 2; i++) {
+      printf("test_alloc_free run(%d)\n",i);
+      gb_bo[i] = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_RG1616, GBM_BO_USE_RENDERING);
+      CHECK(check_bo(gb_bo[i]));
+
+      prm = (void *)&colorspace_get;
+      ret = gbm_perform(GBM_PERFORM_GET_METADATA, gb_bo[i], GBM_METADATA_GET_COLOR_SPACE, prm);
+      if(ret==GBM_ERROR_NONE)
+          printf("Get Metadata Success\n");
+      else {
+          printf("Get Metadata Failed\n");
+          return 0;
+      }
+   }
+
+  for(i = 0; i < 2; i++)
+      gbm_bo_destroy(gb_bo[i]);
+
+   return 1;
+}
+
+/*
  * Tests repeated alloc/free with
  *  color space
  */
@@ -2420,11 +2552,15 @@ int gbm_test_help() {
   printf("19 Validate gbm_buf_info from wl_resource\n");
   printf("20 Test Colorspace metadata operations on BO\n");
   printf("21 Test GBM_FORMAT_P010 format operations on BO\n");
-  printf("22 Test Device names returned by gbm_perform call\n");
-  printf("23 Test GBM_FORMAT_IMPLEMENTATION_DEFINED format\n");
-  printf("24 Test  alloc with modifiers \n");
-  printf("25 Test plane info \n");
-  printf("26 for BO secure buffer Create/Destroy \n");
+  printf("22 Test GBM_FORMAT_R8 format operations on BO\n");
+  printf("23 Test GBM_FORMAT_RG88 format operations on BO\n");
+  printf("24 Test GBM_FORMAT_R16 format operations on BO\n");
+  printf("25 Test GBM_FORMAT_RG1616 format operations on BO\n");
+  printf("26 Test Device names returned by gbm_perform call\n");
+  printf("27 Test GBM_FORMAT_IMPLEMENTATION_DEFINED format\n");
+  printf("28 Test  alloc with modifiers \n");
+  printf("29 Test plane info \n");
+  printf("30 for BO secure buffer Create/Destroy \n");
   return 0;
 }
 int main(int argc, char *argv[])
@@ -2533,25 +2669,45 @@ int main(int argc, char *argv[])
             break;
         case 22:
             result &= test_init();
-            result &= test_device_names();
+            result &= test_validate_r8_format();
             result &= test_destroy();
             break;
         case 23:
             result &= test_init();
-            result &= test_implement_defined_format();
+            result &= test_validate_rg88_format();
             result &= test_destroy();
             break;
         case 24:
             result &= test_init();
+            result &= test_validate_r16_format();
+            result &= test_destroy();
+            break;
+        case 25:
+            result &= test_init();
+            result &= test_validate_rg1616_format();
+            result &= test_destroy();
+            break;
+        case 26:
+            result &= test_init();
+            result &= test_device_names();
+            result &= test_destroy();
+            break;
+        case 27:
+            result &= test_init();
+            result &= test_implement_defined_format();
+            result &= test_destroy();
+            break;
+        case 28:
+            result &= test_init();
             result &= test_alloc_with_modifiers();
             result &= test_destroy();
-        break;
-        case 25:
+	    break;
+        case 29:
             result &= test_init();
             result &= test_plane_info();
             result &= test_destroy();
-        break;
-        case 26:
+            break;
+        case 30:
             result &= test_init();
             result &= test_secure_buffer_alloc_free();
             result &= test_destroy();
