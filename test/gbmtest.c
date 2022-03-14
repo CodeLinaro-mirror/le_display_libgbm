@@ -1721,6 +1721,9 @@ static int test_user_data()
 
     bo1 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
     bo2 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo1));
+    CHECK(check_bo(bo2));
+
     data1 = (char*)malloc(1);
     data2 = (char*)malloc(1);
     CHECK(data1);
@@ -1754,6 +1757,7 @@ static int test_import_fd()
     uint32_t ret=GBM_ERROR_NONE;
 
     bo1 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo1));
 
     buf_data.fd=bo1->ion_fd;
     buf_data.height=1024;
@@ -1761,6 +1765,7 @@ static int test_import_fd()
     buf_data.format=GBM_FORMAT_XRGB8888;
 
     bo2 = gbm_bo_import(gbm, GBM_BO_IMPORT_FD,&buf_data,GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo2));
 
     ret=gbm_perform(GBM_PERFORM_GET_BO_SIZE, bo2, &bo_size);
     if(ret == GBM_ERROR_NONE)
@@ -1802,6 +1807,7 @@ static int test_import_gbm_buf()
     uint32_t ret=GBM_ERROR_NONE;
 
     bo1 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo1));
 
     buf_info.fd=bo1->ion_fd;
     buf_info.metadata_fd=bo1->ion_metadata_fd;
@@ -1810,6 +1816,7 @@ static int test_import_gbm_buf()
     buf_info.format=GBM_FORMAT_XRGB8888;
 
     bo2 = gbm_bo_import(gbm, GBM_BO_IMPORT_GBM_BUF_TYPE,&buf_info,GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo2));
 
     ret=gbm_perform(GBM_PERFORM_GET_BO_SIZE, bo2, &bo_size);
     if(ret == GBM_ERROR_NONE)
@@ -1853,6 +1860,7 @@ static int test_import_wl_buffer()
     resource.data=&buf_info;
 
     bo1 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo1));
 
     buf_info.fd=bo1->ion_fd;
     buf_info.metadata_fd=bo1->ion_metadata_fd;
