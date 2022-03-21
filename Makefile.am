@@ -19,7 +19,7 @@ AM_CFLAGS += -DENABLE_FB
 AM_CPPFLAGS += -DENABLE_FB
 endif
 
-lib_LTLIBRARIES  = libgbm.la
+lib_LTLIBRARIES  = libgbm.la libgbmuitls.la
 libgbm_la_CFLAGS = $(AM_CFLAGS)
 libgbm_la_CPPFLAGS = $(AM_CPPFLAGS)
 libgbm_la_CPPFLAGS +=  @LIBDMABUFHEAP_CFLAGS@
@@ -40,9 +40,23 @@ else
 libgbm_la_SOURCES += src/msmgbm_fb.c
 endif
 
-bin_PROGRAMS = gbmtest
+libgbmuitls_la_CFLAGS = $(AM_CFLAGS)
+libgbmuitls_la_CPPFLAGS = $(AM_CFLAGS)
+libgbmuitls_la_CPPFLAGS += -I$(srcdir)/inc/
+libgbmuitls_la_LDFLAGS = -shared -avoid-version -lm -ldl -lcutils
+libgbmuitls_la_LIBADD = libgbm.la
+libgbmuitls_la_SOURCES = src/gbm_utils.cpp
+
+bin_PROGRAMS = gbmtest gbmutilstest
+gbmtest_CFLAGS = $(AM_CFLAGS)
+gbmtest_CPPFLAGS = $(AM_CFLAGS)
 gbmtest_SOURCES = test/gbmtest.c
 gbmtest_LDADD = libgbm.la
+
+gbmutilstest_SOURCES = test/gbm_utils_test.cpp
+gbmutilstest_CFLAGS = $(AM_CFLAGS)
+gbmutilstest_CPPFLAGS = $(AM_CFLAGS)
+gbmutilstest_LDADD = libgbm.la libgbmuitls.la
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gbm.pc

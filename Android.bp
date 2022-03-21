@@ -11,7 +11,7 @@ cc_library_headers {
 
 //libgbm
 cc_library_shared {
-    name: "libgbm",
+    name: "libgbm_la",
     sanitize: {
         integer_overflow: true,
     },
@@ -54,6 +54,28 @@ cc_library_shared {
     ],
 }
 
+//libgbmuitls
+cc_library_shared {
+    name: "libgbmuitls",
+    sanitize: {
+        integer_overflow: true,
+    },
+    vendor: true,
+    header_libs: [
+        "libgbm-headers",
+        "display_headers",
+        "qti_display_kernel_headers",
+        "libcutils_headers",
+    ],
+    shared_libs: [
+        "libgbm_la",
+        "libcutils",
+    ],
+    srcs: [
+        "src/gbm_utils.cpp",
+    ],
+}
+
 //gbmtest
 cc_binary {
     name: "gbmtest",
@@ -68,7 +90,7 @@ cc_binary {
         "qti_display_kernel_headers",
     ],
     shared_libs: [
-        "libgbm",
+        "libgbm_la",
     ],
     cflags: [
         "-DLOG_TAG=\"qdgralloc\"",
@@ -86,6 +108,30 @@ cc_binary {
     ],
     srcs: [
         "test/gbmtest.c",
+    ],
+}
+
+//gbmutilstest
+cc_binary {
+    name: "gbmutilstest",
+    sanitize: {
+        integer_overflow: true,
+    },
+    vendor: true,
+    double_loadable:true,
+    header_libs: [
+        "libgbm-headers",
+        "display_headers",
+        "qti_display_kernel_headers",
+        "libcutils_headers",
+    ],
+    shared_libs: [
+        "libgbm_la",
+        "libgbmuitls",
+        "libcutils",
+    ],
+    srcs: [
+        "test/gbm_utils_test.cpp",
     ],
 }
 
