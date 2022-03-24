@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017 - 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -190,8 +193,8 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
         stride = VENUS_RGB_STRIDE(COLOR_FMT_RGBA8888_UBWC, bo->width);
       }
     }
-    return stride;
   }
+  return stride;
 }
 
 static void
@@ -354,11 +357,16 @@ static int GetFormatBpp(uint32_t format)
 {
    switch(format)
    {
+        case GBM_FORMAT_R8:
+            return 1;
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
             return 2;
         case GBM_FORMAT_RGB888:
             return 3;
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -401,6 +409,10 @@ static int IsFormatSupported(uint32_t format)
 
     switch(format)
     {
+        case GBM_FORMAT_R8:
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
@@ -448,6 +460,10 @@ is_format_rgb(uint32_t format)
 
     switch(format)
     {
+        case GBM_FORMAT_R8:
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
@@ -1015,8 +1031,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     }
     else
     {
-        LOG(LOG_INFO,"Search failed so register_to_map\n",
-                                                    __func__,__LINE__);
+        LOG(LOG_INFO,"Search failed so register_to_map\n");
         //Copy the buffer info credentials
         gbo_info.fd=buffer_info->fd;
         gbo_info.metadata_fd = -1; //since we do not have meta fd info here
@@ -1402,6 +1417,11 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
             gbo_private_info.cpuaddr, fd_data->fds[0]);
     }
     struct gbm_buf_info *buffer_info =  (struct gbm_buf_info *)calloc(1, sizeof(struct gbm_buf_info));
+    if (buffer_info == NULL) {
+        LOG(LOG_ERR," Unable to allocate buffer_info\n");
+        return NULL;
+    }
+
     buffer_info->fd = fd_data->fds[0];
     buffer_info->width = fd_data->width;
     buffer_info->height = fd_data->height;
@@ -1437,6 +1457,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
 
     if (msm_gbmbo == NULL) {
         LOG(LOG_ERR," Unable to allocate BO OoM\n");
+        free(buffer_info);
         return NULL;
     }
 
@@ -1949,6 +1970,11 @@ msmgbm_device_destroy(struct gbm_device *gbm)
 
     lock_destroy();
 
+    if (!msm_dev) {
+        LOG(LOG_ERR,"NULL or Invalid device pointer\n");
+        return;
+    }
+
     LOG(LOG_DBG, "iondev_fd:%d \n", msm_dev->iondev_fd);
     //Close the ion device fd
     if(msm_dev->iondev_fd > 0)
@@ -1958,10 +1984,7 @@ msmgbm_device_destroy(struct gbm_device *gbm)
         free(msm_dev);
         msm_dev = NULL;
     }
-    else {
 
-         LOG(LOG_ERR,"NULL or Invalid device pointer\n");
-    }
     return;
 }
 
@@ -2155,7 +2178,7 @@ void* msmgbm_cpu_map_ionfd(int ion_fd, unsigned int size, struct meta_data_t *me
                 LOG(LOG_DBG, "cpu mapping failed for ion fd = %d, %s", ion_fd, strerror(errno));
             }
         }
-        LOG(LOG_DBG, "Can't map secure buffer", __func__, __LINE__);
+        LOG(LOG_DBG, "Can't map secure buffer");
     }
 
     return cpuaddr;
@@ -2163,23 +2186,33 @@ void* msmgbm_cpu_map_ionfd(int ion_fd, unsigned int size, struct meta_data_t *me
 
 void* msmgbm_bo_meta_map(struct gbm_bo *bo)
 {
-        struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
-        uint32_t mt_size;
-        void *mt_cpuaddr;
+    if (!bo) {
+        LOG(LOG_ERR, "Failed to map buffer : bo is NULL\n");
+        return NULL;
+    }
 
-        if(msm_gbm_bo) {
-            mt_cpuaddr = msm_gbm_bo->mt_cpuaddr;
-        } else {
-            LOG(LOG_INFO, "This is not optimized path: %s,%d\n", __func__, __LINE__);
-            mt_size = query_metadata_size();
-            mt_cpuaddr = msmgbm_cpu_map_metafd(bo->ion_metadata_fd, mt_size);
-        }
+    struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
+    uint32_t mt_size;
+    void *mt_cpuaddr;
 
-        return mt_cpuaddr;
+    if(msm_gbm_bo) {
+        mt_cpuaddr = msm_gbm_bo->mt_cpuaddr;
+    } else {
+        LOG(LOG_INFO, "This is not optimized path for mapping metadata bo\n");
+        mt_size = query_metadata_size();
+        mt_cpuaddr = msmgbm_cpu_map_metafd(bo->ion_metadata_fd, mt_size);
+    }
+
+    return mt_cpuaddr;
 }
 
 void* msmgbm_bo_cpu_map(struct gbm_bo *bo)
 {
+    if (!bo) {
+        LOG(LOG_ERR, "Failed to map buffer : bo is NULL\n");
+        return NULL;
+    }
+
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
     struct meta_data_t *mt_cpuaddr;
     void *cpuaddr = NULL;
@@ -2873,8 +2906,10 @@ int msmgbm_set_metadata(struct gbm_bo *gbo, int paramType,void *param) {
     data = (struct meta_data_t *)base;
 
     // If parameter is NULL reset the specific MetaData Key
-    if (!param)
+    if (!param) {
        data->operation &= ~paramType;
+       return GBM_ERROR_BAD_VALUE;
+    }
 
     data->operation |= paramType;
 
