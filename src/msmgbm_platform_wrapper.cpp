@@ -27,6 +27,42 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted (subject to the limitations in the
+* disclaimer below) provided that the following conditions are met:
+*
+*    * Redistributions of source code must retain the above copyright
+*      notice, this list of conditions and the following disclaimer.
+*
+*    * Redistributions in binary form must reproduce the above
+*      copyright notice, this list of conditions and the following
+*      disclaimer in the documentation and/or other materials provided
+*      with the distribution.
+*
+*    * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+*      contributors may be used to endorse or promote products derived
+*      from this software without specific prior written permission.
+*
+* NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+* GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+* HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+* IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+* GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+* IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+* OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+* IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include <cstdio>
 #include <cstddef>
 #include <pthread.h>
@@ -513,10 +549,14 @@ void platform_wrap::get_yuv_ubwc_wdth_hght(int width, int height, int format,
       *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_BPP10_UBWC, height);
       break;
     case GBM_FORMAT_YCbCr_420_P010_UBWC:
-       // The macro returns the stride which is 2 times the width, hence / 2
-       *aligned_w = (MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_P010_UBWC, width) / 2);
-       *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_P010_UBWC, height);
-    break;
+      // The macro returns the stride which is 2 times the width, hence / 2
+      *aligned_w = (MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_P010_UBWC, width) / 2);
+      *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_P010_UBWC, height);
+      break;
+    case GBM_FORMAT_C8:
+      *aligned_w = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width));
+      *aligned_h = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height));
+      break;
     default:
       LOG(LOG_ERR," Unsupported pixel format: 0x%x\n",format);
       *aligned_w = 0;
@@ -614,6 +654,10 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
           *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12, height));
       }
       break;
+    case GBM_FORMAT_C8:
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width));
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height));
+      break;
     case GBM_FORMAT_YCrCb_420_SP_VENUS:
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV21, width));
       *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV21, height));
@@ -650,6 +694,7 @@ bool platform_wrap::is_valid_ubwc_fmt(int format) {
     case GBM_FORMAT_YCbCr_420_TP10_UBWC:
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
     case GBM_FORMAT_YCbCr_420_P010_UBWC:
+    case GBM_FORMAT_C8:
       return true;
     default:
       return false;
@@ -791,6 +836,8 @@ unsigned int platform_wrap::get_rgb_ubwc_mb_size(int width, int height, uint32_t
 
 unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, unsigned int alignedw,
                                                 unsigned int alignedh) {
+  unsigned int y_meta_stride = 0;
+  unsigned int y_meta_scanlines = 0;
   unsigned int size = 0;
   uint32_t bpp = 0;
   switch (format) {
@@ -813,6 +860,12 @@ unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, uns
       break;
     case GBM_FORMAT_YCbCr_420_P010_UBWC:
       size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_P010_UBWC, width, height);
+      break;
+    case GBM_FORMAT_C8:
+      size = MMM_COLOR_FMT_ALIGN((alignedw * alignedh), 4096);
+      y_meta_stride = MMM_COLOR_FMT_Y_META_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width);
+      y_meta_scanlines = MMM_COLOR_FMT_Y_META_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
+      size += MMM_COLOR_FMT_ALIGN(y_meta_stride * y_meta_scanlines, 4096);
       break;
     default:
       LOG(LOG_ERR," Unsupported pixel format: 0x%x\n",format);

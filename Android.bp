@@ -1,0 +1,91 @@
+cc_library_headers {
+    name: "libgbm-headers",
+
+    export_include_dirs: [
+        "inc/",
+    ],
+
+    // TODO: Remove this when this module is moved back to frameworks/av.
+    vendor: true,
+}
+
+//libgbm
+cc_library_shared {
+    name: "libgbm",
+    sanitize: {
+        integer_overflow: true,
+    },
+    vendor: true,
+    header_libs: [
+        "libgbm-headers",
+        "display_headers",
+        "qti_display_kernel_headers",
+        "device_kernel_headers",
+    ],
+    shared_libs: [
+        "libion",
+        "libdmabufheap",
+    ],
+    cflags: [
+        "-DLOG_TAG=\"qdgralloc\"",
+        "-D__QTI_DISPLAY_GRALLOC__",
+        "-Wno-sign-conversion",
+        "-Wno-unused-parameter",
+        "-DENABLE_DRM",
+        "-Wno-error",
+        "-Wno-uninitialized",
+        "-Wno-return-type",
+        "-Wno-implicit-int",
+        "-Wno-int-conversion",
+        "-Wno-implicit-function-declaration",
+        "-DVENUS_COLOR_FORMAT",
+        "-DALLOCATE_SURFACE_BO_AT_CREATION",
+    ],
+    srcs: [
+        "src/gbm.c",
+        "src/msmgbm_camera.c",
+        "src/msmgbm_video.c",
+        "src/msmgbm_common.c",
+        "src/msmgbm_platform_wrapper.cpp",
+        "src/msmgbm_adreno_utils.cpp",
+        "src/msmgbm_mapper.cpp",
+        "src/msmgbm.c",
+        "src/msmgbm_dma.cpp",
+    ],
+}
+
+//gbmtest
+cc_binary {
+    name: "gbmtest",
+    sanitize: {
+        integer_overflow: true,
+    },
+    vendor: true,
+    double_loadable:true,
+    header_libs: [
+        "libgbm-headers",
+        "display_headers",
+        "qti_display_kernel_headers",
+    ],
+    shared_libs: [
+        "libgbm",
+    ],
+    cflags: [
+        "-DLOG_TAG=\"qdgralloc\"",
+        "-D__QTI_DISPLAY_GRALLOC__",
+        "-Wno-sign-conversion",
+        "-Wno-unused-parameter",
+        "-DENABLE_DRM",
+        "-Wno-error",
+        "-Wno-uninitialized",
+        "-Wno-return-type",
+        "-Wno-implicit-int",
+        "-Wno-int-conversion",
+        "-Wno-implicit-function-declaration",
+        "-DVENUS_COLOR_FORMAT",
+    ],
+    srcs: [
+        "test/gbmtest.c",
+    ],
+}
+

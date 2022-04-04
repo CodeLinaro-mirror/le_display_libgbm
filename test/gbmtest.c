@@ -33,6 +33,43 @@
  * Use of this source code is governed by a BSD-style license that can be
  * found in the LICENSE file.
  */
+
+ /*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+*
+* Redistribution and use in source and binary forms, with or without
+* modification, are permitted (subject to the limitations in the
+* disclaimer below) provided that the following conditions are met:
+*
+*    * Redistributions of source code must retain the above copyright
+*      notice, this list of conditions and the following disclaimer.
+*
+*    * Redistributions in binary form must reproduce the above
+*      copyright notice, this list of conditions and the following
+*      disclaimer in the documentation and/or other materials provided
+*      with the distribution.
+*
+*    * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+*      contributors may be used to endorse or promote products derived
+*      from this software without specific prior written permission.
+*
+* NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+* GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+* HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+* IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+* GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+* IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+* OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+* IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -48,7 +85,6 @@
 #include <unistd.h>
 #include <gbm.h>
 #include <gbm_priv.h>
-#include <wayland-server.h>
 #include <drm/drm_fourcc.h>
 #include <display/drm/sde_drm.h>
 #ifdef USE_GLIB
@@ -168,6 +204,8 @@ static char *get_format_string(uint32_t format)
             return "GBM_FORMAT_YCbCr_420_P010_UBWC";
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
             return "GBM_FORMAT_YCbCr_420_TP10_UBWC";
+        case GBM_FORMAT_C8:
+            return "GBM_FORMAT_C8";
         default:
             return "NA";
     }
@@ -1506,15 +1544,6 @@ static int test_surface_ubwc_status()
 }
 
 /*
- * Tests to validate gbm buf info from wl resource
- */
-static int test_validate_gbmbuf_wlresource()
-{
-   printf("Bo allocation with wl_resource is depricated.\n");
-   return 1;
-}
-
-/*
  * Tests that we can allocate different buffer dimensions.
  */
 static int test_alloc_free_sizes()
@@ -1834,58 +1863,6 @@ static int test_import_gbm_buf()
 
     return 1;
 }
-
-static int test_import_wl_buffer()
-{
-    struct gbm_bo *bo1, *bo2;
-    char *data1, *data2;
-    struct wl_resource resource;
-    static struct gbm_buf_info buf_info;
-    size_t bo_size;
-    uint32_t ret=GBM_ERROR_NONE;
-
-    resource.data=&buf_info;
-
-    bo1 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
-
-    buf_info.fd=bo1->ion_fd;
-    buf_info.metadata_fd=bo1->ion_metadata_fd;
-    buf_info.height=1024;
-    buf_info.width=1024;
-    buf_info.format=GBM_FORMAT_XRGB8888;
-
-    bo2 = gbm_bo_import(gbm, GBM_BO_IMPORT_WL_BUFFER,&resource,GBM_BO_USE_RENDERING);
-
-    ret=gbm_perform(GBM_PERFORM_GET_BO_SIZE, bo2, &bo_size);
-    if(ret == GBM_ERROR_NONE)
-        printf("GET BO size=%d success\n",bo_size);
-    else{
-        printf("GET BO size failed\n");
-        return 0;
-    }
-
-    if(gbm_bo_get_width(bo2)!= 1024){
-        printf("test_alloc_free BO width mismatch (expected =%d)\n",1024);
-        return 0;
-    }
-    if(gbm_bo_get_fd(bo2)!=buf_info.fd){
-        printf("test_alloc_free BO width mismatch (expected =%d)\n",buf_info.fd);
-        return 0;
-    }
-    if(gbm_bo_get_height(bo2)!= 1024){
-        printf("test_alloc_free BO height mismatch (expected=%d)\n",1024);
-        return 0;
-    }
-    if(gbm_bo_get_format(bo2)!= GBM_FORMAT_XRGB8888){
-        printf("test_alloc_free BO format mismatch (expected=%d)\n",GBM_FORMAT_XRGB8888);
-        return 0;
-    }
-
-    gbm_bo_destroy(bo1);
-
-    return 1;
-}
-
 
 /*
  * Tests focussed on validating GBM_FORMAT_P010 format
@@ -2436,6 +2413,48 @@ static int test_carveout_buffer_alloc_free()
     return 1;
 }
 
+static int gbm_format_c8_test() {
+  struct gbm_bo *bo;
+  int error = GBM_ERROR_NONE;
+
+  bo = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_C8, GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI);
+  CHECK(check_bo(bo));
+  printf("INFO: Allocated bo Format: %s, width: %d height:%d stride:%d \n",
+                                          get_format_string(bo->format),
+                                          gbm_bo_get_width(bo),
+                                          gbm_bo_get_height(bo),
+                                          gbm_bo_get_stride(bo));
+
+  int ubwc_status;
+  error = gbm_perform(GBM_PERFORM_GET_UBWC_STATUS, bo, &ubwc_status);
+  if (error != GBM_ERROR_NONE) {
+    printf("ERROR: Not able to get UBWC status\n");
+    return 0;
+  }
+
+  if(!ubwc_status) {
+    printf("ERROR: allocated buffer is not ubwc\n");
+    return 0;
+  }
+
+  generic_buf_layout_t buf_lyt;
+  error = gbm_perform(GBM_PERFORM_GET_PLANE_INFO, bo, &buf_lyt);
+  if (error != GBM_ERROR_NONE) {
+    printf("ERROR: Not able to get plane info\n");
+    return 0;
+  }
+
+  for(int i = 0; i < buf_lyt.num_planes; i++) {
+    printf("INFO: plane %d, buf_lyt.planes[%d].top_left %d, buf_lyt.planes[%d].v_increment %d, \
+            buf_lyt.planes[%d].stride %d\n", i, i, buf_lyt.planes[i].top_left, i,
+            buf_lyt.planes[i].v_increment, i, buf_lyt.planes[i].stride);
+  }
+
+  gbm_bo_destroy(bo);
+
+  return 1;
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2449,22 +2468,21 @@ int gbm_test_help() {
   printf("9 for BO Create/Destroy and with VENUS FORMAT\n");
   printf("10 for BO Create/Destroy and import fd\n");
   printf("11 for BO Create/Destroy and import gbm buf\n");
-  printf("12 for BO Create/Destroy and import wl buf\n");
-  printf("13 for BO Write/Read and CPU map/unmap Operation on Secure Buffer\n");
-  printf("14 for GBM  Multiple device/destroy calls\n");
-  printf("15 Test Metadata fd\n");
-  printf("16 Test Get aligned width and height\n");
-  printf("17 Test Get UBWC status\n");
-  printf("18 Test UBWC status on Surface\n");
-  printf("19 Validate gbm_buf_info from wl_resource\n");
-  printf("20 Test Colorspace metadata operations on BO\n");
-  printf("21 Test GBM_FORMAT_P010 format operations on BO\n");
-  printf("22 Test Device names returned by gbm_perform call\n");
-  printf("23 Test GBM_FORMAT_IMPLEMENTATION_DEFINED format\n");
-  printf("24 Test  alloc with modifiers \n");
-  printf("25 Test plane info \n");
-  printf("26 for BO secure buffer Create/Destroy \n");
-  printf("27 for Tests carveout buffer alloc/free \n");
+  printf("12 for BO Write/Read and CPU map/unmap Operation on Secure Buffer\n");
+  printf("13 for GBM  Multiple device/destroy calls\n");
+  printf("14 Test Metadata fd\n");
+  printf("15 Test Get aligned width and height\n");
+  printf("16 Test Get UBWC status\n");
+  printf("17 Test UBWC status on Surface\n");
+  printf("18 Test Colorspace metadata operations on BO\n");
+  printf("19 Test GBM_FORMAT_P010 format operations on BO\n");
+  printf("20 Test Device names returned by gbm_perform call\n");
+  printf("21 Test GBM_FORMAT_IMPLEMENTATION_DEFINED format\n");
+  printf("22 Test  alloc with modifiers \n");
+  printf("23 Test plane info \n");
+  printf("24 for BO secure buffer Create/Destroy \n");
+  printf("25 for Tests carveout buffer alloc/free \n");
+  printf("26 for Tests GBM_FORMAT_C8 alloc/free \n");
   return 0;
 }
 
@@ -2527,79 +2545,75 @@ int main(int argc, char *argv[])
             result &= test_import_gbm_buf();
             break;
         case 12:
-            result &= test_init();
-            result &= test_import_wl_buffer();
-            break;
-        case 13:
             result &= test_bo_write_secure(GBM_BO_USAGE_PROTECTED_QTI |
                                            GBM_BO_ALLOC_SECURE_HEAP_QTI);
             break;
-        case 14:
+        case 13:
             result &= test_multi_create_device();
             break;
-        case 15:
+        case 14:
             result &= test_init();
             result &= test_alloc_free_validate_meta_fd();
             result &= test_destroy();
             break;
-        case 16:
+        case 15:
             result &= test_init();
             result &= test_get_aligned_width_height();
             result &= test_destroy();
             break;
-        case 17:
+        case 16:
             result &= test_init();
             result &= test_get_ubwc_status();
             result &= test_destroy();
             break;
-        case 18:
+        case 17:
             result &= test_init();
             result &= test_surface_ubwc_status();
             result &= test_destroy();
             break;
-        case 19:
-            result &= test_init();
-            result &= test_validate_gbmbuf_wlresource();
-            result &= test_destroy();
-            break;
-        case 20:
+        case 18:
             result &= test_init();
             result &= test_validate_colorspace();
             result &= test_destroy();
             break;
-        case 21:
+        case 19:
             result &= test_init();
             result &= test_validate_p010_format();
             result &= test_destroy();
             break;
-        case 22:
+        case 20:
             result &= test_init();
             result &= test_device_names();
             result &= test_destroy();
             break;
-        case 23:
+        case 21:
             result &= test_init();
             result &= test_implement_defined_format();
             result &= test_destroy();
             break;
-        case 24:
+        case 22:
             result &= test_init();
             result &= test_alloc_with_modifiers();
             result &= test_destroy();
         break;
-        case 25:
+        case 23:
             result &= test_init();
             result &= test_plane_info();
             result &= test_destroy();
         break;
-        case 26:
+        case 24:
             result &= test_init();
             result &= test_secure_buffer_alloc_free();
             result &= test_destroy();
             break;
-        case 27:
+        case 25:
             result &= test_init();
             result &= test_carveout_buffer_alloc_free();
+            result &= test_destroy();
+            break;
+        case 26:
+            result &= test_init();
+            result &= gbm_format_c8_test();
             result &= test_destroy();
             break;
         default:

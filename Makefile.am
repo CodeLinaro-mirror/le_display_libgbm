@@ -5,11 +5,11 @@ gbm_include_HEADERS = $(gbm_h_sources)
 
 AM_CFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs -std=c++17
 AM_CFLAGS+= -I./inc
-AM_CFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DBUILD_HAS_WAYLAND_SUPPORT -DVENUS_COLOR_FORMAT
+AM_CFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DVENUS_COLOR_FORMAT
 
 AM_CPPFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs -std=c++17
 AM_CPPFLAGS+= -I./inc
-AM_CPPFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DBUILD_HAS_WAYLAND_SUPPORT -DVENUS_COLOR_FORMAT
+AM_CPPFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DVENUS_COLOR_FORMAT
 
 if ENABLE_COMPILEWITHDRM
 AM_CFLAGS += -DENABLE_DRM
@@ -23,7 +23,7 @@ lib_LTLIBRARIES  = libgbm.la
 libgbm_la_CFLAGS = $(AM_CFLAGS)
 libgbm_la_CPPFLAGS = $(AM_CFLAGS)
 libgbm_la_CPPFLAGS +=  @LIBDMABUFHEAP_CFLAGS@
-libgbm_la_LDFLAGS = -shared -avoid-version -lm -ldl -lwayland-server -lwayland-client -ldmabufheap
+libgbm_la_LDFLAGS = -shared -avoid-version -lm -ldl -ldmabufheap
 libgbm_la_SOURCES = src/gbm.c \
                     src/msmgbm_camera.c \
                     src/msmgbm_video.c \
