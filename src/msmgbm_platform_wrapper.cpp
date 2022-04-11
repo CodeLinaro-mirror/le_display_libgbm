@@ -1,34 +1,65 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
-* Not a Contribution.
-*
-* Copyright (c) 2018, 2021 The Linux Foundation. All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted provided that the following conditions are
-* met:
-*     * Redistributions of source code must retain the above copyright
-*       notice, this list of conditions and the following disclaimer.
-*     * Redistributions in binary form must reproduce the above
-*       copyright notice, this list of conditions and the following
-*       disclaimer in the documentation and/or other materials provided
-*       with the distribution.
-*     * Neither the name of The Linux Foundation nor the names of its
-*       contributors may be used to endorse or promote products derived
-*       from this software without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
-* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
-* ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
-* BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-* CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-* SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
-* BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-* WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-* OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-* IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+ * Copyright (c) 2018, 2021 The Linux Foundation. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions are
+ * met:
+ *     * Redistributions of source code must retain the above copyright
+ *       notice, this list of conditions and the following disclaimer.
+ *     * Redistributions in binary form must reproduce the above
+ *       copyright notice, this list of conditions and the following
+ *       disclaimer in the documentation and/or other materials provided
+ *       with the distribution.
+ *     * Neither the name of The Linux Foundation nor the names of its
+ *       contributors may be used to endorse or promote products derived
+ *       from this software without specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT
+ * ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS
+ * BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ *
+ * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted (subject to the limitations in the
+ * disclaimer below) provided that the following conditions are met:
+ *
+ *    * Redistributions of source code must retain the above copyright
+ *      notice, this list of conditions and the following disclaimer.
+ *
+ *    * Redistributions in binary form must reproduce the above
+ *      copyright notice, this list of conditions and the following
+ *      disclaimer in the documentation and/or other materials provided
+ *      with the distribution.
+ *
+ *    * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
+ *      contributors may be used to endorse or promote products derived
+ *      from this software without specific prior written permission.
+ *
+ * NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
+ * GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
+ * HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
+ * WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ * ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+ * GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+ * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+ * IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+ * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
 
 #include <cstdio>
 #include <cstddef>
@@ -437,30 +468,30 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE:
         case GBM_FORMAT_NV12:
-            size = VENUS_BUFFER_SIZE(COLOR_FMT_NV12, width, height);
-            LOG(LOG_INFO," VENUS_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
+            size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12, width, height);
+            LOG(LOG_INFO," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
-#ifdef COLOR_FMT_NV12_512
+#ifdef MMM_COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
-            size = VENUS_BUFFER_SIZE(COLOR_FMT_NV12_512, width, height);
-            LOG(LOG_INFO," VENUS_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
+            size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_512, width, height);
+            LOG(LOG_INFO," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
 #endif
         case GBM_FORMAT_YCrCb_420_SP_VENUS:
-            size = VENUS_BUFFER_SIZE(COLOR_FMT_NV21, width, height);
+            size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV21, width, height);
             break;
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
             // The macro returns the stride which is 4/3 times the width, hence * 3/4
-            //*aligned_w = (VENUS_Y_STRIDE(COLOR_FMT_NV12_BPP10_UBWC, width) * 3) / 4;
-            //*aligned_h = VENUS_Y_SCANLINES(COLOR_FMT_NV12_BPP10_UBWC, height);
-            size = VENUS_BUFFER_SIZE(COLOR_FMT_NV12_BPP10_UBWC, width, height);
-            LOG(LOG_INFO," VENUS_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
+            //*aligned_w = (MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width) * 3) / 4;
+            //*aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_BPP10_UBWC, height);
+            size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width, height);
+            LOG(LOG_INFO," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
-            size = VENUS_BUFFER_SIZE(COLOR_FMT_P010, width, height);
+            size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_P010, width, height);
             break;
         case GBM_FORMAT_P010:
             size = ALIGN((alignedw * alignedh * 2) + (alignedw * alignedh) + 1, 4096);
@@ -524,18 +555,18 @@ void platform_wrap::get_yuv_ubwc_wdth_hght(int width, int height, int format,
     case GBM_FORMAT_NV12_ENCODEABLE:
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
-      *aligned_w = VENUS_Y_STRIDE(COLOR_FMT_NV12_UBWC, width);
-      *aligned_h = VENUS_Y_SCANLINES(COLOR_FMT_NV12_UBWC, height);
+      *aligned_w = MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width);
+      *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
       break;
     case GBM_FORMAT_YCbCr_420_TP10_UBWC:
       // The macro returns the stride which is 4/3 times the width, hence * 3/4
-      *aligned_w = (VENUS_Y_STRIDE(COLOR_FMT_NV12_BPP10_UBWC, width) * 3) / 4;
-      *aligned_h = VENUS_Y_SCANLINES(COLOR_FMT_NV12_BPP10_UBWC, height);
+      *aligned_w = (MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width) * 3) / 4;
+      *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_BPP10_UBWC, height);
       break;
     case GBM_FORMAT_YCbCr_420_P010_UBWC:
        // The macro returns the stride which is 2 times the width, hence / 2
-       *aligned_w = (VENUS_Y_STRIDE(COLOR_FMT_P010_UBWC, width) / 2);
-       *aligned_h = VENUS_Y_SCANLINES(COLOR_FMT_P010_UBWC, height);
+       *aligned_w = (MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_P010_UBWC, width) / 2);
+       *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_P010_UBWC, height);
     break;
     default:
       LOG(LOG_ERR," Unsupported pixel format: 0x%x\n",format);
@@ -616,49 +647,49 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedh = height;
       break;
     case GBM_FORMAT_YCbCr_420_P010_VENUS:
-      *alignedw = INT(VENUS_Y_STRIDE(COLOR_FMT_P010, width) / 2);
-      *alignedh = INT(VENUS_Y_SCANLINES(COLOR_FMT_P010, height));
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_P010, width) / 2);
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_P010, height));
       break;
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_NV12_ENCODEABLE:
       LOG(LOG_DBG,"@ YUV Format\n");
-      *alignedw = INT(VENUS_Y_STRIDE(COLOR_FMT_NV12, width));
-      *alignedh = INT(VENUS_Y_SCANLINES(COLOR_FMT_NV12, height));
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12, width));
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12, height));
       break;
     case GBM_FORMAT_NV12:
       if (ubwc_enabled) {
-          *alignedw = INT(VENUS_Y_STRIDE(COLOR_FMT_NV12_UBWC, width));
-          *alignedh = INT(VENUS_Y_SCANLINES(COLOR_FMT_NV12_UBWC, height));
+          *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width));
+          *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height));
       } else {
-          *alignedw = INT(VENUS_Y_STRIDE(COLOR_FMT_NV12, width));
-          *alignedh = INT(VENUS_Y_SCANLINES(COLOR_FMT_NV12, height));
+          *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12, width));
+          *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12, height));
       }
       break;
     case GBM_FORMAT_YCrCb_420_SP_VENUS:
-      *alignedw = INT(VENUS_Y_STRIDE(COLOR_FMT_NV21, width));
-      *alignedh = INT(VENUS_Y_SCANLINES(COLOR_FMT_NV21, height));
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV21, width));
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV21, height));
       break;
     case GBM_FORMAT_YCbCr_420_TP10_UBWC:
       // The macro returns the stride which is 4/3 times the width, hence * 3/4
-      *alignedw = (VENUS_Y_STRIDE(COLOR_FMT_NV12_BPP10_UBWC, width) * 3) / 4;
-      *alignedh = VENUS_Y_SCANLINES(COLOR_FMT_NV12_BPP10_UBWC, height);
+      *alignedw = (MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width) * 3) / 4;
+      *alignedh = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_BPP10_UBWC, height);
       break;
     case GBM_FORMAT_BLOB:
     case GBM_FORMAT_RAW_OPAQUE:
       break;
     case GBM_FORMAT_NV21_ZSL:
 #ifdef ENABLE_CAM_MIMAS
-      *alignedw = INT(VENUS_Y_STRIDE(COLOR_FMT_NV12, width));
-      *alignedh = INT(VENUS_Y_SCANLINES(COLOR_FMT_NV12, height));
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12, width));
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12, height));
 #else
       *alignedw = ALIGN(width, 64);
       *alignedh = ALIGN(height, 64);
 #endif
       break;
-#ifdef COLOR_FMT_NV12_512
+#ifdef MMM_COLOR_FMT_NV12_512
     case GBM_FORMAT_NV12_HEIF:
-      *alignedw = INT(VENUS_Y_STRIDE(COLOR_FMT_NV12_512, width));
-      *alignedh = INT(VENUS_Y_SCANLINES(COLOR_FMT_NV12_512, height));
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_512, width));
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_512, height));
       break;
 #endif
     default:
@@ -831,13 +862,13 @@ unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, uns
     case GBM_FORMAT_NV12:
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
-      size = VENUS_BUFFER_SIZE(COLOR_FMT_NV12_UBWC, width, height);
+      size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC, width, height);
       break;
     case GBM_FORMAT_YCbCr_420_TP10_UBWC:
-      size = VENUS_BUFFER_SIZE(COLOR_FMT_NV12_BPP10_UBWC, width, height);
+      size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width, height);
       break;
     case GBM_FORMAT_YCbCr_420_P010_UBWC:
-      size = VENUS_BUFFER_SIZE(COLOR_FMT_P010_UBWC, width, height);
+      size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_P010_UBWC, width, height);
       break;
     default:
       LOG(LOG_ERR," Unsupported pixel format: 0x%x\n",format);
