@@ -117,6 +117,7 @@ void adreno_mem_info::get_aligned_wdth_hght_uncmprsd_rgb_fmt(int width,
 
   switch (format) {
     case GBM_FORMAT_RGB888:
+    case GBM_FORMAT_BGR888:
       bpp = 3;
       break;
     case GBM_FORMAT_RG88:
@@ -209,6 +210,8 @@ ADRENOPIXELFORMAT adreno_mem_info::get_gpu_pxl_fmt(unsigned int gbm_format) {
      return ADRENO_PIXELFORMAT_R16_UNORM;
     case GBM_FORMAT_RG1616:
       return ADRENO_PIXELFORMAT_R16G16_UNORM;
+    case GBM_FORMAT_BGR888:
+      return ADRENO_PIXELFORMAT_R8G8B8;
     case GBM_FORMAT_RGBA8888:
       return ADRENO_PIXELFORMAT_R8G8B8A8;
     case GBM_FORMAT_XBGR8888:

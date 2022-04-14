@@ -266,6 +266,7 @@ int platform_wrap::is_valid_rgb_fmt(int format){
         case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -296,6 +297,7 @@ uint32_t platform_wrap::get_bpp_for_uncmprsd_rgb_fmt(int format) {
       bpp = 4;
       break;
     case GBM_FORMAT_RGB888:
+    case GBM_FORMAT_BGR888:
       bpp = 3;
       break;
     case GBM_FORMAT_RG88:
@@ -332,6 +334,7 @@ bool platform_wrap::is_valid_uncmprsd_rgb_fmt(int format) {
     case GBM_FORMAT_RGBA8888:
     case GBM_FORMAT_RGBX8888:
     case GBM_FORMAT_RGB888:
+    case GBM_FORMAT_BGR888:
     case GBM_FORMAT_RGB565:
     case GBM_FORMAT_BGR565:
     case GBM_FORMAT_BGRA8888:
@@ -393,6 +396,7 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
             size = alignedw * alignedh * 4;
             break;
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
             size = alignedw * alignedh * 3;
             break;
         case GBM_FORMAT_RG88:
