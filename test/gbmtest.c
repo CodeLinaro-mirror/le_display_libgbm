@@ -2381,13 +2381,13 @@ static int test_carveout_buffer_alloc_free()
     uint32_t align_hght;
 
     printf("test_alloc_free run\n");
-    const uint64_t usage[4] = {GBM_BO_ALLOC_CARVEOUT_HEAP_LEFT_QTI,
-                               GBM_BO_ALLOC_CARVEOUT_HEAP_RIGHT_QTI,
-                               GBM_BO_ALLOC_CARVEOUT_HEAP_DEPTH_QTI,
-                               GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI,
+    const uint64_t usage[4] = {GBM_BO_ALLOC_CARVEOUT_HEAP_LEFT_QTI | GBM_BO_USE_WRITE,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_RIGHT_QTI | GBM_BO_USE_WRITE,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_DEPTH_QTI | GBM_BO_USE_WRITE,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI | GBM_BO_USE_WRITE,
                               };
     for (int i = 0; i < 4; i++) {
-      gb_bo = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, usage[i]);
+      gb_bo = gbm_bo_create(gbm, 100, 100, GBM_FORMAT_XRGB8888, usage[i]);
       CHECK(check_bo(gb_bo));
 
       ret=gbm_perform(GBM_PERFORM_GET_BO_ALIGNED_WIDTH, gb_bo, &align_wdth);
@@ -2406,7 +2406,45 @@ static int test_carveout_buffer_alloc_free()
           return 0;
       }
 
+      char *read_write_buf = NULL;
+      char **read_write_Ptr = &read_write_buf;
+      size_t size = 0;
+      char *buf = NULL;
 
+      ret = gbm_perform(GBM_PERFORM_GET_BO_SIZE, gb_bo, &size);
+      if(ret != GBM_ERROR_NONE) {
+          printf("GET BO size failed\n");
+          return 0;
+      }
+
+      // Write on buffer
+      buf = malloc(size);
+      for(int j = 0; j < size; j++) {
+        buf[j] = j;
+      }
+
+      ret = gbm_bo_write(gb_bo, buf, size);
+      if(ret != GBM_ERROR_NONE) {
+          printf("gbm_bo_write failed\n");
+          return 0;
+      }
+
+      // Reading from buffer
+      ret = gbm_perform(GBM_PERFORM_CPU_MAP_FOR_BO, gb_bo, read_write_Ptr);
+      if(ret != GBM_ERROR_NONE || !read_write_buf) {
+          printf("Failed to get cpu address\n");
+          return 0;
+      }
+
+      // Validation
+      for(int j = 0; j < size; j++) {
+        if (buf[j] != read_write_buf[j]) {
+          printf("Mismatch found index %d\n", j);
+          return 0;
+        }
+      }
+
+      free(buf);
       gbm_bo_destroy(gb_bo);
     }
 
