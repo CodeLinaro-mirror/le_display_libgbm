@@ -3,11 +3,11 @@ gbm_h_sources = ${srcdir}/inc/gbm*.h
 gbm_includedir = $(includedir)
 gbm_include_HEADERS = $(gbm_h_sources)
 
-AM_CFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs -std=c++17
+AM_CFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs
 AM_CFLAGS+= -I./inc
 AM_CFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DVENUS_COLOR_FORMAT
 
-AM_CPPFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs -std=c++17
+AM_CPPFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs
 AM_CPPFLAGS+= -I./inc
 AM_CPPFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DVENUS_COLOR_FORMAT
 
@@ -21,8 +21,9 @@ endif
 
 lib_LTLIBRARIES  = libgbm.la
 libgbm_la_CFLAGS = $(AM_CFLAGS)
-libgbm_la_CPPFLAGS = $(AM_CFLAGS)
+libgbm_la_CPPFLAGS = $(AM_CPPFLAGS)
 libgbm_la_CPPFLAGS +=  @LIBDMABUFHEAP_CFLAGS@
+libgbm_la_CXXFLAGS =  -std=c++17
 libgbm_la_LDFLAGS = -shared -avoid-version -lm -ldl -ldmabufheap
 libgbm_la_SOURCES = src/gbm.c \
                     src/msmgbm_camera.c \
