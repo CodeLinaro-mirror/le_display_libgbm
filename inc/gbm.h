@@ -149,7 +149,8 @@ enum gbm_bo_format {
 #define GBM_FORMAT_BIG_ENDIAN (1<<31) /* format is big endian instead of little endian */
 
 /* color index */
-#define GBM_FORMAT_C8		__gbm_fourcc_code('C', '8', ' ', ' ') /* [7:0] C */
+#define GBM_FORMAT_C8		        __gbm_fourcc_code('C', '8', ' ', ' ') /* [7:0] C */
+#define GBM_FORMAT_C8_LINEAR		__gbm_fourcc_code('C', '8', 'L', 'R') /* [7:0] C */
 
 /* 8 bpp RGB */
 #define GBM_FORMAT_RGB332	__gbm_fourcc_code('R', 'G', 'B', '8') /* [7:0] R:G:B 3:3:2 */

@@ -493,6 +493,9 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_NV21_ZSL:
             size = ALIGN((alignedw*alignedh) + (alignedw* alignedh)/2, 4096);
             break;
+        case GBM_FORMAT_C8_LINEAR:
+            size = alignedw * alignedh;
+            break;
         case GBM_FORMAT_COMPRESSED_RGBA_ASTC_4x4_KHR:
         case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x4_KHR:
         case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x5_KHR:
@@ -653,6 +656,10 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
           *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12, width));
           *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12, height));
       }
+      break;
+    case GBM_FORMAT_C8_LINEAR:
+      *alignedw = width;
+      *alignedh = height;
       break;
     case GBM_FORMAT_C8:
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width));
