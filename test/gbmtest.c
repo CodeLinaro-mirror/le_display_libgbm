@@ -53,7 +53,6 @@
 #include <gbm_priv.h>
 #include <wayland-server.h>
 #include <drm/drm_fourcc.h>
-#include <display/drm/sde_drm.h>
 #ifdef USE_GLIB
 #include <glib.h>
 #define strlcat g_strlcat
