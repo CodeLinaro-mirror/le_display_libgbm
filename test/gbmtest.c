@@ -2381,13 +2381,13 @@ static int test_carveout_buffer_alloc_free()
     uint32_t align_hght;
 
     printf("test_alloc_free run\n");
-    const uint64_t usage[4] = {GBM_BO_ALLOC_CARVEOUT_HEAP_LEFT_QTI,
-                               GBM_BO_ALLOC_CARVEOUT_HEAP_RIGHT_QTI,
-                               GBM_BO_ALLOC_CARVEOUT_HEAP_DEPTH_QTI,
-                               GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI,
+    const uint64_t usage[4] = {GBM_BO_ALLOC_CARVEOUT_HEAP_LEFT_QTI | GBM_BO_USE_WRITE,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_RIGHT_QTI | GBM_BO_USE_WRITE,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_DEPTH_QTI | GBM_BO_USE_WRITE,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI | GBM_BO_USE_WRITE,
                               };
     for (int i = 0; i < 4; i++) {
-      gb_bo = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, usage[i]);
+      gb_bo = gbm_bo_create(gbm, 100, 100, GBM_FORMAT_XRGB8888, usage[i]);
       CHECK(check_bo(gb_bo));
 
       ret=gbm_perform(GBM_PERFORM_GET_BO_ALIGNED_WIDTH, gb_bo, &align_wdth);
@@ -2406,7 +2406,45 @@ static int test_carveout_buffer_alloc_free()
           return 0;
       }
 
+      char *read_write_buf = NULL;
+      char **read_write_Ptr = &read_write_buf;
+      size_t size = 0;
+      char *buf = NULL;
 
+      ret = gbm_perform(GBM_PERFORM_GET_BO_SIZE, gb_bo, &size);
+      if(ret != GBM_ERROR_NONE) {
+          printf("GET BO size failed\n");
+          return 0;
+      }
+
+      // Write on buffer
+      buf = malloc(size);
+      for(int j = 0; j < size; j++) {
+        buf[j] = j;
+      }
+
+      ret = gbm_bo_write(gb_bo, buf, size);
+      if(ret != GBM_ERROR_NONE) {
+          printf("gbm_bo_write failed\n");
+          return 0;
+      }
+
+      // Reading from buffer
+      ret = gbm_perform(GBM_PERFORM_CPU_MAP_FOR_BO, gb_bo, read_write_Ptr);
+      if(ret != GBM_ERROR_NONE || !read_write_buf) {
+          printf("Failed to get cpu address\n");
+          return 0;
+      }
+
+      // Validation
+      for(int j = 0; j < size; j++) {
+        if (buf[j] != read_write_buf[j]) {
+          printf("Mismatch found index %d\n", j);
+          return 0;
+        }
+      }
+
+      free(buf);
       gbm_bo_destroy(gb_bo);
     }
 
@@ -2455,6 +2493,97 @@ static int gbm_format_c8_test() {
   return 1;
 }
 
+/*
+ * Tests secure carveout buffer alloc/free.
+ */
+static int test_secure_carveout_buffer_alloc_free()
+{
+    int j=0, ret=0;
+    generic_buf_layout_t buf_lyt;
+    int cp_stat=0;
+    struct gbm_bo *bo=NULL;
+
+    printf("----------------Secured Carveout Buffer Test----------------------\n");
+    const uint64_t usage[4] = {GBM_BO_ALLOC_CARVEOUT_HEAP_LEFT_QTI | GBM_BO_ALLOC_SECURE_HEAP_QTI |                           GBM_BO_USAGE_PROTECTED_QTI, GBM_BO_ALLOC_CARVEOUT_HEAP_RIGHT_QTI |
+                               GBM_BO_ALLOC_SECURE_HEAP_QTI | GBM_BO_USAGE_PROTECTED_QTI,
+                               GBM_BO_ALLOC_CARVEOUT_HEAP_DEPTH_QTI | GBM_BO_ALLOC_SECURE_HEAP_QTI |
+                               GBM_BO_USAGE_PROTECTED_QTI, GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI |
+                               GBM_BO_ALLOC_SECURE_HEAP_QTI | GBM_BO_USAGE_PROTECTED_QTI };
+
+  for (int i = 0; i < 4; i++) {
+    bo = gbm_bo_create(gbm, 100, 100, GBM_FORMAT_C8, usage[i]);
+
+
+    printf("test_secure_carveout_buffer_alloc_free BO width(%d)\n",gbm_bo_get_width(bo));
+    printf("test_secure_carveout_buffer_alloc_free BO height(%d)\n",gbm_bo_get_height(bo));
+    printf("test_secure_carveout_buffer_alloc_free BO stride(%d)\n",gbm_bo_get_stride(bo));
+    printf("test_secure_carveout_buffer_alloc_free BO format(0x%x)\n",gbm_bo_get_format(bo));
+    CHECK(check_bo(bo));
+
+    ret=gbm_perform(GBM_PERFORM_GET_YUV_PLANE_INFO, bo, &buf_lyt);
+    if(ret == GBM_ERROR_NONE){
+        printf("GET YUV Info success\n");
+        for(j = 0; j < (buf_lyt.num_planes); j++){
+            printf("plane[%d].h_increment=%d\n",j,buf_lyt.planes[j].h_increment);
+            printf("plane[%d].v_increment=%d\n",j,buf_lyt.planes[j].v_increment);
+            printf("plane[%d].offset=%p\n",j,buf_lyt.planes[j].offset);
+        }
+    }
+    else{
+        printf("GET YUV Info failed\n");
+        gbm_bo_destroy(bo);
+        return 0;
+    }
+
+    ret=gbm_perform(GBM_PERFORM_GET_PLANE_INFO, bo, &buf_lyt);
+    if(ret == GBM_ERROR_NONE){
+        printf("GET YUV Info success\n");
+        for(j = 0; j < (buf_lyt.num_planes); j++){
+            printf("plane[%d].h_increment=%d\n",j,buf_lyt.planes[j].h_increment);
+            printf("plane[%d].v_increment=%d\n",j,buf_lyt.planes[j].v_increment);
+            printf("plane[%d].offset=%p\n",j,buf_lyt.planes[j].offset);
+        }
+    }
+    else{
+        printf("GET YUV Info failed\n");
+        gbm_bo_destroy(bo);
+        return 0;
+    }
+
+    // Check for secure buffer or not
+    void *prm=(void *)&cp_stat;
+    ret=gbm_perform(GBM_PERFORM_GET_SECURE_BUFFER_STATUS,bo,prm);
+    if(ret==GBM_ERROR_NONE) {
+        printf("Get Secure Buffer stat Success\n");
+        if(cp_stat!=false)
+            printf("GBM BO is a secure buffer\n");
+        else
+            printf("GBM BO is a non-secure buffer\n");
+    }
+    else {
+        printf("Get Metadata Failed\n");
+        gbm_bo_destroy(bo);
+        return 0;
+    }
+
+    // Check for UBWC buffer or not
+    int ubwc_status;
+    ret = gbm_perform(GBM_PERFORM_GET_UBWC_STATUS, bo, &ubwc_status);
+    if (ret != GBM_ERROR_NONE) {
+      printf("ERROR: Not able to get UBWC status\n");
+      return 0;
+    }
+
+    if(!ubwc_status) {
+      printf("ERROR: allocated buffer is not ubwc\n");
+      return 0;
+    }
+
+    gbm_bo_destroy(bo);
+  }
+  return 1;
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2483,6 +2612,7 @@ int gbm_test_help() {
   printf("24 for BO secure buffer Create/Destroy \n");
   printf("25 for Tests carveout buffer alloc/free \n");
   printf("26 for Tests GBM_FORMAT_C8 alloc/free \n");
+  printf("27 for BO secure carveout buffer Create/Destroy \n");
   return 0;
 }
 
@@ -2614,6 +2744,11 @@ int main(int argc, char *argv[])
         case 26:
             result &= test_init();
             result &= gbm_format_c8_test();
+            result &= test_destroy();
+            break;
+        case 27:
+            result &= test_init();
+            result &= test_secure_carveout_buffer_alloc_free();
             result &= test_destroy();
             break;
         default:

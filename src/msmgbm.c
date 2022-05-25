@@ -2886,6 +2886,10 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                   CHROMA_STEP, buf_lyt);
             break;
+        case GBM_FORMAT_C8:
+            get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                       MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
+            break;
         default:
              res = GBM_ERROR_UNSUPPORTED;
              break;
