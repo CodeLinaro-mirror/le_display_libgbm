@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017 - 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -377,11 +380,16 @@ static int GetFormatBpp(uint32_t format)
 {
    switch(format)
    {
+        case GBM_FORMAT_R8:
+            return 1;
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
             return 2;
         case GBM_FORMAT_RGB888:
             return 3;
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -405,6 +413,7 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
         case GBM_FORMAT_BLOB:
+        case GBM_FORMAT_C8_LINEAR:
         case GBM_FORMAT_C8:
 #ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
@@ -425,6 +434,10 @@ static int IsFormatSupported(uint32_t format)
 
     switch(format)
     {
+        case GBM_FORMAT_R8:
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
@@ -451,6 +464,7 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
         case GBM_FORMAT_BLOB:
+        case GBM_FORMAT_C8_LINEAR:
         case GBM_FORMAT_C8:
 #ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
@@ -473,6 +487,10 @@ is_format_rgb(uint32_t format)
 
     switch(format)
     {
+        case GBM_FORMAT_R8:
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
@@ -2786,16 +2804,13 @@ void get_yuv_sp_plane_info(int width, int height, int bpp,
 void get_c8_info(unsigned int y_meta_stride, unsigned int y_stride, unsigned int y_meta_height,
                  unsigned int y_meta_size, generic_buf_layout_t *buf_lyt) {
     int bpp = 1;
-    buf_lyt->num_planes = DUAL_PLANES;
+    buf_lyt->num_planes = 1;
 
-    buf_lyt->planes[0].stride = y_meta_stride;
-    buf_lyt->planes[1].stride = y_stride;
+    buf_lyt->planes[0].stride = y_stride;
 
     buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = 0;
-    buf_lyt->planes[1].top_left = buf_lyt->planes[1].offset = y_meta_size;
 
-    buf_lyt->planes[0].v_increment = y_meta_stride * bpp;
-    buf_lyt->planes[1].v_increment = y_stride * bpp;
+    buf_lyt->planes[0].v_increment = y_stride * bpp;
 }
 
 void get_yuv_ubwc_sp_plane_info(int width, int height,
@@ -2970,7 +2985,6 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
         LOG(LOG_ERR,"INVALID width or height\n");
         return NULL;
     }
-
     if(1 == IsFormatSupported(gbo->format))
         Bpp = GetFormatBpp(gbo->format);
     else
@@ -2978,17 +2992,17 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
         LOG(LOG_ERR,"Format (0x%x) not supported\n",gbo->format);
         return NULL;
     }
-
     buf_lyt->pixel_format = gbo->format;
 
-    if(is_format_rgb(gbo->format))
+    if(is_format_rgb(gbo->format) || (gbo->format == GBM_FORMAT_C8_LINEAR))
     {
         buf_lyt->num_planes = 1;
         buf_lyt->planes[0].aligned_width = gbo->aligned_width;
         buf_lyt->planes[0].aligned_height = gbo->aligned_height;
         buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = 0;
         buf_lyt->planes[0].bits_per_component = Bpp;
-        buf_lyt->planes[0].v_increment = ((gbo->aligned_width)*Bpp); //stride
+        buf_lyt->planes[0].v_increment = ((gbo->aligned_width)*Bpp);
+        buf_lyt->planes[0].stride = gbm_bo_get_stride(gbo);
     }
     else
     {
