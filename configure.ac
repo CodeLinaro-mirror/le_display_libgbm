@@ -105,6 +105,13 @@ AC_ARG_ENABLE([target-qrbx210],
 	target_qrbx210=no)
 AM_CONDITIONAL([IS_QRBX210], [test "x$target_qrbx210" = xyes])
 
+AC_ARG_ENABLE([target-qcs610],
+	AC_HELP_STRING([--enable-target-qcs610],
+		[Enable conditional compile for target qcs610]),
+	[target_qcs610="${enableval}"],
+	target_qcs610=no)
+AM_CONDITIONAL([IS_QCS610], [test "x$target_qcs610" = xyes])
+
 # Checks for programs.
 AC_PROG_CC
 AM_PROG_CC_C_O
