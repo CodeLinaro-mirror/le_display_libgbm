@@ -36,10 +36,12 @@
 #define _GBM_UTILS_H_
 
 #include <stdint.h>
+#include <string>
 
+#include <errno.h>
+#include <sys/mman.h>
 #include <cutils/native_handle.h>
 #include <gbm.h>
-#include <gbm_utils.h>
 #include <gbm_priv.h>
 
 namespace msm_gbm {
@@ -65,6 +67,8 @@ class GbmUtils {
   native_handle_t* AllocateNativeHandle(gbm_bo *bo);
   gbm_bo *GetGbmBo(native_handle_t *native_handle);
   void FreeNativeHandle(native_handle_t *native_handle);
+  int LendBufferToSecureVM(struct gbm_bo *bo, std::string vm_name, int64_t *lenddma_handle);
+  int ReclaimBufferFromSecureVM(struct gbm_bo *bo, int64_t lenddma_handle);
 };
 
 }  // namespace msm_gbm

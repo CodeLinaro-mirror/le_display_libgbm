@@ -39,11 +39,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include <gbm.h>
 #include <gbm_utils.h>
-#include <gbm_priv.h>
 #include <msmgbm.h>
 #include <msmgbm_platform_wrapper.h>
+#include <msmgbm_dma.h>
 
 namespace msm_gbm {
 
@@ -117,13 +116,13 @@ int GbmUtils::GetSize(gbm_buf_desc descriptor, uint64_t *size) {
 
 native_handle_t* GbmUtils::AllocateNativeHandle(gbm_bo *bo) {
   if (!bo) {
-    fprintf(stderr, "Failed to allocate native handle bo is null\n");
+    LOG(LOG_ERR,"Failed to allocate native handle bo is null\n");
     return NULL;
   }
 
   struct gbm_handle *handle = new gbm_handle();
   if (!handle) {
-    fprintf(stderr, "gbm handle creation failed\n");
+    LOG(LOG_ERR,"gbm handle creation failed\n");
     return NULL;
   }
 
@@ -134,7 +133,7 @@ native_handle_t* GbmUtils::AllocateNativeHandle(gbm_bo *bo) {
 
 gbm_bo * GbmUtils::GetGbmBo(native_handle_t *native_handle) {
   if (!native_handle) {
-    fprintf(stderr, "native handle is null\n");
+    LOG(LOG_ERR,"native handle is null\n");
     return NULL;
   }
 
@@ -144,6 +143,67 @@ gbm_bo * GbmUtils::GetGbmBo(native_handle_t *native_handle) {
 
 void GbmUtils::FreeNativeHandle(native_handle_t *native_handle) {
   delete reinterpret_cast<struct gbm_handle *>(native_handle);
+}
+
+int GbmUtils::LendBufferToSecureVM(struct gbm_bo *bo, std::string vm_name,
+                                   int64_t *lenddma_handle) {
+  int ret = GBM_ERROR_NONE;
+  struct meta_data_t *mt_data = nullptr;
+  if (bo == nullptr) {
+    LOG(LOG_ERR,"Bo is null\n");
+    return GBM_ERROR_BAD_HANDLE;
+  }
+
+  if(msmgbm_bo_cpu_unmap(bo) != GBM_ERROR_NONE) {
+    LOG(LOG_ERR," munmap failed for cpuaddr=0x%x\n", msmgbm_bo_cpu_map(bo));
+    return GBM_ERROR_BAD_HANDLE;
+  }
+
+  ret = LendBufferToSecure(bo->ion_fd, vm_name, lenddma_handle);
+  if (ret) {
+    LOG(LOG_ERR,"Failed to LendBufferToSecure\n");
+    return ret;
+  }
+
+  mt_data = (struct meta_data_t *)msmgbm_bo_meta_map(bo);
+  if (mt_data) {
+    mt_data->is_buffer_secure = true;
+  } else {
+    LOG(LOG_ERR,"mt_data is null\n");
+    return GBM_ERROR_NO_RESOURCES;
+  }
+
+  return ret;
+}
+
+int GbmUtils::ReclaimBufferFromSecureVM(struct gbm_bo *bo, int64_t lenddma_handle) {
+  int ret = GBM_ERROR_NONE;
+  struct meta_data_t *mt_data = nullptr;
+  if (bo == nullptr) {
+    LOG(LOG_ERR,"Bo is null\n");
+    return GBM_ERROR_BAD_HANDLE;
+  }
+
+  ret = ReclaimBufferFromSecure(bo->ion_fd, lenddma_handle);
+  if (ret) {
+    LOG(LOG_ERR,"Failed to LendBufferToSecure\n");
+    return ret;
+  }
+
+  mt_data = (struct meta_data_t *)msmgbm_bo_meta_map(bo);
+  if (mt_data) {
+    mt_data->is_buffer_secure = false;
+  } else {
+    LOG(LOG_ERR,"mt_data is NULL\n");
+    return GBM_ERROR_NO_RESOURCES;
+  }
+
+  if (msmgbm_bo_cpu_map(bo) == nullptr) {
+    LOG(LOG_ERR,"Failed to map the buffer\n");
+    return GBM_ERROR_NO_RESOURCES;
+  }
+
+  return ret;
 }
 
 }  // namespace msm_gbm

@@ -650,7 +650,6 @@ msmgbm_bo_create(struct gbm_device *gbm,
     struct msmgbm_bo *msm_gbmbo = NULL;
     int data_fd = 0;
     int mt_data_fd = 0;
-    struct drm_prime_handle drm_args;
     /* Callers of this may specify a modifier, or a dri usage, but not both. The
      * newer modifier interface deprecates the older usage flags.
      */
@@ -718,36 +717,6 @@ msmgbm_bo_create(struct gbm_device *gbm,
         LOG(LOG_DBG,"BO Mapped Addr:= %p\n",base);
     }
 
-    //Use PRIME ioctl to convert to GEM handle
-    memset(&drm_args, 0, sizeof(drm_args));
-    if(msm_dev->fd > 0)
-    {
-        if(data_fd >0)
-        {
-            //Perform DRM IOCTL FD to Handle
-            drm_args.fd = data_fd;
-            if(ioctl(msm_dev->fd,DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
-            {
-                LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed =%d\n%s\n",
-                                                          data_fd,strerror(errno));
-            }
-        }
-        else
-        {
-            LOG(LOG_ERR,"Failed to get data gem handle on BO Err:\n%s\n",strerror(errno));
-            return NULL;
-        }
-
-    }else
-    {
-        LOG(LOG_ERR,"DRM open failed error = %d\n%s\n",strerror(errno));
-        return NULL;
-    }
-
-    gem_handle=drm_args.handle;
-    LOG(LOG_DBG," Gem Handle for BO =:%p\n",gem_handle);
-
-
     /* To get ion_fd and gem handle for the metadata structure
      * Alignment of the buffer is fixed to Page size
      * ION Memory is from, the System heap
@@ -771,27 +740,6 @@ msmgbm_bo_create(struct gbm_device *gbm,
 
     // Initiliaze the meta_data structure
     memset(mt_base, 0 , mt_size);
-
-    //Use PRIME ioctl to convert to GEM handle
-    memset(&drm_args, 0, sizeof(drm_args));
-    //Use drm fd returned from previous drmOpen API
-    if(mt_data_fd >0)
-    {
-        //Perform DRM IOCTL FD to Handle
-        drm_args.fd = mt_data_fd;
-        if(ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
-        {
-            LOG(LOG_DBG,"failed to import gem_handle for Metadata from prime_fd=%d\n%s\n",strerror(errno));
-        }
-    }
-    else
-    {
-        LOG(LOG_ERR,"Failed to get metadata gem handle Err:\n%s\n",strerror(errno));
-        return NULL;
-    }
-
-    mt_gem_handle=drm_args.handle;
-    LOG(LOG_DBG,"Gem Handle for Metadata =:%p\n",mt_gem_handle);
 
     //Update the secure buffer flag info
     if(usage & GBM_BO_USAGE_PROTECTED_QTI)
@@ -1889,11 +1837,19 @@ void* msmgbm_bo_meta_map(struct gbm_bo *bo)
         void *mt_cpuaddr;
 
         if(msm_gbm_bo) {
-            mt_cpuaddr = msm_gbm_bo->mt_cpuaddr;
-        } else {
-            LOG(LOG_INFO, "This is not optimized path: %s,%d\n", __func__, __LINE__);
-            mt_size = query_metadata_size();
-            mt_cpuaddr = msmgbm_cpu_map_metafd(bo->ion_metadata_fd, mt_size);
+            if(msm_gbm_bo->mt_cpuaddr)
+            {
+                mt_cpuaddr = msm_gbm_bo->mt_cpuaddr;
+            } else {
+                LOG(LOG_INFO, "This is not optimized path: %s,%d\n", __func__, __LINE__);
+                mt_size = query_metadata_size();
+                mt_cpuaddr = msmgbm_cpu_map_metafd(bo->ion_metadata_fd, mt_size);
+                msm_gbm_bo->mt_cpuaddr = mt_cpuaddr;
+            }
+        }
+        else {
+            LOG(LOG_ERR," NULL or Invalid bo pointer\n");
+            mt_cpuaddr = NULL;
         }
 
         return mt_cpuaddr;
@@ -1912,7 +1868,7 @@ void* msmgbm_bo_cpu_map(struct gbm_bo *bo)
             cpuaddr = msm_gbm_bo->cpuaddr;
         } else {
             LOG(LOG_INFO, "This is not optimized path for cpu bo map\n");
-            mt_cpuaddr = (struct meta_data_t *)msm_gbm_bo->mt_cpuaddr;
+            mt_cpuaddr = (struct meta_data_t *)msmgbm_bo_meta_map(bo);
             cpuaddr = msmgbm_cpu_map_ionfd(bo->ion_fd, bo->size, mt_cpuaddr);
             msm_gbm_bo->cpuaddr = cpuaddr;
         }
