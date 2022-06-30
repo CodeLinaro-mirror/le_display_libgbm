@@ -361,6 +361,7 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_BGR565:
             return 2;
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
             return 3;
         case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGBA8888:
@@ -412,6 +413,7 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -463,6 +465,7 @@ is_format_rgb(uint32_t format)
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -756,7 +759,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
             drm_args.fd = data_fd;
             if(ioctl(msm_dev->fd,DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
             {
-                LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed =%d\n%s\n",
+                LOG(LOG_DBG,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed =%d\n%s\n",
                                                           data_fd,strerror(errno));
             }
         }
@@ -2610,7 +2613,11 @@ int msmgbm_perform(int operation, ... )
             {
                 char *drm_dev_name = va_arg(args,char *);
                 uint32_t size = va_arg(args, uint32_t);
-                strlcpy(drm_dev_name, DRM_DEVICE_NAME, size);
+                if (access(DRM_DEVICE_NAME, F_OK) >=0) {
+                    strlcpy(drm_dev_name, DRM_DEVICE_NAME, size);
+                } else {
+                    strlcpy(drm_dev_name, ION_DEVICE_NAME, size);
+                }
                 res = GBM_ERROR_NONE;
             }
             break;
@@ -2618,7 +2625,11 @@ int msmgbm_perform(int operation, ... )
             {
                 char *render_dev_name = va_arg(args,char *);
                 uint32_t size = va_arg(args, uint32_t);
-                strlcpy(render_dev_name, RENDER_DEVICE_NAME, size);
+                if (access(RENDER_DEVICE_NAME, F_OK) >=0) {
+                    strlcpy(render_dev_name, RENDER_DEVICE_NAME, size);
+                } else {
+                    strlcpy(render_dev_name, ION_DEVICE_NAME, size);
+                }
                 res = GBM_ERROR_NONE;
             }
             break;

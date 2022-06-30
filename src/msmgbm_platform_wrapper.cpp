@@ -296,6 +296,7 @@ int platform_wrap::is_valid_rgb_fmt(int format){
         case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -326,6 +327,7 @@ uint32_t platform_wrap::get_bpp_for_uncmprsd_rgb_fmt(int format) {
       bpp = 4;
       break;
     case GBM_FORMAT_RGB888:
+    case GBM_FORMAT_BGR888:
       bpp = 3;
       break;
     case GBM_FORMAT_RG88:
@@ -362,6 +364,7 @@ bool platform_wrap::is_valid_uncmprsd_rgb_fmt(int format) {
     case GBM_FORMAT_RGBA8888:
     case GBM_FORMAT_RGBX8888:
     case GBM_FORMAT_RGB888:
+    case GBM_FORMAT_BGR888:
     case GBM_FORMAT_RGB565:
     case GBM_FORMAT_BGR565:
     case GBM_FORMAT_BGRA8888:
@@ -423,6 +426,7 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
             size = alignedw * alignedh * 4;
             break;
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
             size = alignedw * alignedh * 3;
             break;
         case GBM_FORMAT_RG88:
@@ -468,7 +472,11 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE:
         case GBM_FORMAT_NV12:
+#ifdef ENABLE_CAM_NV12_128
+            size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_128, width, height);
+#else
             size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12, width, height);
+#endif
             LOG(LOG_INFO," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
@@ -653,16 +661,26 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_NV12_ENCODEABLE:
       LOG(LOG_DBG,"@ YUV Format\n");
+#ifdef ENABLE_CAM_NV12_128
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_128, width));
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_128, height));
+#else
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12, width));
       *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12, height));
+#endif
       break;
     case GBM_FORMAT_NV12:
       if (ubwc_enabled) {
           *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width));
           *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height));
       } else {
+#ifdef ENABLE_CAM_NV12_128
+          *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_128, width));
+          *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_128, height));
+#else
           *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12, width));
           *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12, height));
+#endif
       }
       break;
     case GBM_FORMAT_YCrCb_420_SP_VENUS:
