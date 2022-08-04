@@ -47,17 +47,6 @@ libgbmuitls_la_LDFLAGS = -shared -avoid-version -lm -ldl -lcutils
 libgbmuitls_la_LIBADD = libgbm.la
 libgbmuitls_la_SOURCES = src/gbm_utils.cpp
 
-bin_PROGRAMS = gbmtest gbmutilstest
-gbmtest_CFLAGS = $(AM_CFLAGS)
-gbmtest_CPPFLAGS = $(AM_CFLAGS)
-gbmtest_SOURCES = test/gbmtest.c
-gbmtest_LDADD = libgbm.la
-
-gbmutilstest_SOURCES = test/gbm_utils_test.cpp
-gbmutilstest_CFLAGS = $(AM_CFLAGS)
-gbmutilstest_CPPFLAGS = $(AM_CFLAGS)
-gbmutilstest_LDADD = libgbm.la libgbmuitls.la
-
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gbm.pc
 EXTRA_DIST = $(pkgconfig_DATA)
