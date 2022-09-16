@@ -114,6 +114,7 @@ static const uint32_t format_list[] = {
 #ifdef COLOR_FMT_NV12_512
     GBM_FORMAT_NV12_HEIF,
 #endif
+    GBM_FORMAT_YCbCr_422_I,
 };
 
 struct gbm_format_list {
@@ -176,6 +177,8 @@ static char *get_format_string(uint32_t format)
             return "GBM_FORMAT_YCbCr_420_P010_UBWC";
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
             return "GBM_FORMAT_YCbCr_420_TP10_UBWC";
+        case GBM_FORMAT_YCbCr_422_I:
+            return "GBM_FORMAT_YCbCr_422_I";
         default:
             return "NA";
     }
