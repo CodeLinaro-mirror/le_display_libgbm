@@ -54,9 +54,9 @@ cc_library_shared {
     ],
 }
 
-//libgbmuitls
+//libgbmutils
 cc_library_shared {
-    name: "libgbmuitls",
+    name: "libgbmutils",
     sanitize: {
         integer_overflow: true,
     },
@@ -127,7 +127,7 @@ cc_binary {
     ],
     shared_libs: [
         "libgbm_la",
-        "libgbmuitls",
+        "libgbmutils",
         "libcutils",
     ],
     srcs: [

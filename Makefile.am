@@ -19,7 +19,7 @@ AM_CFLAGS += -DENABLE_FB
 AM_CPPFLAGS += -DENABLE_FB
 endif
 
-lib_LTLIBRARIES  = libgbm.la libgbmuitls.la
+lib_LTLIBRARIES  = libgbm.la libgbmutils.la
 libgbm_la_CFLAGS = $(AM_CFLAGS)
 libgbm_la_CPPFLAGS = $(AM_CPPFLAGS)
 libgbm_la_CPPFLAGS +=  @LIBDMABUFHEAP_CFLAGS@
@@ -33,6 +33,7 @@ libgbm_la_SOURCES = src/gbm.c \
                     src/msmgbm_common.c \
                     src/msmgbm_platform_wrapper.cpp \
                     src/msmgbm_adreno_utils.cpp \
+                    src/msmgbm_camera_utils.cpp \
                     src/msmgbm_mapper.cpp
 
 if ENABLE_COMPILEWITHDRM
@@ -42,12 +43,12 @@ else
 libgbm_la_SOURCES += src/msmgbm_fb.c
 endif
 
-libgbmuitls_la_CFLAGS = $(AM_CFLAGS)
-libgbmuitls_la_CPPFLAGS = $(AM_CFLAGS)
-libgbmuitls_la_CPPFLAGS += -I$(srcdir)/inc/
-libgbmuitls_la_LDFLAGS = -shared -avoid-version -lm -ldl -lcutils
-libgbmuitls_la_LIBADD = libgbm.la
-libgbmuitls_la_SOURCES = src/gbm_utils.cpp
+libgbmutils_la_CFLAGS = $(AM_CFLAGS)
+libgbmutils_la_CPPFLAGS = $(AM_CFLAGS)
+libgbmutils_la_CPPFLAGS += -I$(srcdir)/inc/
+libgbmutils_la_LDFLAGS = -shared -avoid-version -lm -ldl -lcutils
+libgbmutils_la_LIBADD = libgbm.la
+libgbmutils_la_SOURCES = src/gbm_utils.cpp
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gbm.pc
