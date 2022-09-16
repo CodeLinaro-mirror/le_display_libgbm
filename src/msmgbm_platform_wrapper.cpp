@@ -461,13 +461,15 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
             break;
         case GBM_FORMAT_YCbCr_422_SP:
         case GBM_FORMAT_YCrCb_422_SP:
-        case GBM_FORMAT_YCbCr_422_I:
-        case GBM_FORMAT_YCrCb_422_I:
             if(width & 1) {
                 LOG(LOG_ERR," width is odd for the YUV422_SP format\n");
                 return 0;
             }
             size = ALIGN(alignedw * alignedh * 2, 4096);
+            break;
+        case GBM_FORMAT_YCbCr_422_I:
+        case GBM_FORMAT_YCrCb_422_I:
+            size = ALIGN(alignedw * alignedh, 4096);
             break;
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE:
@@ -648,10 +650,13 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
     case GBM_FORMAT_YV12:
     case GBM_FORMAT_YCbCr_422_SP:
     case GBM_FORMAT_YCrCb_422_SP:
-    case GBM_FORMAT_YCbCr_422_I:
-    case GBM_FORMAT_YCrCb_422_I:
     case GBM_FORMAT_P010:
       *alignedw = ALIGN(width, 16);
+      *alignedh = height;
+      break;
+    case GBM_FORMAT_YCbCr_422_I:
+    case GBM_FORMAT_YCrCb_422_I:
+      *alignedw = ALIGN(width * 2, 16);
       *alignedh = height;
       break;
     case GBM_FORMAT_YCbCr_420_P010_VENUS:
