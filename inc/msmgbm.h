@@ -399,6 +399,11 @@ void* msmgbm_cpu_map_ionfd(int ion_fd, unsigned int size, struct meta_data_t *me
   */
 
 void * msmgbm_bo_cpu_map(struct gbm_bo *gbo);
+/** Returns the metadata CPU access address for the BO buffer
+  * \Returns  metadata CPU address on Success / Null on fail
+  *
+  */
+void * msmgbm_bo_meta_map(struct gbm_bo *gbo);
 /* Unmap the BO buffer from CPU access
   * \Returns GBM_ERROR values
   *

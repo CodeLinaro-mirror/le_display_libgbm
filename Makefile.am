@@ -24,7 +24,9 @@ libgbm_la_CFLAGS = $(AM_CFLAGS)
 libgbm_la_CPPFLAGS = $(AM_CPPFLAGS)
 libgbm_la_CPPFLAGS +=  @LIBDMABUFHEAP_CFLAGS@
 libgbm_la_CXXFLAGS =  -std=c++17
+libgbm_la_CPPFLAGS +=  @LIBVMMEM_CFLAGS@
 libgbm_la_LDFLAGS = -shared -avoid-version -lm -ldl -ldmabufheap
+libgbm_la_LDFLAGS += @LIBVMMEM_LIBS@
 libgbm_la_SOURCES = src/gbm.c \
                     src/msmgbm_camera.c \
                     src/msmgbm_video.c \
