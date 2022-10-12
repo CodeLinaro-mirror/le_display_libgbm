@@ -107,6 +107,7 @@
 #define DRM_MODULE_NAME "msm_drm"
 #define ION_DEVICE_NAME "/dev/ion"
 #define YUV_420_SP_BPP  1
+#define YUV_422_SP_BPP  2
 #define MAX_YUV_PLANES  3
 #define DUAL_PLANES     2
 #define CHROMA_STEP     2
@@ -382,6 +383,7 @@ static int GetFormatBpp(uint32_t format)
    {
         case GBM_FORMAT_R8:
             return 1;
+        case GBM_FORMAT_UYVY:
         case GBM_FORMAT_RG88:
         case GBM_FORMAT_R16:
         case GBM_FORMAT_RGB565:
@@ -423,6 +425,14 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
              LOG(LOG_DBG,"YUV format BPP\n");
             return 1;
+        case GBM_FORMAT_RGB161616F:
+            return 6;
+        case GBM_FORMAT_RGBA16161616F:
+            return 8;
+        case GBM_FORMAT_RGB323232F:
+            return 12;
+        case GBM_FORMAT_RGBA32323232F:
+            return 16;
         default:
             return 0;
    }
@@ -454,6 +464,7 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE:
         case GBM_FORMAT_NV12:
+        case GBM_FORMAT_UYVY:
         case GBM_FORMAT_ABGR2101010:
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
@@ -472,6 +483,12 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_NV12_HEIF:
 #endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
+        case GBM_FORMAT_YCbCr_422_I:
+        case GBM_FORMAT_YCrCb_422_I:
+        case GBM_FORMAT_RGB161616F:
+        case GBM_FORMAT_RGB323232F:
+        case GBM_FORMAT_RGBA16161616F:
+        case GBM_FORMAT_RGBA32323232F:
             is_supported = 1;
             LOG(LOG_DBG,"Valid format\n");
             break;
@@ -504,6 +521,10 @@ is_format_rgb(uint32_t format)
         case GBM_FORMAT_ARGB8888:
         case GBM_FORMAT_ABGR8888:
         case GBM_FORMAT_ABGR2101010:
+        case GBM_FORMAT_RGB161616F:
+        case GBM_FORMAT_RGB323232F:
+        case GBM_FORMAT_RGBA16161616F:
+        case GBM_FORMAT_RGBA32323232F:
             result = 1;
             break;
         default:
@@ -2933,6 +2954,10 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_C8:
             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                        MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
+        case GBM_FORMAT_UYVY:
+            get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                  YUV_422_SP_BPP, buf_lyt);
+            buf_lyt->num_planes = 1;
             break;
         default:
              res = GBM_ERROR_UNSUPPORTED;
@@ -3057,6 +3082,7 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
                                       CHROMA_STEP, buf_lyt);
                 break;
             case GBM_FORMAT_C8:
+            case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                            MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
                 break;
