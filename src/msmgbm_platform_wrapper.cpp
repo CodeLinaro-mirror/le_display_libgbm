@@ -275,6 +275,10 @@ int platform_wrap::is_valid_rgb_fmt(int format){
         case GBM_FORMAT_ABGR8888:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_ABGR2101010:
+        case GBM_FORMAT_RGB161616F:
+        case GBM_FORMAT_RGB323232F:
+        case GBM_FORMAT_RGBA16161616F:
+        case GBM_FORMAT_RGBA32323232F:
              is_supported = 1;
              break;
         default:
@@ -286,6 +290,18 @@ int platform_wrap::is_valid_rgb_fmt(int format){
 uint32_t platform_wrap::get_bpp_for_uncmprsd_rgb_fmt(int format) {
   uint32_t bpp = 0;
   switch (format) {
+    case GBM_FORMAT_RGBA32323232F:
+      bpp = 16;
+      break;
+    case GBM_FORMAT_RGB323232F:
+      bpp = 12;
+      break;
+    case GBM_FORMAT_RGBA16161616F:
+      bpp = 8;
+      break;
+    case GBM_FORMAT_RGB161616F:
+      bpp = 6;
+      break;
     case GBM_FORMAT_RG1616:
     case GBM_FORMAT_RGBA8888:
     case GBM_FORMAT_RGBX8888:
@@ -349,6 +365,10 @@ bool platform_wrap::is_valid_uncmprsd_rgb_fmt(int format) {
     case GBM_FORMAT_ABGR2101010:
     case GBM_FORMAT_BGRX1010102:
     case GBM_FORMAT_XBGR2101010:
+    case GBM_FORMAT_RGB161616F:
+    case GBM_FORMAT_RGB323232F:
+    case GBM_FORMAT_RGBA16161616F:
+    case GBM_FORMAT_RGBA32323232F:
       return true;
     default:
       break;
@@ -433,7 +453,8 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_YCrCb_422_SP:
         case GBM_FORMAT_YCbCr_422_I:
         case GBM_FORMAT_YCrCb_422_I:
-            if(width & 1) {
+        case GBM_FORMAT_UYVY:
+            if (width & 1) {
                 LOG(LOG_ERR," width is odd for the YUV422_SP format\n");
                 return 0;
             }
@@ -511,6 +532,21 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
         case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
             size = alignedw * alignedh * ASTC_BLOCK_SIZE;
+            break;
+        case GBM_FORMAT_RGB161616F:
+            size = alignedw * alignedh * 6;
+            break;
+        case GBM_FORMAT_RGBA16161616F:
+            size = alignedw * alignedh * 8;
+            break;
+        case GBM_FORMAT_RGB323232F:
+            size = alignedw * alignedh * 12;
+            break;
+        case GBM_FORMAT_RGBA32323232F:
+            size = alignedw * alignedh * 16;
+            break;
+        case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+            size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC, width, height);
             break;
         default:
             LOG(LOG_ERR," Unrecognized pixel format: 0x%x\n",format);
@@ -624,6 +660,9 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedw = ALIGN(width, 16);
       *alignedh = height;
       break;
+    case GBM_FORMAT_UYVY:
+      *alignedw = ALIGN(width, 32);
+      break;
     case GBM_FORMAT_YCbCr_420_P010_VENUS:
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_P010, width) / 2);
       *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_P010, height));
@@ -670,6 +709,10 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedh = INT(VENUS_Y_SCANLINES(COLOR_FMT_NV12_512, height));
       break;
 #endif
+    case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+      *alignedw = MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width);
+      *alignedh = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
+      break;
     default:
       break;
   }
