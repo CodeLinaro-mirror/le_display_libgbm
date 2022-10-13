@@ -81,6 +81,7 @@
 #define PAGE_SIZE (4096)
 #define ROUND_UP_PAGESIZE(x) (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1)
 #define ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
+#define MAGIC_HANDLE 0xa5a5a5a5
 
 //Global variables
 int g_debug_level = LOG_ERR;
@@ -324,7 +325,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
              * Close the GEM handle for both the BO buffer and Metadata
              */
             memset(&gem_close, 0, sizeof(gem_close));
-            if(bo->handle.u32){
+            if(bo->handle.u32 && bo->handle.u32 != MAGIC_HANDLE){
                 gem_close.handle=bo->handle.u32;
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
                     LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%p\n%s\n",
@@ -332,7 +333,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
             }
 
             memset(&gem_close, 0, sizeof(gem_close));
-            if(bo->metadata_handle.u32){
+            if(bo->metadata_handle.u32 && bo->metadata_handle.u32 != MAGIC_HANDLE){
                 gem_close.handle=bo->metadata_handle.u32;
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
                     LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%p\n%s\n",
@@ -1541,6 +1542,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     unsigned int size = 0, mt_size;
     unsigned int aligned_width;
     unsigned int aligned_height;
+    bool skip_handle = (usage & GBM_BO_USAGE_EGL_IMAGE_QTI) ? true : false;
 
     struct meta_data_t *meta_data = NULL;
     struct gbm_buf_info temp_buf_info;
@@ -1659,11 +1661,14 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     memset(&gemimport_req, 0, sizeof(gemimport_req));
     gemimport_req.fd = buffer_info->fd;
 
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
-
-    if (ret != 0){
-        LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
+    if (skip_handle) {
+        gemimport_req.handle = MAGIC_HANDLE;
+    } else {
+        ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+        if (ret != 0) {
+            LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
                                                msm_dev,strerror(errno));
+        }
     }
 
     memset(&mtdadta_gemimport_req, 0, sizeof(mtdadta_gemimport_req));
@@ -1676,12 +1681,14 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
 
         /* Import the gem handle for metadata BO */
         mtdadta_gemimport_req.fd = buffer_info->metadata_fd;
-
-        ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &mtdadta_gemimport_req);
-
-        if (ret != 0){
-            LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
+        if (skip_handle) {
+            mtdadta_gemimport_req.handle = MAGIC_HANDLE;
+        } else {
+            ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &mtdadta_gemimport_req);
+            if (ret != 0) {
+                LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
                                                    msm_dev,strerror(errno));
+            }
         }
     }
 
