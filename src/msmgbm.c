@@ -1082,6 +1082,12 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
             gbo_private_info.cpuaddr, fd_data->fds[0]);
     }
     struct gbm_buf_info *buffer_info =  (struct gbm_buf_info *)calloc(1, sizeof(struct gbm_buf_info));
+
+    if (buffer_info == NULL) {
+        LOG(LOG_ERR," Unable to allocate buffer_info\n");
+        return NULL;
+    }
+
     buffer_info->fd = fd_data->fds[0];
     buffer_info->width = fd_data->width;
     buffer_info->height = fd_data->height;
@@ -2538,8 +2544,10 @@ int msmgbm_set_metadata(struct gbm_bo *gbo, int paramType,void *param) {
     data = (struct meta_data_t *)base;
 
     // If parameter is NULL reset the specific MetaData Key
-    if (!param)
+    if (!param) {
        data->operation &= ~paramType;
+       return GBM_ERROR_BAD_VALUE;
+    }
 
     data->operation |= paramType;
 
