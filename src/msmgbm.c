@@ -392,6 +392,8 @@ static int GetFormatBpp(uint32_t format)
 #endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
+        case GBM_FORMAT_YCbCr_422_I:
+        case GBM_FORMAT_YCrCb_422_I:
              LOG(LOG_DBG,"YUV format BPP\n");
             return 1;
         default:
@@ -441,6 +443,8 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_NV12_HEIF:
 #endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
+        case GBM_FORMAT_YCbCr_422_I:
+        case GBM_FORMAT_YCrCb_422_I:
             is_supported = 1;
             LOG(LOG_DBG,"Valid format\n");
             break;
