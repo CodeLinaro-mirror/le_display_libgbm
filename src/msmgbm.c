@@ -72,6 +72,7 @@
 #define DRM_MODULE_NAME "msm_drm"
 #define ION_DEVICE_NAME "/dev/ion"
 #define YUV_420_SP_BPP  1
+#define YUV_422_SP_BPP  2
 #define MAX_YUV_PLANES  3
 #define DUAL_PLANES     2
 #define CHROMA_STEP     2
@@ -80,6 +81,7 @@
 #define PAGE_SIZE (4096)
 #define ROUND_UP_PAGESIZE(x) (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1)
 #define ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
+#define MAGIC_HANDLE 0xa5a5a5a5
 
 //Global variables
 int g_debug_level = LOG_ERR;
@@ -119,6 +121,16 @@ static inline void lock_destroy(void)
     if(pthread_mutex_destroy(&mutex_obj))
         LOG(LOG_ERR,"Failed to init Mutex\n %s\n",strerror(errno));
 
+}
+
+void __attribute__ ((constructor)) msmgbm_library_open(void)
+{
+    lock_init();
+}
+
+void __attribute__ ((destructor)) msmgbm_library_close(void)
+{
+    lock_destroy();
 }
 
 //ION Helper Functions
@@ -282,6 +294,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
         LOG(LOG_DBG,"Destroy called for fd=%d",bo->ion_fd);
 
          //Delete the Map entries if any
+        lock();
         if(decr_refcnt(bo->ion_fd))
         {
             /*
@@ -312,7 +325,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
              * Close the GEM handle for both the BO buffer and Metadata
              */
             memset(&gem_close, 0, sizeof(gem_close));
-            if(bo->handle.u32){
+            if(bo->handle.u32 && bo->handle.u32 != MAGIC_HANDLE){
                 gem_close.handle=bo->handle.u32;
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
                     LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%p\n%s\n",
@@ -320,7 +333,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
             }
 
             memset(&gem_close, 0, sizeof(gem_close));
-            if(bo->metadata_handle.u32){
+            if(bo->metadata_handle.u32 && bo->metadata_handle.u32 != MAGIC_HANDLE){
                 gem_close.handle=bo->metadata_handle.u32;
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
                     LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%p\n%s\n",
@@ -328,6 +341,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
 
             }
         }
+        unlock();
 
         /*
          * Free the msm_gbo object
@@ -355,6 +369,7 @@ static int GetFormatBpp(uint32_t format)
    {
         case GBM_FORMAT_R8:
             return 1;
+        case GBM_FORMAT_UYVY:
         case GBM_FORMAT_RG88:
         case GBM_FORMAT_R16:
         case GBM_FORMAT_RGB565:
@@ -396,6 +411,14 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_YCrCb_422_I:
              LOG(LOG_DBG,"YUV format BPP\n");
             return 1;
+        case GBM_FORMAT_RGB161616F:
+            return 6;
+        case GBM_FORMAT_RGBA16161616F:
+            return 8;
+        case GBM_FORMAT_RGB323232F:
+            return 12;
+        case GBM_FORMAT_RGBA32323232F:
+            return 16;
         default:
             return 0;
    }
@@ -427,6 +450,7 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE:
         case GBM_FORMAT_NV12:
+        case GBM_FORMAT_UYVY:
         case GBM_FORMAT_ABGR2101010:
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
@@ -445,6 +469,10 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_422_I:
         case GBM_FORMAT_YCrCb_422_I:
+        case GBM_FORMAT_RGB161616F:
+        case GBM_FORMAT_RGB323232F:
+        case GBM_FORMAT_RGBA16161616F:
+        case GBM_FORMAT_RGBA32323232F:
             is_supported = 1;
             LOG(LOG_DBG,"Valid format\n");
             break;
@@ -477,6 +505,10 @@ is_format_rgb(uint32_t format)
         case GBM_FORMAT_ARGB8888:
         case GBM_FORMAT_ABGR8888:
         case GBM_FORMAT_ABGR2101010:
+        case GBM_FORMAT_RGB161616F:
+        case GBM_FORMAT_RGB323232F:
+        case GBM_FORMAT_RGBA16161616F:
+        case GBM_FORMAT_RGBA32323232F:
             result = 1;
             break;
         default:
@@ -1019,6 +1051,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     struct gbm_buf_info gbo_info;
     struct msmgbm_private_info gbo_private_info = {NULL, NULL};
 
+    lock();
     if(search_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info) == GBM_ERROR_NONE)
     {
         LOG(LOG_DBG,"Map retrieved buf info\n gbm_buf_info.width=%d\n",
@@ -1027,10 +1060,8 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
                     "gbm_buf_info.height=%d\n gbm_buf_info.format = %d\n",
                     gbo_info.fd,gbo_info.metadata_fd,gbo_info.height,gbo_info.format);
 
-        lock();
         //we have a valid entry within the map table so Increment ref count
         incr_refcnt(buffer_info->fd);
-        unlock();
     }
     else
     {
@@ -1045,12 +1076,10 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
 
         //we cannot map cpu address as we dont have a reliable way to find
         //whether ion fd is secure or not since metadata_fd is not present
-        lock();
         register_to_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info);
         incr_refcnt(buffer_info->fd);
-        unlock();
-
     }
+    unlock();
 
     LOG(LOG_DBG," format: 0x%x width: %d height: %d \n",buffer_info->format, buffer_info->width, buffer_info->height);
 
@@ -1200,7 +1229,9 @@ msmgbm_bo_import_wl_buffer(struct msmgbm_device *msm_dev,
     }
 
     //Search Map for a valid entry
+    lock();
     ret = search_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info);
+    unlock();
     if(ret != GBM_ERROR_NONE) {
         register_map = 1;
     }
@@ -1511,6 +1542,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     unsigned int size = 0, mt_size;
     unsigned int aligned_width;
     unsigned int aligned_height;
+    bool skip_handle = (usage & GBM_BO_USAGE_EGL_IMAGE_QTI) ? true : false;
 
     struct meta_data_t *meta_data = NULL;
     struct gbm_buf_info temp_buf_info;
@@ -1629,11 +1661,14 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     memset(&gemimport_req, 0, sizeof(gemimport_req));
     gemimport_req.fd = buffer_info->fd;
 
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
-
-    if (ret != 0){
-        LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
+    if (skip_handle) {
+        gemimport_req.handle = MAGIC_HANDLE;
+    } else {
+        ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+        if (ret != 0) {
+            LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
                                                msm_dev,strerror(errno));
+        }
     }
 
     memset(&mtdadta_gemimport_req, 0, sizeof(mtdadta_gemimport_req));
@@ -1646,12 +1681,14 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
 
         /* Import the gem handle for metadata BO */
         mtdadta_gemimport_req.fd = buffer_info->metadata_fd;
-
-        ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &mtdadta_gemimport_req);
-
-        if (ret != 0){
-            LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
+        if (skip_handle) {
+            mtdadta_gemimport_req.handle = MAGIC_HANDLE;
+        } else {
+            ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &mtdadta_gemimport_req);
+            if (ret != 0) {
+                LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
                                                    msm_dev,strerror(errno));
+            }
         }
     }
 
@@ -1923,6 +1960,7 @@ msmgbm_surface_create(struct gbm_device *gbm, uint32_t width,
 
     msm_gbmsurf->device = msm_dev;
     msm_gbmsurf->magic = QCMAGIC;
+    msm_gbmsurf->inuse_index = -1;
 
 #ifdef ALLOCATE_SURFACE_BO_AT_CREATION
     for(index =0; index < NUM_BACK_BUFFERS; index++) {
@@ -1966,20 +2004,16 @@ msmgbm_device_destroy(struct gbm_device *gbm)
     //Destroy the  mapper cpp object
     msmgbm_mapper_deinstnce();
 
-    lock_destroy();
+    if(msm_dev != NULL) {
+        LOG(LOG_DBG, "iondev_fd:%d \n", msm_dev->iondev_fd);
+        //Close the ion device fd
+        if(msm_dev->iondev_fd > 0)
+            close(msm_dev->iondev_fd);
 
-    LOG(LOG_DBG, "iondev_fd:%d \n", msm_dev->iondev_fd);
-    //Close the ion device fd
-    if(msm_dev->iondev_fd > 0)
-        close(msm_dev->iondev_fd);
-
-    if(msm_dev != NULL){
         free(msm_dev);
         msm_dev = NULL;
-    }
-    else {
-
-         LOG(LOG_ERR,"NULL or Invalid device pointer\n");
+    } else {
+        LOG(LOG_ERR,"NULL or Invalid device pointer\n");
     }
     return;
 }
@@ -2006,8 +2040,6 @@ msmgbm_device_create(int fd)
     //Instantiate the mapper cpp object
     if(msmgbm_mapper_instnce())
       return NULL;
-
-    lock_init();
 
     //open the ion device
     msm_gbmdevice->iondev_fd = ion_open();
@@ -2121,16 +2153,18 @@ struct gbm_bo* msmgbm_surface_get_free_bo(struct gbm_surface *surf)
 
     if(msm_gbm_surface != NULL)
     {
-            for(index =0; index < NUM_BACK_BUFFERS; index++)
+        int cur_index = msm_gbm_surface->inuse_index;
+        for(index = ((cur_index + 1) % NUM_BACK_BUFFERS); index < NUM_BACK_BUFFERS; index++)
+        {
+            if((msm_gbm_surface->bo[index]!= NULL) && \
+                (msm_gbm_surface->bo[index]->current_state == GBM_BO_STATE_FREE))
             {
-                if((msm_gbm_surface->bo[index]!= NULL) && \
-                    (msm_gbm_surface->bo[index]->current_state == GBM_BO_STATE_FREE))
-                {
-                    msm_gbm_surface->bo[index]->current_state = GBM_BO_STATE_INUSE_BY_GPU;
-                    return &msm_gbm_surface->bo[index]->base;
-                }
+                msm_gbm_surface->bo[index]->current_state = GBM_BO_STATE_INUSE_BY_GPU;
+                msm_gbm_surface->inuse_index = index;
+                return &msm_gbm_surface->bo[index]->base;
             }
-            LOG(LOG_ERR," NO Free BO found!!\n");
+        }
+        LOG(LOG_ERR," NO Free BO found!!\n");
     }
     else
     {
@@ -3203,6 +3237,11 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                   CHROMA_STEP, buf_lyt);
             break;
+        case GBM_FORMAT_UYVY:
+            get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                  YUV_422_SP_BPP, buf_lyt);
+            buf_lyt->num_planes = 1;
+            break;
         default:
              res = GBM_ERROR_UNSUPPORTED;
              break;
@@ -3325,6 +3364,10 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
             case GBM_FORMAT_P010:
                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                       CHROMA_STEP, buf_lyt);
+                break;
+            case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+                get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                           MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
                 break;
             default:
                  res = GBM_ERROR_UNSUPPORTED;
