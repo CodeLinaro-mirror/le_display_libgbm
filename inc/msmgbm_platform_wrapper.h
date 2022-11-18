@@ -28,7 +28,7 @@
  *
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted (subject to the limitations in the
@@ -150,6 +150,15 @@ class platform_wrap {
    */
   int is_valid_rgb_fmt(int gbm_format);
 
+  /**
+   * Function to check whether the format is RAW
+   * @params    gbm format
+   * @return    true : success
+   *            false : fail
+   *
+   */
+  bool is_valid_raw_fmt(int format);
+
   uint32_t get_bpp_for_uncmprsd_rgb_fmt(int format);
 
   /**
@@ -180,6 +189,15 @@ class platform_wrap {
    */
   void get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int *aligned_w,
                                       unsigned int *aligned_h);
+
+  /**
+   * Function to get stride, scanline and size depending on the underlying GPU/Video platform
+   * @return    stride
+   *            scanline
+   *            size
+   */
+  void get_stride_scanline_size(gbm_bufdesc *descriptor, unsigned int *stride,
+                                unsigned int *scanline, unsigned int *size);
 
   /**
    * Function to get  size aligned width and height depending on the underlying GPU/Video platform
@@ -220,6 +238,15 @@ extern "C" {
     *            aligned_h
     */
     void qry_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int *alignedw, unsigned int *alignedh);
+
+    /**
+    * C wrapper Function to get stride, scanline and size depending on the underlying GPU/Video platform
+    * @return    stride
+    *            scanline
+    *            size
+    */
+    void qry_stride_scanline_size(gbm_bufdesc *descriptor, unsigned int *stride,
+                                  unsigned int *scanline, unsigned int *size);
 
     /**
      * C wrapper Function to query size based on format from the platform wrapper
@@ -263,9 +290,17 @@ extern "C" {
     /**
      * C wrapper function to know if the format is UBWC
      */
-
     bool is_ubwc_enbld(int format, int prod_usage,
                               int cons_usage);
+
+    /**
+    * C wrapper Function to check whether the format is RAW format or not.
+    * @params    gbm format
+    * @return    boolean 0 (non RAW format)
+    *                    1 (RAW format)
+    */
+    bool is_valid_raw_format(int format);
+
     /**
      * C wrapper function to know if the format is RGB
      */
