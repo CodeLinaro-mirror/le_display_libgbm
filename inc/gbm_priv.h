@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
@@ -255,87 +255,91 @@ extern "C" {
  * Supported Perform API Operation Opcodes
  *
  */
-#define GBM_PERFORM_GET_SURFACE_FORMAT              0x0 /*Query user provided format from the
-                                                          gbm surface*/
+#define GBM_PERFORM_GET_SURFACE_FORMAT                   0x0 /*Query user provided format from the
+                                                               gbm surface*/
 
-#define GBM_PERFORM_GET_SURFACE_WIDTH               0x1 /*Query user provided width from the
-                                                          gbm surface */
+#define GBM_PERFORM_GET_SURFACE_WIDTH                    0x1 /*Query user provided width from the
+                                                               gbm surface */
 
-#define GBM_PERFORM_GET_SURFACE_HEIGHT              0x2 /*Query user provided height from the
-                                                          gbm surface*/
+#define GBM_PERFORM_GET_SURFACE_HEIGHT                   0x2 /*Query user provided height from the
+                                                               gbm surface*/
 
-#define GBM_PERFORM_SET_SURFACE_FRONT_BO            0x3 /*Update the current state to
-                                                          NEW_FRONT_BUFFER of the BO associated
-                                                          with the gbm surface*/
+#define GBM_PERFORM_SET_SURFACE_FRONT_BO                 0x3 /*Update the current state to
+                                                               NEW_FRONT_BUFFER of the BO associated
+                                                               with the gbm surface*/
 
-#define GBM_PERFORM_GET_SURFACE_FREE_BO             0x4 /*Return the BO which is marked free
-                                                          associated with the gbm surface */
+#define GBM_PERFORM_GET_SURFACE_FREE_BO                  0x4 /*Return the BO which is marked free
+                                                               associated with the gbm surface */
 
-#define GBM_PERFORM_VALIDATE_SURFACE                0x5 /*Validate the GBM Surface*/
+#define GBM_PERFORM_VALIDATE_SURFACE                     0x5 /*Validate the GBM Surface*/
 
-#define GBM_PERFORM_CPU_MAP_FOR_BO                  0x6 /*Return the mapped address to the
-                                                          BO buffer*/
+#define GBM_PERFORM_CPU_MAP_FOR_BO                       0x6 /*Return the mapped address to the
+                                                               BO buffer*/
 
-#define GBM_PERFORM_CPU_UNMAP_FOR_BO                0x7 /*Unmap the already mapped BO buffer*/
+#define GBM_PERFORM_CPU_UNMAP_FOR_BO                     0x7 /*Unmap the already mapped BO buffer*/
 
-#define GBM_PERFORM_GET_BO_SIZE                     0x8 /*Query BO buffer size*/
+#define GBM_PERFORM_GET_BO_SIZE                          0x8 /*Query BO buffer size*/
 
-#define GBM_PERFORM_GET_BO_NAME                     0x9 /*Query BO buffer name*/
+#define GBM_PERFORM_GET_BO_NAME                          0x9 /*Query BO buffer name*/
 
-#define GBM_PERFORM_IMPORT_BO_FROM_NAME             0x11 /*Import BO from specified name*/
+#define GBM_PERFORM_IMPORT_BO_FROM_NAME                  0x11 /*Import BO from specified name*/
 
-#define GBM_PERFORM_GET_DRM_DEVICE_MAGIC            0x12 /*Query DRM Device magic id */
+#define GBM_PERFORM_GET_DRM_DEVICE_MAGIC                 0x12 /*Query DRM Device magic id */
 
-#define GBM_PERFORM_AUTH_DRM_DEVICE_MAGIC           0x13 /*Authenticate DRM Device magic id */
+#define GBM_PERFORM_AUTH_DRM_DEVICE_MAGIC                0x13 /*Authenticate DRM Device magic id */
 
-#define GBM_PERFORM_GET_DRM_DEVICE_NAME             0x14 /*Query DRM Device name */
+#define GBM_PERFORM_GET_DRM_DEVICE_NAME                  0x14 /*Query DRM Device name */
 
-#define GBM_PERFORM_VALIDATE_DEVICE                 0x15 /*Validate the GBM Device*/
+#define GBM_PERFORM_VALIDATE_DEVICE                      0x15 /*Validate the GBM Device*/
 
-#define GBM_PERFORM_GET_METADATA                    0x16 /*Query Metadata info */
+#define GBM_PERFORM_GET_METADATA                         0x16 /*Query Metadata info */
 
-#define GBM_PERFORM_SET_METADATA                    0x17 /*Set Metadata info */
+#define GBM_PERFORM_SET_METADATA                         0x17 /*Set Metadata info */
 
-#define GBM_PERFORM_GET_YUV_PLANE_INFO              0x18 /*Query YUV plane info */
+#define GBM_PERFORM_GET_YUV_PLANE_INFO                   0x18 /*Query YUV plane info */
 
-#define GBM_PERFORM_GET_UBWC_STATUS                 0x19 /*Query if the BO Allocation was
-                                                           with UBWC enabled hardware*/
+#define GBM_PERFORM_GET_UBWC_STATUS                      0x19 /*Query if the BO Allocation was
+                                                                with UBWC enabled hardware*/
 
-#define GBM_PERFORM_GET_RGB_DATA_ADDRESS            0x20 /*Query for RGB data base address*/
+#define GBM_PERFORM_GET_RGB_DATA_ADDRESS                 0x20 /*Query for RGB data base address*/
 
-#define GBM_PERFORM_SET_GPU_ADDR_FOR_BO             0x21 /*Set GPU addr */
+#define GBM_PERFORM_SET_GPU_ADDR_FOR_BO                  0x21 /*Set GPU addr */
 
-#define GBM_PERFORM_GET_GPU_ADDR_FOR_BO             0x22 /* Query GPU Addr */
+#define GBM_PERFORM_GET_GPU_ADDR_FOR_BO                  0x22 /* Query GPU Addr */
 
-#define GBM_PERFORM_GET_SECURE_BUFFER_STATUS        0x23 /* Query Buffer is secured */
+#define GBM_PERFORM_GET_SECURE_BUFFER_STATUS             0x23 /* Query Buffer is secured */
 
-#define GBM_PERFORM_GET_METADATA_ION_FD             0x24 /* Get Metadata ion fd from BO*/
+#define GBM_PERFORM_GET_METADATA_ION_FD                  0x24 /* Get Metadata ion fd from BO*/
 
-#define GBM_PERFORM_DUMP_HASH_MAP                   0x25 /* Dump the existing hash map
-                                                            table contents*/
+#define GBM_PERFORM_DUMP_HASH_MAP                        0x25 /* Dump the existing hash map
+                                                                 table contents*/
 
-#define GBM_PERFORM_DUMP_BO_CONTENT                 0x26 /* Dump the BO buffer contents
-                                                            on to a file*/
+#define GBM_PERFORM_DUMP_BO_CONTENT                      0x26 /* Dump the BO buffer contents
+                                                                 on to a file*/
 
-#define GBM_PERFORM_GET_BO_ALIGNED_WIDTH            0x27 /* Get Aligned width from BO*/
+#define GBM_PERFORM_GET_BO_ALIGNED_WIDTH                 0x27 /* Get Aligned width from BO*/
 
-#define GBM_PERFORM_GET_BO_ALIGNED_HEIGHT           0x28 /* Get Aligned height from BO*/
+#define GBM_PERFORM_GET_BO_ALIGNED_HEIGHT                0x28 /* Get Aligned height from BO*/
 
-#define GBM_PERFORM_GET_PLANE_INFO                  0x29 /* Get Plane Info from BO*/
+#define GBM_PERFORM_GET_PLANE_INFO                       0x29 /* Get Plane Info from BO*/
 
-#define GBM_PERFORM_DEFAULT_INIT_COLOR_META         0x30 /* Initialize Color Meta structure with
-                                                            default values to validate */
+#define GBM_PERFORM_DEFAULT_INIT_COLOR_META              0x30 /* Initialize Color Meta structure with
+                                                                 default values to validate */
 
-#define GBM_PERFORM_DUMP_COLOR_META                 0x31 /* Dump Color Meta structure */
+#define GBM_PERFORM_DUMP_COLOR_META                      0x31 /* Dump Color Meta structure */
 
-#define GBM_PERFORM_GET_BUFFER_SIZE_DIMENSIONS    0x32 /* Query Buffer size and dimenstions
-                                                          (aligned width, aligned height and size)*/
+#define GBM_PERFORM_GET_BUFFER_SIZE_DIMENSIONS           0x32 /* Query Buffer size and dimenstions
+                                                                 (aligned width, aligned height and size)*/
 
-#define GBM_PERFORM_GET_SURFACE_UBWC_STATUS         0x33 /* Query if the Surface BO Allocation was
-                                                            with UBWC enabled hardware */
+#define GBM_PERFORM_GET_SURFACE_UBWC_STATUS              0x33 /* Query if the Surface BO Allocation was
+                                                                 with UBWC enabled hardware */
 
 
-#define GBM_PERFORM_GET_RENDER_DEVICE_NAME          0x36 /* Get render node for user */
+#define GBM_PERFORM_GET_RENDER_DEVICE_NAME               0x36 /* Get render node for user */
+
+#define GBM_PERFORM_GET_BUFFER_STRIDE_SCANLINE_SIZE      0x37 /* Query Buffer stride, scanline and size
+                                                                 (stride, scanline and size)*/
+
 /**
  * Error representation for GBM  API's
  *
