@@ -620,6 +620,11 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
 
   LOG(LOG_DBG,"width=%d, height=%d,format=%d, usage=%d\n", width, height, format, prod_usage);
 
+  if (descriptor->Usage & GBM_BO_USAGE_NO_ALLIGNMENT) {
+    *alignedw = width;
+    *alignedh = height;
+  }
+
   if (CameraInfo::GetInstance()->IsCameraCustomFormat(format)) {
     CameraInfo::GetInstance()->GetStrideInBytes(format, (PlaneComponent)PLANE_COMPONENT_Y,
                                                 width, (int *)alignedw);
