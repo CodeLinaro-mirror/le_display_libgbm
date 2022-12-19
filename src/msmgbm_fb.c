@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017-2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -317,11 +320,17 @@ static int GetFormatBpp(uint32_t format)
 {
    switch(format)
    {
+        case GBM_FORMAT_R8:
+            return 1;
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
             return 2;
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
             return 3;
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -356,9 +365,14 @@ static int IsFormatSupported(uint32_t format)
 
     switch(format)
     {
+        case GBM_FORMAT_R8:
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -395,9 +409,14 @@ is_format_rgb(uint32_t format)
 
     switch(format)
     {
+        case GBM_FORMAT_R8:
+        case GBM_FORMAT_RG88:
+        case GBM_FORMAT_R16:
+        case GBM_FORMAT_RG1616:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:

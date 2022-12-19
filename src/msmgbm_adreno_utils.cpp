@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017-2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -114,13 +117,19 @@ void adreno_mem_info::get_aligned_wdth_hght_uncmprsd_rgb_fmt(int width,
 
   switch (format) {
     case GBM_FORMAT_RGB888:
+    case GBM_FORMAT_BGR888:
       bpp = 3;
       break;
+    case GBM_FORMAT_RG88:
+    case GBM_FORMAT_R16:
     case GBM_FORMAT_RGB565:
     case GBM_FORMAT_BGR565:
     case GBM_FORMAT_RGBA5551:
     case GBM_FORMAT_RGBA4444:
       bpp = 2;
+      break;
+    case GBM_FORMAT_R8:
+      bpp = 1;
       break;
     default:
       break;
@@ -193,6 +202,16 @@ unsigned int  adreno_mem_info::get_gpu_pxl_align() {
 ADRENOPIXELFORMAT adreno_mem_info::get_gpu_pxl_fmt(unsigned int gbm_format) {
 
   switch (gbm_format) {
+    case GBM_FORMAT_R8:
+     return ADRENO_PIXELFORMAT_R8_UNORM;
+    case GBM_FORMAT_RG88:
+      return ADRENO_PIXELFORMAT_R8G8_UNORM;
+    case GBM_FORMAT_R16:
+     return ADRENO_PIXELFORMAT_R16_UNORM;
+    case GBM_FORMAT_RG1616:
+      return ADRENO_PIXELFORMAT_R16G16_UNORM;
+    case GBM_FORMAT_BGR888:
+      return ADRENO_PIXELFORMAT_R8G8B8;
     case GBM_FORMAT_RGBA8888:
       return ADRENO_PIXELFORMAT_R8G8B8A8;
     case GBM_FORMAT_XBGR8888:
