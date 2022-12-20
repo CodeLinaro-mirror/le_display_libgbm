@@ -729,9 +729,11 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       break;
     case GBM_FORMAT_RAW16:
     case GBM_FORMAT_RAW12:
-    case GBM_FORMAT_RAW10:
     case GBM_FORMAT_RAW8:
       *alignedw = ALIGN(width, 16);
+      break;
+    case GBM_FORMAT_RAW10:
+      *alignedw = ALIGN(width * 10 / 8, 16);
       break;
     case GBM_FORMAT_YV12:
     case GBM_FORMAT_YCbCr_422_SP:
