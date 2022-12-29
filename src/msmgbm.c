@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2017 - 2021 The Linux Foundation. All rights reserved.
@@ -62,7 +62,7 @@
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5,4,0)
 #include <media/msm_media_info.h>
 #else
-#include "msm_media_info.h"
+#include <display/media/mmm_color_fmt.h>
 #endif
 #ifdef BUILD_HAS_WAYLAND_SUPPORT
 #include <wayland-server.h>
@@ -87,6 +87,9 @@
 
 //Global variables
 int g_debug_level = LOG_INFO;
+void msmgbm_log_hdr_color_info_mdata(ColorMetaData * color_mdata);
+void msmsgbm_default_init_hdr_color_info_mdata(ColorMetaData * color_mdata);
+void config_dbg_lvl(void);
 
 //Global Variables
 static pthread_mutex_t mutex_obj = PTHREAD_MUTEX_INITIALIZER;
@@ -95,7 +98,7 @@ static inline void lock_init(void)
     if(pthread_mutex_init(&mutex_obj, NULL))
     {
         LOG(LOG_ERR,"Failed to init Mutex\n %s\n",strerror(errno));
-        return NULL;
+        return;
     }
 
 }
@@ -104,7 +107,7 @@ static inline void lock(void)
     if(pthread_mutex_lock(&mutex_obj))
     {
         LOG(LOG_ERR,"Failed to lock Mutex\n %s\n",strerror(errno));
-        return NULL;
+        return;
     }
 
 }
@@ -113,7 +116,7 @@ static inline void unlock(void)
     if(pthread_mutex_unlock(&mutex_obj))
     {
         LOG(LOG_ERR,"Failed to un lock Mutex\n %s\n",strerror(errno));
-        return NULL;
+        return;
     }
 
 }
@@ -185,12 +188,12 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
     // UBWC RGB format
     // there are two planes.
     if (plane == 0) {
-      stride = VENUS_RGB_META_STRIDE(COLOR_FMT_RGBA8888_UBWC, bo->width);
+      stride = MMM_COLOR_FMT_RGB_META_STRIDE(MMM_COLOR_FMT_RGBA8888_UBWC, bo->width);
     } else if (plane == 1) {
       if (bo->bpp == 2) {
-        stride = VENUS_RGB_STRIDE(COLOR_FMT_RGB565_UBWC, bo->width);
+        stride = MMM_COLOR_FMT_RGB_STRIDE(MMM_COLOR_FMT_RGB565_UBWC, bo->width);
       } else if(bo->bpp == 4) {
-        stride = VENUS_RGB_STRIDE(COLOR_FMT_RGBA8888_UBWC, bo->width);
+        stride = MMM_COLOR_FMT_RGB_STRIDE(MMM_COLOR_FMT_RGBA8888_UBWC, bo->width);
       }
     }
   }
@@ -3141,16 +3144,16 @@ void get_yuv_ubwc_sp_plane_info(int width, int height,
    unsigned int c_meta_stride, c_meta_height, c_meta_size;
    unsigned int alignment = 4096;
 
-   y_meta_stride = VENUS_Y_META_STRIDE(color_format, width);
-   y_meta_height = VENUS_Y_META_SCANLINES(color_format, height);
+   y_meta_stride = MMM_COLOR_FMT_Y_META_STRIDE(color_format, width);
+   y_meta_height = MMM_COLOR_FMT_Y_META_SCANLINES(color_format, height);
    y_meta_size = ALIGN((y_meta_stride * y_meta_height), alignment);
 
-   y_stride = VENUS_Y_STRIDE(color_format, width);
-   y_height = VENUS_Y_SCANLINES(color_format, height);
+   y_stride = MMM_COLOR_FMT_Y_STRIDE(color_format, width);
+   y_height = MMM_COLOR_FMT_Y_SCANLINES(color_format, height);
    y_size = ALIGN((y_stride * y_height), alignment);
 
-   c_meta_stride = VENUS_UV_META_STRIDE(color_format, width);
-   c_meta_height = VENUS_UV_META_SCANLINES(color_format, height);
+   c_meta_stride = MMM_COLOR_FMT_UV_META_STRIDE(color_format, width);
+   c_meta_height = MMM_COLOR_FMT_UV_META_SCANLINES(color_format, height);
    c_meta_size = ALIGN((c_meta_stride * c_meta_height), alignment);
 
    buf_lyt->num_planes = DUAL_PLANES;
@@ -3159,16 +3162,16 @@ void get_yuv_ubwc_sp_plane_info(int width, int height,
    buf_lyt->planes[1].top_left = buf_lyt->planes[1].offset = y_meta_size + y_size + c_meta_size;
    buf_lyt->planes[2].top_left = buf_lyt->planes[2].offset = y_meta_size + y_size + c_meta_size + 1;
    buf_lyt->planes[0].v_increment = y_stride;
-   buf_lyt->planes[1].v_increment = VENUS_UV_STRIDE(color_format, width);
+   buf_lyt->planes[1].v_increment = MMM_COLOR_FMT_UV_STRIDE(color_format, width);
 
-   if(color_format == COLOR_FMT_NV12_BPP10_UBWC ||
-      color_format == COLOR_FMT_NV12_UBWC ||
-      color_format == COLOR_FMT_P010_UBWC) {
+   if(color_format == MMM_COLOR_FMT_NV12_BPP10_UBWC ||
+      color_format == MMM_COLOR_FMT_NV12_UBWC ||
+      color_format == MMM_COLOR_FMT_P010_UBWC) {
      buf_lyt->num_planes = 4;
-     buf_lyt->planes[0].stride = VENUS_Y_META_STRIDE(color_format, width);
-     buf_lyt->planes[1].stride = VENUS_Y_STRIDE(color_format, width);
-     buf_lyt->planes[2].stride = VENUS_UV_META_STRIDE(color_format, width);
-     buf_lyt->planes[3].stride = VENUS_UV_STRIDE(color_format, width);
+     buf_lyt->planes[0].stride = MMM_COLOR_FMT_Y_META_STRIDE(color_format, width);
+     buf_lyt->planes[1].stride = MMM_COLOR_FMT_Y_STRIDE(color_format, width);
+     buf_lyt->planes[2].stride = MMM_COLOR_FMT_UV_META_STRIDE(color_format, width);
+     buf_lyt->planes[3].stride = MMM_COLOR_FMT_UV_STRIDE(color_format, width);
    }
 }
 
@@ -3197,18 +3200,18 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
              if (is_ubwc_enabled(gbo->format, gbo->usage_flags, gbo->usage_flags))
                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                           COLOR_FMT_NV12_UBWC, buf_lyt);
+                                           MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
              else
                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                       YUV_420_SP_BPP, buf_lyt);
              break;
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
              get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                        COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
+                                        MMM_COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
              break;
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                           COLOR_FMT_P010_UBWC, buf_lyt);
+                                           MMM_COLOR_FMT_P010_UBWC, buf_lyt);
         break;
         case GBM_FORMAT_P010:
             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
@@ -3331,7 +3334,7 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
                  break;
             case GBM_FORMAT_YCbCr_420_TP10_UBWC:
                  get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                            COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
+                                            MMM_COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
                  break;
             case GBM_FORMAT_P010:
                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,

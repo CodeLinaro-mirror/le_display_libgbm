@@ -1,16 +1,11 @@
 
-AM_CFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs -std=c++11
+AM_CFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs
 AM_CFLAGS+= -I./inc -I$(WORKSPACE)/vendor/qcom/opensource/commonsys-intf/display/include
 AM_CFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DBUILD_HAS_WAYLAND_SUPPORT -DVENUS_COLOR_FORMAT
 
-AM_CPPFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs -std=c++11
+AM_CPPFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs
 AM_CPPFLAGS+= -I./inc -I$(WORKSPACE)/vendor/qcom/opensource/commonsys-intf/display/include
 AM_CPPFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DBUILD_HAS_WAYLAND_SUPPORT -DVENUS_COLOR_FORMAT
-
-if IS_QRBX210
-AM_CFLAGS += -DENABLE_CAM_MIMAS
-AM_CPPFLAGS += -DENABLE_CAM_MIMAS
-endif
 
 if ENABLE_COMPILEWITHDRM
 AM_CFLAGS += -DENABLE_DRM
