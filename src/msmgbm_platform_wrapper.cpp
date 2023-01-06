@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2018, 2021 The Linux Foundation. All rights reserved.
@@ -623,6 +623,7 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
   if (descriptor->Usage & GBM_BO_USAGE_NO_ALLIGNMENT) {
     *alignedw = width;
     *alignedh = height;
+    return;
   }
 
   if (CameraInfo::GetInstance()->IsCameraCustomFormat(format)) {
