@@ -46,31 +46,6 @@
 
 namespace msm_gbm {
 
-enum PlaneComponent {
-  /* luma */
-  PLANE_COMPONENT_Y = 1 << 0,
-  /* chroma blue */
-  PLANE_COMPONENT_Cb = 1 << 1,
-  /* chroma red */
-  PLANE_COMPONENT_Cr = 1 << 2,
-
-  /* red */
-  PLANE_COMPONENT_R = 1 << 10,
-  /* green */
-  PLANE_COMPONENT_G = 1 << 11,
-  /* blue */
-  PLANE_COMPONENT_B = 1 << 12,
-
-  /* alpha */
-  PLANE_COMPONENT_A = 1 << 20,
-
-  /* raw data plane */
-  PLANE_COMPONENT_RAW = 1 << 30,
-
-  /* meta information plane */
-  PLANE_COMPONENT_META = 1 << 31,
-};
-
 struct gbm_buf_desc {
   uint32_t width;
   uint32_t height;
@@ -96,9 +71,6 @@ class GbmUtils {
   int ReclaimBufferFromSecureVM(struct gbm_bo *bo, int64_t lenddma_handle);
   int GetAlignedWidthAndHeight(gbm_buf_desc descriptor, uint64_t *aligned_width,
                                uint64_t *aligned_height);
-
- private:
-  bool IsCameraCustomFormat(uint32_t format);
 };
 
 }  // namespace msm_gbm

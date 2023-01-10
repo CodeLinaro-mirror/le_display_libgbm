@@ -250,6 +250,18 @@ extern "C" {
      */
     bool platform_wrap_instnce(void);
 
+    /**
+     * C wrapper function to know if the format is camera custom format
+     * @return true  : if format is camera custom format
+     *         false : if format is not camera custom format
+     */
+    bool IsCameraCustomFormat(uint32_t format);
+
+    /**
+     * C wrapper function to Get camera planeInfo
+     * @return generic_buf_layout_t plane info
+     */
+    int GetCameraPlaneInfo(struct msmgbm_bo *msm_gbm_bo, generic_buf_layout_t *buf_lyt);
 }
 
 }  // namespace msm_gbm

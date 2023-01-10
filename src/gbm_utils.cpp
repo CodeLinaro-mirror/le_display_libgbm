@@ -73,22 +73,7 @@ int GbmUtils::GetFormatLayout(gbm_buf_desc descriptor, generic_buf_layout_t *buf
   return GBM_ERROR_NONE;
 }
 
-bool GbmUtils::IsCameraCustomFormat(uint32_t format) {
-  switch (format) {
-    case GBM_FORMAT_NV21_ZSL:
-    case GBM_FORMAT_NV12_LINEAR_FLEX:
-    case GBM_FORMAT_NV12_UBWC_FLEX:
-    case GBM_FORMAT_MULTIPLANAR_FLEX:
-    case GBM_FORMAT_RAW_OPAQUE:
-    case GBM_FORMAT_RAW10:
-    case GBM_FORMAT_RAW12:
-      return true;
-    default:
-      break;
-  }
 
-  return false;
-}
 
 int GbmUtils::GetWidth(gbm_buf_desc descriptor, uint64_t *aligned_width) {
   if (!aligned_width) {
@@ -123,18 +108,6 @@ int GbmUtils::GetSize(gbm_buf_desc descriptor, uint64_t *size) {
     return GBM_ERROR_BAD_VALUE;
   }
 
-  if (IsCameraCustomFormat(descriptor.format) && CameraInfo::GetInstance()) {
-    unsigned int cam_size = 0;
-    int result = CameraInfo::GetInstance()->GetBufferSize(descriptor.format, descriptor.width,
-                                                          descriptor.height, &cam_size);
-    if (result != 0) {
-      fprintf(stderr, "Failed to get the buffer size through camera library.");
-      return GBM_ERROR_BAD_VALUE;
-    }
-    *size = cam_size;
-    return GBM_ERROR_NONE;
-  }
-
   unsigned int alignedw , alignedh;
   struct gbm_bufdesc bufdesc = {descriptor.width, descriptor.height,
                                 descriptor.format, descriptor.usage};
@@ -149,41 +122,6 @@ int GbmUtils::GetAlignedWidthAndHeight(gbm_buf_desc descriptor, uint64_t *aligne
                                        uint64_t *aligned_height) {
   if (!aligned_width || !aligned_height) {
     return GBM_ERROR_BAD_VALUE;
-  }
-
-  // Use of aligned width and aligned height is to calculate the size of buffer,
-  // but in case of camera custom format size is being calculated from given width
-  // and given height.
-  if (IsCameraCustomFormat(descriptor.format) && CameraInfo::GetInstance()) {
-    int width = descriptor.width;
-    int height = descriptor.height;
-    int format = descriptor.format;
-    int aligned_w = width;
-    int aligned_h = height;
-    int result = CameraInfo::GetInstance()->GetStrideInBytes(
-        format, (PlaneComponent)PLANE_COMPONENT_Y, width, &aligned_w);
-    if (result != 0) {
-      fprintf(stderr, "Failed to get the aligned width for camera custom format. width: %d,"
-          "height: %d, format: %d, Error code: %d", width, height, format, result);
-      *aligned_width = width;
-      *aligned_height = aligned_h;
-      return GBM_ERROR_NONE;
-    }
-
-    result = CameraInfo::GetInstance()->GetScanline(format, (PlaneComponent)PLANE_COMPONENT_Y,
-                                                    height, &aligned_h);
-    if (result != 0) {
-      fprintf(stderr, "Failed to get the aligned height for camera custom format. width: %d,"
-          "height: %d, format: %d, Error code: %d", width, height, format, result);
-      *aligned_width = aligned_w;
-      *aligned_height = height;
-      return GBM_ERROR_NONE;
-    }
-
-    *aligned_width = aligned_w;
-    *aligned_height = aligned_h;
-
-    return GBM_ERROR_NONE;
   }
 
   unsigned int alignedw , alignedh;
@@ -209,6 +147,9 @@ native_handle_t* GbmUtils::AllocateNativeHandle(gbm_bo *bo) {
   }
 
   handle->bo = bo;
+  // NOTE: Client should not close this fd as this FD is created by gbm
+  // during gbm_bo_destroy FD will be closed.
+  handle->data[0] = bo->ion_fd;
 
   return reinterpret_cast< native_handle_t *>(handle);
 }

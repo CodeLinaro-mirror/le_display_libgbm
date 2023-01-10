@@ -595,8 +595,6 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
     case GBM_FORMAT_YCrCb_422_SP:
     case GBM_FORMAT_YCrCb_420_SP_VENUS:
     case GBM_FORMAT_NV21_ZSL:
-    case GBM_FORMAT_RAW16:
-    case GBM_FORMAT_RAW10:
     case GBM_FORMAT_YCbCr_420_P010_VENUS:
     case GBM_FORMAT_P010:
     case GBM_FORMAT_YCbCr_422_I:
@@ -612,6 +610,8 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
       plane_count = 4;
     break;
     case GBM_FORMAT_BLOB:
+    case GBM_FORMAT_RAW16:
+    case GBM_FORMAT_RAW10:
     case GBM_FORMAT_RAW12:
     case GBM_FORMAT_RAW_OPAQUE:
     case GBM_FORMAT_RAW8:
@@ -2823,12 +2823,49 @@ void get_yuv_ubwc_sp_plane_info(int width, int height,
     }
 }
 
+int GetRawPlaneInfo(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt) {
+    int32_t step = 0;
+    switch(gbo->format) {
+        case GBM_FORMAT_RAW10:
+        case GBM_FORMAT_RAW12:
+            step = 0;
+            break;
+        case GBM_FORMAT_RAW16:
+            step = 2;
+            break;
+        case GBM_FORMAT_RAW8:
+            step = 1;
+            break;
+    }
+    int bpp = GetFormatBpp(gbo->format);
+    buf_lyt->pixel_format = gbo->format;
+    buf_lyt->num_planes = msmgbm_get_format_modifier_plane_count(gbo->format, 0);
+    buf_lyt->planes[0].bits_per_component = bpp;
+    buf_lyt->planes[0].h_subsampling = 0;
+    buf_lyt->planes[0].v_subsampling = 0;
+    buf_lyt->planes[0].offset = 0;
+    buf_lyt->planes[0].h_increment = step * bpp;
+    buf_lyt->planes[0].stride = gbo->aligned_width * bpp;
+    buf_lyt->planes[0].v_increment = gbo->aligned_width * bpp;
+    buf_lyt->planes[0].size = gbo->size;
+
+    return 0;
+}
+
 int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(gbo);
     int res = GBM_ERROR_NONE;
 
     if(!msm_gbm_bo || !buf_lyt)
         return GBM_ERROR_BAD_HANDLE;
+
+    if (IsCameraCustomFormat(gbo->format)) {
+        res = GetCameraPlaneInfo(msm_gbm_bo, buf_lyt);
+        if (res != GBM_ERROR_NONE) {
+            LOG(LOG_ERR,"Failed to get Camera Plane info");
+        }
+        return res;
+    }
 
      switch(gbo->format){
        //Semiplanar
@@ -2868,6 +2905,12 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_C8:
             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                        MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
+            break;
+        case GBM_FORMAT_RAW10:
+        case GBM_FORMAT_RAW12:
+        case GBM_FORMAT_RAW16:
+        case GBM_FORMAT_RAW8:
+            GetRawPlaneInfo(gbo, buf_lyt);
             break;
         default:
              res = GBM_ERROR_UNSUPPORTED;

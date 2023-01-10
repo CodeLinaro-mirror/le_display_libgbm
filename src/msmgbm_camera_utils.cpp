@@ -147,6 +147,7 @@ int CameraInfo::GetBufferSize(int format, int width, int height, unsigned int *s
 
 int CameraInfo::GetStrideInBytes(int format, int plane_type, int width, int *stride_bytes) {
   CamxFormatResult result = (CamxFormatResult)-1;
+  *stride_bytes = width;
   if (LINK_camera_get_stride_in_bytes) {
     result = LINK_camera_get_stride_in_bytes(GetCameraPixelFormat(format),
                                              GetCamxPlaneType(plane_type), width, stride_bytes);
@@ -154,7 +155,7 @@ int CameraInfo::GetStrideInBytes(int format, int plane_type, int width, int *str
       LOG(LOG_ERR, "Failed to get the stride in bytes. Error code: %d", result);
     }
   } else {
-    LOG(LOG_ERR, "Failed to link CamxFormatUtil_GetStrideInBytes. Error code : %d", result);
+    LOG(LOG_ERR, "Failed to link CamxFormatUtil_GetStrideInBytes. Assigning width");
   }
 
   return result;
@@ -244,6 +245,7 @@ int CameraInfo::GetPlaneTypes(int format, PlaneComponent *plane_component_array,
 
 int CameraInfo::GetScanline(int format, int plane_type, int height, int *scanlines) {
   CamxFormatResult result = (CamxFormatResult)-1;
+  *scanlines = height;
   if (LINK_camera_get_scanline) {
     result = LINK_camera_get_scanline(GetCameraPixelFormat(format), GetCamxPlaneType(plane_type),
                                       height, scanlines);
@@ -251,7 +253,7 @@ int CameraInfo::GetScanline(int format, int plane_type, int height, int *scanlin
       LOG(LOG_ERR, "Failed to get the scanlines. Error code: %d", result);
     }
   } else {
-    LOG(LOG_ERR, "Failed to link CamxFormatUtil_GetScanline. Error code : %d", result);
+    LOG(LOG_ERR, "Failed to link CamxFormatUtil_GetScanline.");
   }
 
   return result;
@@ -425,6 +427,111 @@ CamxPlaneType CameraInfo::GetCamxPlaneType(int plane_type) {
   }
 
   return camx_plane_type;
+}
+
+bool CameraInfo::IsCameraCustomFormat(uint32_t format) {
+  switch (format) {
+    case GBM_FORMAT_NV21_ZSL:
+    case GBM_FORMAT_NV12_LINEAR_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_MULTIPLANAR_FLEX:
+    case GBM_FORMAT_RAW_OPAQUE:
+    case GBM_FORMAT_RAW10:
+    case GBM_FORMAT_RAW12:
+      return true;
+    default:
+      break;
+  }
+
+  return false;
+}
+
+int CameraInfo::GetCameraFormatPlaneInfo(struct msmgbm_bo *msm_gbm_bo,
+                                         generic_buf_layout_t *buf_lyt) {
+  int result = 0;
+  struct gbm_bo &bo = msm_gbm_bo->base;
+  buf_lyt->pixel_format = bo.format;
+
+  int bpp = 0;
+  result = GetBpp(bo.format, &bpp);
+  if (result != 0) {
+    LOG(LOG_ERR, "Failed to get bpp. Error code : %d", result);
+    return result;
+  }
+  PlaneComponent plane_type[MAX_NUM_OF_PLANES] = {};
+  result = GetPlaneTypes(bo.format, plane_type, (int *)&buf_lyt->num_planes);
+  if (result != 0) {
+    LOG(LOG_ERR, "Failed to get the plane types. Error code : %d", result);
+    return result;
+  }
+
+  for (int i = 0; i < buf_lyt->num_planes; i++) {
+    buf_lyt->planes[i].bits_per_component = bpp;
+    int h_subsampling = 0;
+    result = GetSubsamplingFactor(bo.format, plane_type[i], true, &h_subsampling);
+    if (result != 0) {
+      LOG(LOG_ERR, "Failed to get horizontal subsampling factor. plane_type = %d, Error code : %d",
+                    plane_type[i], result);
+      break;
+    }
+    buf_lyt->planes[i].h_subsampling = (int32_t)h_subsampling;
+
+    int v_subsampling = 0;
+    result = GetSubsamplingFactor(bo.format, plane_type[i], false, &v_subsampling);
+    if (result != 0) {
+      LOG(LOG_ERR, "Failed to get vertical subsampling factor. plane_type = %d, Error code : %d",
+                    plane_type[i], result);
+      break;
+    }
+    buf_lyt->planes[i].v_subsampling = (int32_t)v_subsampling;
+
+    int offset = 0;
+    result = GetPlaneOffset(bo.format, plane_type[i], bo.width, bo.height, &offset);
+    if (result != 0) {
+      LOG(LOG_ERR, "Failed to get plane offset. plane_type = %d, Error code : %d",
+                    plane_type[i], result);
+      break;
+    }
+    buf_lyt->planes[i].offset = (int32_t)offset;
+
+    int step = 0;
+    result = GetPixelIncrement(bo.format, plane_type[i], &step);
+    if (result != 0) {
+      LOG(LOG_ERR, "Failed to get pixel increment. plane_type = %d, Error code : %d",
+                    plane_type[i], result);
+      break;
+    }
+    buf_lyt->planes[i].h_increment = (int32_t)step * bpp;
+
+    int stride_bytes = 0;
+    result = GetStrideInBytes(bo.format, plane_type[i], bo.width, &stride_bytes);
+    if (result != 0) {
+      LOG(LOG_ERR, "Failed to get stride in bytes. plane_type = %d, Error code : %d",
+                    plane_type[i], result);
+      break;
+    }
+    buf_lyt->planes[i].stride = (int32_t)stride_bytes;
+
+    int scanlines = 0;
+    result = GetScanline(bo.format, plane_type[i], bo.height, &scanlines);
+    if (result != 0) {
+      LOG(LOG_ERR, "Failed to get scanlines. plane_type = %d, Error code : %d",
+                    plane_type[i], result);
+      break;
+    }
+    buf_lyt->planes[i].v_increment = (int32_t)scanlines;
+
+    unsigned int plane_size = 0;
+    result = GetPlaneSize(bo.format, plane_type[i], bo.width, bo.height, &plane_size);
+    if (result != 0) {
+      LOG(LOG_ERR, "Failed to get plane size. plane_type = %d, Error code : %d",
+                    plane_type[i], result);
+      break;
+    }
+    buf_lyt->planes[i].size = (uint32_t)plane_size;
+  }
+
+  return result;
 }
 
 }  // namespace msm_gbm

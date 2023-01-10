@@ -52,9 +52,33 @@
 #include "gbm_priv.h"
 #include "gbm.h"
 #include "msmgbm.h"
-#include "gbm_utils.h"
 
 namespace msm_gbm {
+
+enum PlaneComponent {
+  /* luma */
+  PLANE_COMPONENT_Y = 1 << 0,
+  /* chroma blue */
+  PLANE_COMPONENT_Cb = 1 << 1,
+  /* chroma red */
+  PLANE_COMPONENT_Cr = 1 << 2,
+
+  /* red */
+  PLANE_COMPONENT_R = 1 << 10,
+  /* green */
+  PLANE_COMPONENT_G = 1 << 11,
+  /* blue */
+  PLANE_COMPONENT_B = 1 << 12,
+
+  /* alpha */
+  PLANE_COMPONENT_A = 1 << 20,
+
+  /* raw data plane */
+  PLANE_COMPONENT_RAW = 1 << 30,
+
+  /* meta information plane */
+  PLANE_COMPONENT_META = 1 << 31,
+};
 
 // Adreno Pixel Formats
 typedef enum {
@@ -142,12 +166,13 @@ class CameraInfo {
 
   int GetPlaneSize(int format, int plane_type, int width, int height, unsigned int *size);
 
-  /*int GetCameraFormatPlaneInfo(int format, int width, int height, int *plane_count,
-                               PlaneLayoutInfo *plane_info);*/
+  int GetCameraFormatPlaneInfo(struct msmgbm_bo *msm_gbm_bo, generic_buf_layout_t *buf_lyt);
 
   CamxPixelFormat GetCameraPixelFormat(int gbm_format);
 
   static CameraInfo *GetInstance();
+
+  bool IsCameraCustomFormat(uint32_t format);
 
  private:
   CameraInfo();
