@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -121,6 +124,7 @@ extern "C" {
 #define GBM_BO_USAGE_HW_RENDERING_QTI    	0x02000000 /*BO allocation for GPU based rendering operation */
 #define GBM_BO_USAGE_10BIT_QTI    	      0x04000000 /*BO allocation for 10 bit */
 #define GBM_BO_USAGE_10BIT_TP_QTI    	      0x08000000 /*BO allocation for 10 bit TP */
+#define GBM_BO_USAGE_EGL_IMAGE_QTI      0x10000000 /*BO allocation for EGL image operation */
 
 /**
  *  These are the parameter types to be used by the clients to query metadata info from gbm backend
@@ -455,6 +459,14 @@ extern "C" {
 #define GBM_FORMAT_NV12_UBWC_FLEX                           fourcc_mod_code_qti(QTI, 52)
 
 #define GBM_FORMAT_MULTIPLANAR_FLEX                         fourcc_mod_code_qti(QTI, 53)
+
+#define GBM_FORMAT_RGBA16161616F                            fourcc_mod_code_qti(QTI, 54)
+
+#define GBM_FORMAT_RGB161616F                               fourcc_mod_code_qti(QTI, 55)
+
+#define GBM_FORMAT_RGBA32323232F                            fourcc_mod_code_qti(QTI, 56)
+
+#define GBM_FORMAT_RGB323232F                               fourcc_mod_code_qti(QTI, 57)
 
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'A')
 
