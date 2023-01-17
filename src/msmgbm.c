@@ -33,7 +33,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -650,6 +650,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
     struct msmgbm_bo *msm_gbmbo = NULL;
     int data_fd = 0;
     int mt_data_fd = 0;
+    struct drm_prime_handle drm_args;
     /* Callers of this may specify a modifier, or a dri usage, but not both. The
      * newer modifier interface deprecates the older usage flags.
      */
@@ -717,6 +718,36 @@ msmgbm_bo_create(struct gbm_device *gbm,
         LOG(LOG_DBG,"BO Mapped Addr:= %p\n",base);
     }
 
+    //Use PRIME ioctl to convert to GEM handle
+    memset(&drm_args, 0, sizeof(drm_args));
+    if(msm_dev->fd > 0)
+    {
+        if(data_fd >0)
+        {
+            //Perform DRM IOCTL FD to Handle
+            drm_args.fd = data_fd;
+            if(ioctl(msm_dev->fd,DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
+            {
+                LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed =%d\n%s\n",
+                                                          data_fd,strerror(errno));
+            }
+        }
+        else
+        {
+            LOG(LOG_ERR,"Failed to get data gem handle on BO Err:\n%s\n",strerror(errno));
+            return NULL;
+        }
+
+    }else
+    {
+        LOG(LOG_ERR,"DRM open failed error = %d\n%s\n",strerror(errno));
+        return NULL;
+    }
+
+    gem_handle=drm_args.handle;
+    LOG(LOG_DBG,"Gem Handle for BO =:%p\n",gem_handle);
+
+
     /* To get ion_fd and gem handle for the metadata structure
      * Alignment of the buffer is fixed to Page size
      * ION Memory is from, the System heap
@@ -740,6 +771,27 @@ msmgbm_bo_create(struct gbm_device *gbm,
 
     // Initiliaze the meta_data structure
     memset(mt_base, 0 , mt_size);
+
+    //Use PRIME ioctl to convert to GEM handle
+    memset(&drm_args, 0, sizeof(drm_args));
+    //Use drm fd returned from previous drmOpen API
+    if(mt_data_fd >0)
+    {
+        //Perform DRM IOCTL FD to Handle
+        drm_args.fd = mt_data_fd;
+        if(ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
+        {
+            LOG(LOG_ERR,"failed to import gem_handle for Metadata from prime_fd=%d\n%s\n",strerror(errno));
+        }
+    }
+    else
+    {
+        LOG(LOG_ERR,"Failed to get metadata gem handle Err:\n%s\n",strerror(errno));
+        return NULL;
+    }
+
+    mt_gem_handle=drm_args.handle;
+    LOG(LOG_DBG,"Gem Handle for Metadata =:%p\n",mt_gem_handle);
 
     //Update the secure buffer flag info
     if(usage & GBM_BO_USAGE_PROTECTED_QTI)
@@ -1586,6 +1638,7 @@ msmgbm_surface_create(struct gbm_device *gbm, uint32_t width,
 
     msm_gbmsurf->device = msm_dev;
     msm_gbmsurf->magic = QCMAGIC;
+    msm_gbmsurf->inuse_index = -1;
 
 #ifdef ALLOCATE_SURFACE_BO_AT_CREATION
     for(index =0; index < NUM_BACK_BUFFERS; index++) {
@@ -1777,12 +1830,14 @@ struct gbm_bo* msmgbm_surface_get_free_bo(struct gbm_surface *surf)
 
     if(msm_gbm_surface != NULL)
     {
-            for(index =0; index < NUM_BACK_BUFFERS; index++)
+            int cur_index = msm_gbm_surface->inuse_index;
+            for(index = ((cur_index + 1) % NUM_BACK_BUFFERS); index < NUM_BACK_BUFFERS; index++)
             {
                 if((msm_gbm_surface->bo[index]!= NULL) && \
                     (msm_gbm_surface->bo[index]->current_state == GBM_BO_STATE_FREE))
                 {
                     msm_gbm_surface->bo[index]->current_state = GBM_BO_STATE_INUSE_BY_GPU;
+                    msm_gbm_surface->inuse_index = index;
                     return &msm_gbm_surface->bo[index]->base;
                 }
             }
