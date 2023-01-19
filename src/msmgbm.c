@@ -645,6 +645,11 @@ msmgbm_bo_create(struct gbm_device *gbm,
      return NULL;
    }
 
+   /* Currently these two flags are equivalent */
+   if (usage & GBM_BO_USE_PROTECTED) {
+        usage |= GBM_BO_USAGE_PROTECTED_QTI;
+   }
+
    if(count > 0 && count <= MAX_NUM_MODIFIERS) {
       usage = GetUsageFromModifier(modifiers, count);
    }
@@ -1716,6 +1721,10 @@ msmgbm_bo_import(struct gbm_device *gbm,
     if(msm_dev == NULL){
         LOG(LOG_ERR," INVALID Device pointer\n");
         return NULL;
+    }
+
+    if (usage & GBM_BO_USE_PROTECTED) {
+        usage |= GBM_BO_USAGE_PROTECTED_QTI;
     }
 
     LOG(LOG_DBG,"msmgbm_bo_import invoked\n");
