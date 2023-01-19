@@ -30,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -702,6 +702,11 @@ msmgbm_bo_create(struct gbm_device *gbm,
    if(usage && count) {
      LOG(LOG_ERR," Usage and modifier both cannot be supplied \n");
      return NULL;
+   }
+
+   /* Currently these two flags are equivalent */
+   if (usage & GBM_BO_USE_PROTECTED) {
+        usage |= GBM_BO_USAGE_PROTECTED_QTI;
    }
 
    if(count > 0 && count <= MAX_NUM_MODIFIERS) {
@@ -1424,6 +1429,10 @@ msmgbm_bo_import(struct gbm_device *gbm,
     if(msm_dev == NULL){
         LOG(LOG_ERR," INVALID Device pointer\n");
         return NULL;
+    }
+
+    if (usage & GBM_BO_USE_PROTECTED) {
+        usage |= GBM_BO_USAGE_PROTECTED_QTI;
     }
 
     LOG(LOG_DBG,"msmgbm_bo_import invoked\n");
