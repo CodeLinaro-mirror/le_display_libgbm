@@ -27,8 +27,10 @@
 
 AC_PREREQ(2.61)
 
+m4_define([mesa_version], [21.1.1])
+m4_define([gbm_version], [mesa_version])
 AC_INIT([libgbm],
-    20.1.0,
+    [gbm_version],
     [],
     libgbm)
 
