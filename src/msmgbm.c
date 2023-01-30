@@ -1130,6 +1130,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     gbmbo->aligned_height = aligned_height;
     gbmbo->bo_destroy    = msmgbm_bo_destroy;
     gbmbo->bo_get_fd     = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device = msmgbm_bo_get_device;
     gbmbo->bo_write      = msmgbm_bo_write;
     msm_gbmbo->device    = msm_dev;
@@ -1141,6 +1142,8 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     msm_gbmbo->mt_size   = mt_size;
     msm_gbmbo->magic     = QCMAGIC;
     msm_gbmbo->import_flg = 1;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
@@ -1322,6 +1325,7 @@ msmgbm_bo_import_wl_buffer(struct msmgbm_device *msm_dev,
     gbmbo->aligned_height = aligned_height;
     gbmbo->bo_destroy    = msmgbm_bo_destroy;
     gbmbo->bo_get_fd     = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device = msmgbm_bo_get_device;
     gbmbo->bo_write      = msmgbm_bo_write;
     msm_gbmbo->device    = msm_dev;
@@ -1334,6 +1338,7 @@ msmgbm_bo_import_wl_buffer(struct msmgbm_device *msm_dev,
     msm_gbmbo->magic     = QCMAGIC;
     msm_gbmbo->import_flg = 1;
 
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
     return gbmbo;
 
 }
@@ -1490,6 +1495,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     gbmbo->size            = size;
     gbmbo->bo_destroy      = msmgbm_bo_destroy;
     gbmbo->bo_get_fd       = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device   = msmgbm_bo_get_device;
     gbmbo->bo_write        = msmgbm_bo_write;
     msm_gbmbo->device      = msm_dev;
@@ -1501,6 +1507,8 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     msm_gbmbo->mt_size         = mt_size;
     msm_gbmbo->magic           = QCMAGIC;
     msm_gbmbo->import_flg      = 1;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
@@ -1694,6 +1702,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     gbmbo->size            = size;
     gbmbo->bo_destroy      = msmgbm_bo_destroy;
     gbmbo->bo_get_fd       = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device   = msmgbm_bo_get_device;
     gbmbo->bo_write        = msmgbm_bo_write;
     msm_gbmbo->device      = msm_dev;
@@ -1705,6 +1714,8 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     msm_gbmbo->mt_size         = mt_size;
     msm_gbmbo->magic           = QCMAGIC;
     msm_gbmbo->import_flg      = 1;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
@@ -2417,6 +2428,7 @@ struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int 
     gbmbo->handle.u32 = gemimport_req.handle;
     gbmbo->bo_destroy = msmgbm_bo_destroy;
     gbmbo->bo_get_fd= msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device = msmgbm_bo_get_device;
     gbmbo->bo_write = msmgbm_bo_write;
     msm_gbmbo->device = msm_dev;
@@ -2425,6 +2437,7 @@ struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int 
     msm_gbmbo->name = name;
     //msm_gbmbo->size = gem_open.size;
 
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
     return gbmbo;
 }
 
