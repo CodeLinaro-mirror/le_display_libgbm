@@ -493,12 +493,21 @@ extern "C" {
 
 #define GBM_FORMAT_MULTIPLANAR_FLEX                         fourcc_mod_code_qti(QTI, 53)
 
+#define GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH                   fourcc_mod_code_qti(QTI, 54)
+
+#define GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH                   fourcc_mod_code_qti(QTI, 55)
+
+#define GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH                   fourcc_mod_code_qti(QTI, 56)
+
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'A')
 
 #define GBM_FORMAT_YCbCr_420_P010_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'B')
 
 /* Y/CbCr 4:2:0 P10 format*/
 #define GBM_FORMAT_P010                                     __gbm_fourcc_code('P', '0', '1', '0')
+
+#define GBM_FORMAT_Y8                                       __gbm_fourcc_code('Y', '8', '0', '0')
+#define GBM_FORMAT_Y16                                      __gbm_fourcc_code('Y', '1', '6', '0')
 
 /**
  * Pixel component ID defines

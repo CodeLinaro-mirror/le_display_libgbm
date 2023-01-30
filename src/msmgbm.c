@@ -1,7 +1,4 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
-* Not a Contribution.
-*
 * Copyright (c) 2017 - 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -33,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -384,8 +381,11 @@ static int GetFormatBpp(uint32_t format)
             return 1;
         case GBM_FORMAT_RG88:
         case GBM_FORMAT_R16:
+        case GBM_FORMAT_Y16:
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
+        case GBM_FORMAT_YCbCr_422_SP:
+        case GBM_FORMAT_YCrCb_422_SP:
             return 2;
         case GBM_FORMAT_RGB888:
             return 3;
@@ -401,8 +401,13 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_YCbCr_420_SP:
         case GBM_FORMAT_YCrCb_420_SP:
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
+        case GBM_FORMAT_YCrCb_420_SP_VENUS:
+        case GBM_FORMAT_YCbCr_422_I:
+        case GBM_FORMAT_NV12_LINEAR_FLEX:
+        case GBM_FORMAT_MULTIPLANAR_FLEX:
         case GBM_FORMAT_NV12_ENCODEABLE:
         case GBM_FORMAT_NV12:
+        case GBM_FORMAT_NV12_HEIF:
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
         case GBM_FORMAT_P010:
         case GBM_FORMAT_NV21_ZSL:
@@ -413,14 +418,16 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
         case GBM_FORMAT_BLOB:
+        case GBM_FORMAT_RAW_OPAQUE:
         case GBM_FORMAT_C8_LINEAR:
         case GBM_FORMAT_C8:
-#ifdef COLOR_FMT_NV12_512
-        case GBM_FORMAT_NV12_HEIF:
-#endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
-             LOG(LOG_DBG,"YUV format BPP\n");
+        case GBM_FORMAT_Y8:
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
             return 1;
         default:
             return 0;
@@ -450,8 +457,10 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_YCbCr_420_SP:
         case GBM_FORMAT_YCrCb_420_SP:
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
+        case GBM_FORMAT_YCrCb_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE:
         case GBM_FORMAT_NV12:
+        case GBM_FORMAT_NV12_HEIF:
         case GBM_FORMAT_ABGR2101010:
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
@@ -459,19 +468,27 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_NV21_ZSL:
         case GBM_FORMAT_YCbCr_420_888:
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+        case GBM_FORMAT_YCbCr_422_I:
+        case GBM_FORMAT_NV12_LINEAR_FLEX:
+        case GBM_FORMAT_MULTIPLANAR_FLEX:
         case GBM_FORMAT_RAW10:
         case GBM_FORMAT_RAW12:
         case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
         case GBM_FORMAT_BLOB:
+        case GBM_FORMAT_RAW_OPAQUE:
         case GBM_FORMAT_C8_LINEAR:
         case GBM_FORMAT_C8:
-#ifdef COLOR_FMT_NV12_512
-        case GBM_FORMAT_NV12_HEIF:
-#endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
+        case GBM_FORMAT_Y8:
+        case GBM_FORMAT_Y16:
+        case GBM_FORMAT_YCbCr_422_SP:
+        case GBM_FORMAT_YCrCb_422_SP:
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
             is_supported = 1;
-            LOG(LOG_DBG,"Valid format\n");
             break;
         default:
             is_supported = 0;
@@ -507,6 +524,7 @@ is_format_rgb(uint32_t format)
             result = 0;
             break;
     }
+    LOG(LOG_DBG,"is format %s RGB format : %d\n", get_msmgbm_format_name(format), result);
 
     return result;
 }
@@ -588,9 +606,7 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_NV12_ENCODEABLE:
     case GBM_FORMAT_NV12:
-#ifdef COLOR_FMT_NV12_512
     case GBM_FORMAT_NV12_HEIF:
-#endif
     case GBM_FORMAT_YCrCb_420_SP:
     case GBM_FORMAT_YCrCb_422_SP:
     case GBM_FORMAT_YCrCb_420_SP_VENUS:
@@ -681,7 +697,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         Bpp = GetFormatBpp(format);
     else
     {
-        LOG(LOG_ERR,"Format (0x%x) not supported\n",format);
+        LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(format));
         return NULL;
     }
 
@@ -692,7 +708,8 @@ msmgbm_bo_create(struct gbm_device *gbm,
     size = qry_size(&bufdesc, aligned_width, aligned_height);
 
     LOG(LOG_DBG,"\n size=%d\n width=%d\n height=%d\n aligned_width=%d\n"
-          " aligned_height=%d\n",size, width, height, aligned_width, aligned_height);
+          " aligned_height=%d \n Format %s \n Bpp %d\n", size, width, height,
+          aligned_width, aligned_height, get_msmgbm_format_name(format), Bpp);
 
     /* First we will get ion / dma fd and gem handle for the frame buffer
      * Size of the ION buffer is in accordance to returned from the adreno helpers
@@ -899,13 +916,14 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
 
     }
 
-    LOG(LOG_DBG," format: 0x%x width: %d height: %d \n",buffer_info->format, buffer_info->width, buffer_info->height);
+    LOG(LOG_DBG," format: %s width: %d height: %d \n", get_msmgbm_format_name(buffer_info->format),
+                buffer_info->width, buffer_info->height);
 
     if(1 == IsFormatSupported(buffer_info->format))
         Bpp = GetFormatBpp(buffer_info->format);
     else
     {
-        LOG(LOG_ERR,"Format (0x%x) not supported\n",buffer_info->format);
+        LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(buffer_info->format));
         return NULL;
     }
 
@@ -980,9 +998,9 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
-        "gbmbo->width=%d,gbmbo->height=%d,gbmbo->format=0x%x\n",
+        "gbmbo->width=%d,gbmbo->height=%d,gbmbo->format=%s\n",
         gbmbo->ion_fd,gbmbo->ion_metadata_fd,gbmbo->width,
-        gbmbo->height,gbmbo->format);
+        gbmbo->height, get_msmgbm_format_name(gbmbo->format));
 
     return gbmbo;
 
@@ -1029,7 +1047,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
   }
   else
   {
-      LOG(LOG_ERR,"Format (0x%x) not supported\n", fd_data->format);
+      LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(fd_data->format));
       return NULL;
   }
       //Search Map for a valid entry, we have only one FD for all buffers
@@ -1201,14 +1219,14 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
-    LOG(LOG_DBG," fd=%d format: 0x%x width: %d height: %d \n",buffer_info->fd,
+    LOG(LOG_DBG,"fd=%d format: %s width: %d height: %d\n", get_msmgbm_format_name(buffer_info->fd),
         buffer_info->format, buffer_info->width, buffer_info->height);
 
     if(1 == IsFormatSupported(buffer_info->format))
         Bpp = GetFormatBpp(buffer_info->format);
     else
     {
-        LOG(LOG_ERR,"Format (0x%x) not supported\n", buffer_info->format);
+        LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(buffer_info->format));
         return NULL;
     }
 
@@ -1225,8 +1243,8 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
                               temp_buf_info.width);
         LOG(LOG_DBG,"temp_buf_info.height=%d\n",
                              temp_buf_info.height);
-        LOG(LOG_DBG,"temp_buf_info.format=%d\n",
-                                    temp_buf_info.format);
+        LOG(LOG_DBG,"temp_buf_info.format=%s\n",
+                     get_msmgbm_format_name(temp_buf_info.format));
         LOG(LOG_DBG,"temp_buf_info.meta_fd=%d\n",
                                     temp_buf_info.metadata_fd);
     }
@@ -2372,8 +2390,8 @@ int msmgbm_perform(int operation, ... )
                                               temp_buf_info.width);
                         LOG(LOG_DBG,"temp_buf_info.height=%d\n",
                                              temp_buf_info.height);
-                        LOG(LOG_DBG,"temp_buf_info.format=%d\n",
-                                              temp_buf_info.format);
+                        LOG(LOG_DBG,"temp_buf_info.format=%s\n",
+                                     get_msmgbm_format_name(temp_buf_info.format));
 
                         //save the same in the gbo handle as well
                         gbo->ion_metadata_fd = temp_buf_info.metadata_fd;
@@ -2629,8 +2647,8 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
                                   temp_buf_info.width);
             LOG(LOG_DBG,"temp_buf_info.height=%d\n",
                                  temp_buf_info.height);
-            LOG(LOG_DBG,"temp_buf_info.format=%d\n",
-                                  temp_buf_info.format);
+            LOG(LOG_DBG,"temp_buf_info.format=%s\n",
+                         get_msmgbm_format_name(temp_buf_info.format));
 
             //save the same in the gbo handle as well
             gbo->ion_metadata_fd = temp_buf_info.metadata_fd;
@@ -2873,9 +2891,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_YCrCb_420_SP:
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
-#ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
-#endif
              get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                    YUV_420_SP_BPP, buf_lyt);
              break;
@@ -2996,7 +3012,7 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
         Bpp = GetFormatBpp(gbo->format);
     else
     {
-        LOG(LOG_ERR,"Format (0x%x) not supported\n",gbo->format);
+        LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(gbo->format));
         return NULL;
     }
     buf_lyt->pixel_format = gbo->format;
@@ -3020,9 +3036,7 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
             case GBM_FORMAT_YCbCr_420_SP_VENUS:
             case GBM_FORMAT_NV12:
             case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
-#ifdef COLOR_FMT_NV12_512
             case GBM_FORMAT_NV12_HEIF:
-#endif
                  get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                        YUV_420_SP_BPP, buf_lyt);
                  break;
@@ -3137,4 +3151,158 @@ int msmgbm_bo_dump(struct gbm_bo * gbo)
       fclose(fptr);
 
     return ret;
+}
+
+char * get_msmgbm_format_name(int format)
+{
+  switch(format) {
+    case GBM_FORMAT_C8: return "GBM_FORMAT_C8";
+    case GBM_FORMAT_C8_LINEAR: return "GBM_FORMAT_C8_LINEAR";
+    case GBM_FORMAT_R8: return "GBM_FORMAT_R8";
+    case GBM_FORMAT_R16: return "GBM_FORMAT_R16";
+    case GBM_FORMAT_RG88: return "GBM_FORMAT_RG88";
+    case GBM_FORMAT_RG1616: return "GBM_FORMAT_RG1616";
+    case GBM_FORMAT_RGB332: return "GBM_FORMAT_RGB332";
+    case GBM_FORMAT_BGR233: return "GBM_FORMAT_BGR233";
+    case GBM_FORMAT_XRGB4444: return "GBM_FORMAT_XRGB4444";
+    case GBM_FORMAT_XBGR4444: return "GBM_FORMAT_XBGR4444";
+    case GBM_FORMAT_RGBX4444: return "GBM_FORMAT_RGBX4444";
+    case GBM_FORMAT_BGRX4444: return "GBM_FORMAT_BGRX4444";
+    case GBM_FORMAT_ARGB4444: return "GBM_FORMAT_ARGB4444";
+    case GBM_FORMAT_ABGR4444: return "GBM_FORMAT_ABGR4444";
+    case GBM_FORMAT_RGBA4444: return "GBM_FORMAT_RGBA4444";
+    case GBM_FORMAT_BGRA4444: return "GBM_FORMAT_BGRA4444";
+    case GBM_FORMAT_XRGB1555: return "GBM_FORMAT_XRGB1555";
+    case GBM_FORMAT_XBGR1555: return "GBM_FORMAT_XBGR1555";
+    case GBM_FORMAT_RGBX5551: return "GBM_FORMAT_RGBX5551";
+    case GBM_FORMAT_BGRX5551: return "GBM_FORMAT_BGRX5551";
+    case GBM_FORMAT_ARGB1555: return "GBM_FORMAT_ARGB1555";
+    case GBM_FORMAT_ABGR1555: return "GBM_FORMAT_ABGR1555";
+    case GBM_FORMAT_RGBA5551: return "GBM_FORMAT_RGBA5551";
+    case GBM_FORMAT_BGRA5551: return "GBM_FORMAT_BGRA5551";
+    case GBM_FORMAT_RGB565: return "GBM_FORMAT_RGB565";
+    case GBM_FORMAT_BGR565: return "GBM_FORMAT_BGR565";
+    case GBM_FORMAT_RGB888: return "GBM_FORMAT_RGB888";
+    case GBM_FORMAT_BGR888: return "GBM_FORMAT_BGR888";
+    case GBM_FORMAT_XRGB8888: return "GBM_FORMAT_XRGB8888";
+    case GBM_FORMAT_XBGR8888: return "GBM_FORMAT_XBGR8888";
+    case GBM_FORMAT_RGBX8888: return "GBM_FORMAT_RGBX8888";
+    case GBM_FORMAT_BGRX8888: return "GBM_FORMAT_BGRX8888";
+    case GBM_FORMAT_ARGB8888: return "GBM_FORMAT_ARGB8888";
+    case GBM_FORMAT_ABGR8888: return "GBM_FORMAT_ABGR8888";
+    case GBM_FORMAT_RGBA8888: return "GBM_FORMAT_RGBA8888";
+    case GBM_FORMAT_BGRA8888: return "GBM_FORMAT_BGRA8888";
+    case GBM_FORMAT_XRGB2101010: return "GBM_FORMAT_XRGB2101010";
+    case GBM_FORMAT_XBGR2101010: return "GBM_FORMAT_XBGR2101010";
+    case GBM_FORMAT_RGBX1010102: return "GBM_FORMAT_RGBX1010102";
+    case GBM_FORMAT_BGRX1010102: return "GBM_FORMAT_BGRX1010102";
+    case GBM_FORMAT_ARGB2101010: return "GBM_FORMAT_ARGB2101010";
+    case GBM_FORMAT_ABGR2101010: return "GBM_FORMAT_ABGR2101010";
+    case GBM_FORMAT_RGBA1010102: return "GBM_FORMAT_RGBA1010102";
+    case GBM_FORMAT_BGRA1010102: return "GBM_FORMAT_BGRA1010102";
+    case GBM_FORMAT_YUYV: return "GBM_FORMAT_YUYV";
+    case GBM_FORMAT_YVYU: return "GBM_FORMAT_YVYU";
+    case GBM_FORMAT_UYVY: return "GBM_FORMAT_UYVY";
+    case GBM_FORMAT_VYUY: return "GBM_FORMAT_VYUY";
+    case GBM_FORMAT_AYUV: return "GBM_FORMAT_AYUV";
+    case GBM_FORMAT_NV12: return "GBM_FORMAT_NV12";
+    case GBM_FORMAT_NV21: return "GBM_FORMAT_NV21";
+    case GBM_FORMAT_NV16: return "GBM_FORMAT_NV16";
+    case GBM_FORMAT_NV61: return "GBM_FORMAT_NV61";
+    case GBM_FORMAT_YUV410: return "GBM_FORMAT_YUV410";
+    case GBM_FORMAT_YVU410: return "GBM_FORMAT_YVU410";
+    case GBM_FORMAT_YUV411: return "GBM_FORMAT_YUV411";
+    case GBM_FORMAT_YVU411: return "GBM_FORMAT_YVU411";
+    case GBM_FORMAT_YUV420: return "GBM_FORMAT_YUV420";
+    case GBM_FORMAT_YVU420: return "GBM_FORMAT_YVU420";
+    case GBM_FORMAT_YUV422: return "GBM_FORMAT_YUV422";
+    case GBM_FORMAT_YVU422: return "GBM_FORMAT_YVU422";
+    case GBM_FORMAT_YUV444: return "GBM_FORMAT_YUV444";
+    case GBM_FORMAT_YVU444: return "GBM_FORMAT_YVU444";
+    case GBM_FORMAT_RAW16: return "GBM_FORMAT_RAW16";
+    case GBM_FORMAT_RAW10: return "GBM_FORMAT_RAW10";
+    case GBM_FORMAT_RAW12: return "GBM_FORMAT_RAW12";
+    case GBM_FORMAT_RAW8: return "GBM_FORMAT_RAW8";
+    case GBM_FORMAT_YV12: return "GBM_FORMAT_YV12";
+    case GBM_FORMAT_YCbCr_420_SP: return "GBM_FORMAT_YCbCr_420_SP";
+    case GBM_FORMAT_YCrCb_420_SP: return "GBM_FORMAT_YCrCb_420_SP";
+    case GBM_FORMAT_YCbCr_422_SP: return "GBM_FORMAT_YCbCr_422_SP";
+    case GBM_FORMAT_YCrCb_422_SP: return "GBM_FORMAT_YCrCb_422_SP";
+    case GBM_FORMAT_YCbCr_422_I: return "GBM_FORMAT_YCbCr_422_I";
+    case GBM_FORMAT_YCrCb_422_I: return "GBM_FORMAT_YCrCb_422_I";
+    case GBM_FORMAT_YCbCr_420_SP_VENUS: return "GBM_FORMAT_YCbCr_420_SP_VENUS";
+    case GBM_FORMAT_NV12_ENCODEABLE: return "GBM_FORMAT_NV12_ENCODEABLE";
+    case GBM_FORMAT_YCrCb_420_SP_VENUS: return "GBM_FORMAT_YCrCb_420_SP_VENUS";
+    case GBM_FORMAT_NV21_ZSL: return "GBM_FORMAT_NV21_ZSL";
+    case GBM_FORMAT_BLOB: return "GBM_FORMAT_BLOB";
+    case GBM_FORMAT_RAW_OPAQUE: return "GBM_FORMAT_RAW_OPAQUE";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_4x4_KHR: return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_4x4_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x4_KHR: return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x4_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x5_KHR: return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x5_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x5_KHR: return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x5_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x6_KHR: return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x6_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x5_KHR: return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x5_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x6_KHR: return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x6_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR: return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR";
+    case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC: return "GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC";
+    case GBM_FORMAT_YCbCr_420_888: return "GBM_FORMAT_YCbCr_420_888";
+    case GBM_FORMAT_IMPLEMENTATION_DEFINED: return "GBM_FORMAT_IMPLEMENTATION_DEFINED";
+    case GBM_FORMAT_NV12_HEIF: return "GBM_FORMAT_NV12_HEIF";
+    case GBM_FORMAT_YCbCr_420_P010_VENUS: return "GBM_FORMAT_YCbCr_420_P010_VENUS";
+    case GBM_FORMAT_NV12_LINEAR_FLEX: return "GBM_FORMAT_NV12_LINEAR_FLEX";
+    case GBM_FORMAT_NV12_UBWC_FLEX: return "GBM_FORMAT_NV12_UBWC_FLEX";
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH: return "GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH";
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH: return "GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH";
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH: return "GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH";
+    case GBM_FORMAT_MULTIPLANAR_FLEX: return "GBM_FORMAT_MULTIPLANAR_FLEX";
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC: return "GBM_FORMAT_YCbCr_420_TP10_UBWC";
+    case GBM_FORMAT_YCbCr_420_P010_UBWC: return "GBM_FORMAT_YCbCr_420_P010_UBWC";
+    case GBM_FORMAT_P010: return "GBM_FORMAT_P010";
+    case GBM_FORMAT_Y8: return "GBM_FORMAT_Y8";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x5_KHR:
+      return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x5_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x6_KHR:
+      return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x6_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x8_KHR:
+      return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x8_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x10_KHR:
+      return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x10_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x10_KHR:
+      return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x10_KHR";
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x12_KHR:
+      return "GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x12_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR";
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+      return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR";
+    default:
+    {
+      LOG(LOG_DBG,"Unknown format 0X%x\n", format);
+      return NULL;
+    }
+  }
 }
