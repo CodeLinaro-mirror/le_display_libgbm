@@ -1,6 +1,6 @@
 //**************************************************************************************************
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2017 - 2018, 2021 The Linux Foundation. All rights reserved.
@@ -53,6 +53,7 @@
 #include <gbm_priv.h>
 #include <wayland-server.h>
 #include <drm/drm_fourcc.h>
+#include <display/drm/sde_drm.h>
 #ifdef USE_GLIB
 #include <glib.h>
 #define strlcat g_strlcat

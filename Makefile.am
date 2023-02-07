@@ -20,6 +20,7 @@ libgbm_la_CFLAGS = $(AM_CFLAGS)
 libgbm_la_CPPFLAGS = $(AM_CFLAGS)
 libgbm_la_CPPFLAGS +=  @LIBDMABUFHEAP_CFLAGS@
 libgbm_la_LDFLAGS = -shared -avoid-version -lm -ldl -lwayland-server -lwayland-client -ldmabufheap
+libgbm_la_LDFLAGS += -lglib-2.0
 libgbm_la_SOURCES = src/gbm.c \
                     src/msmgbm_camera.c \
                     src/msmgbm_video.c \
