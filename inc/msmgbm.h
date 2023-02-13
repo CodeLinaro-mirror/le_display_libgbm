@@ -30,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -173,6 +173,7 @@ struct msmgbm_surface {
    uint32_t magic;
    struct msmgbm_device* device;
    struct msmgbm_bo *bo[NUM_BACK_BUFFERS];
+   int inuse_index;
 #ifndef ALLOCATE_SURFACE_BO_AT_CREATION
    int bo_slot[NUM_BACK_BUFFERS];
 #endif

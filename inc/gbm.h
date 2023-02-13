@@ -60,7 +60,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -299,6 +299,12 @@ enum gbm_bo_flags {
     * Buffer is linear, i.e. not tiled.
     */
    GBM_BO_USE_LINEAR = (1 << 4),
+   /**
+    * Buffer is protected, i.e. encrypted and not readable by CPU or any
+    * other non-secure / non-trusted components nor by non-trusted OpenGL,
+    * OpenCL, and Vulkan applications.
+    */
+   GBM_BO_USE_PROTECTED = (1 << 5),
 };
 
 int
@@ -437,6 +443,9 @@ gbm_bo_get_plane_count(struct gbm_bo *bo);
 
 union gbm_bo_handle
 gbm_bo_get_handle_for_plane(struct gbm_bo *bo, int plane);
+
+int
+gbm_bo_get_fd_for_plane(struct gbm_bo *bo, int plane);
 
 int
 gbm_bo_write(struct gbm_bo *bo, const void *buf, size_t count);
