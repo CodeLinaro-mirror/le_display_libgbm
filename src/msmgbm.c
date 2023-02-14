@@ -3135,8 +3135,8 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
     if(!msm_gbm_bo || !buf_lyt)
         return GBM_ERROR_BAD_HANDLE;
 
-     switch(gbo->format){
-       //Semiplanar
+    switch(gbo->format) {
+        //Semiplanar
         case GBM_FORMAT_YCbCr_420_SP:
         case GBM_FORMAT_YCrCb_420_SP:
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
@@ -3175,7 +3175,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         default:
             res = GBM_ERROR_UNSUPPORTED;
             break;
-     }
+    }
 
     return res;
 }
@@ -3271,47 +3271,7 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
     }
     else
     {
-        switch(gbo->format){
-           //Semiplanar
-            case GBM_FORMAT_YCbCr_420_SP:
-            case GBM_FORMAT_YCrCb_420_SP:
-            case GBM_FORMAT_YCbCr_420_SP_VENUS:
-            case GBM_FORMAT_NV12:
-            case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
-#ifdef COLOR_FMT_NV12_512
-            case GBM_FORMAT_NV12_HEIF:
-#endif
-            case GBM_FORMAT_NV21_ZSL:
-            case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
-                if (is_ubwc_enabled(gbo->format, gbo->usage_flags, gbo->usage_flags))
-                    get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                            MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
-                else
-                    get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                        YUV_420_SP_BPP, buf_lyt);
-                break;
-            case GBM_FORMAT_YCbCr_420_TP10_UBWC:
-                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                            MMM_COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
-                 break;
-            case GBM_FORMAT_YCbCr_420_P010_UBWC:
-                get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                        MMM_COLOR_FMT_P010_UBWC, buf_lyt);
-                break;
-            case GBM_FORMAT_P010:
-            case GBM_FORMAT_YCbCr_420_P010_VENUS:
-                get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                      CHROMA_STEP, buf_lyt);
-                break;
-            case GBM_FORMAT_UYVY:
-                get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                    YUV_422_SP_BPP, buf_lyt);
-                buf_lyt->num_planes = 1;
-                break;
-            default:
-                 res = GBM_ERROR_UNSUPPORTED;
-                 break;
-        }
+        res = msmgbm_yuv_plane_info(gbo, buf_lyt);
     }
     return res;
 }
