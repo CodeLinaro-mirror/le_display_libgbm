@@ -506,6 +506,24 @@ void config_dbg_lvl(void);
 void msmgbm_log_hdr_color_info_mdata(ColorMetaData * color_mdata);
 void msmsgbm_default_init_hdr_color_info_mdata(ColorMetaData * color_mdata);
 
+/**
+  * C wrapper function to increment the reference count for the valid gem_handle
+  * @input param: device fd
+  * @input param: gem handle
+  * @return     : none
+  *
+  */
+void incr_handle_refcnt(int device_fd, uint32_t handle);
+
+/**
+  * C wrapper function to decrement the reference count for the valid map gem_handle
+  * @input param: device fd
+  * @input param: gem handle
+  * @return     : 1 for delete key from map /0 for decremented ref count
+  *
+  */
+int decr_handle_refcnt(int device_fd, uint32_t handle);
+
 #ifdef __cplusplus
 }
 #endif
