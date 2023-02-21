@@ -371,10 +371,14 @@ gbm_bo_get_handle(struct gbm_bo *bo)
         return bo->handle;
 }
 
-/** Returns the file description of the buffer object
+/** Get a file descriptor for the buffer object
+ *
+ * Each call to gbm_bo_get_fd() returns a new file descriptor and the caller 
+ * is responsible for closing the file descriptor.
  *
  * \param bo The buffer object
- * \return Returns a file descriptor referring	to the underlying buffer
+ * \return Returns a file descriptor referring to the underlying buffer or -1
+ * if an error occurs.
  */
 int
 gbm_bo_get_fd(struct gbm_bo *bo)
@@ -384,7 +388,7 @@ gbm_bo_get_fd(struct gbm_bo *bo)
     }
     else {
         fprintf(stderr,"%s(%d): NULL or Invalid bo pointer\n",__func__,__LINE__);
-        return 0;
+        return -1;
     }
 }
 
