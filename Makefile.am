@@ -50,6 +50,10 @@ libgbmutils_la_LDFLAGS = -shared -avoid-version -lm -ldl -lcutils
 libgbmutils_la_LIBADD = libgbm.la
 libgbmutils_la_SOURCES = src/gbm_utils.cpp
 
+bin_PROGRAMS = gbmtest
+gbmtest_SOURCES = test/gbmtest.c
+gbmtest_LDADD = libgbm.la
+
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = gbm.pc
 EXTRA_DIST = $(pkgconfig_DATA)
