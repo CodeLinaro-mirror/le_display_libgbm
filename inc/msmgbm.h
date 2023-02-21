@@ -30,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -537,6 +537,23 @@ void msmsgbm_default_init_hdr_color_info_mdata(ColorMetaData * color_mdata);
  *
  */
 char * get_msmgbm_format_name(int format);
+/**
+  * C wrapper function to increment the reference count for the valid gem_handle
+  * @input param: device fd
+  * @input param: gem handle
+  * @return     : none
+  *
+  */
+void incr_handle_refcnt(int device_fd, uint32_t handle);
+
+/**
+  * C wrapper function to decrement the reference count for the valid map gem_handle
+  * @input param: device fd
+  * @input param: gem handle
+  * @return     : 1 for delete key from map /0 for decremented ref count
+  *
+  */
+int decr_handle_refcnt(int device_fd, uint32_t handle);
 
 #ifdef __cplusplus
 }
