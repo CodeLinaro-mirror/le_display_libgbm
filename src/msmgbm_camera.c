@@ -26,6 +26,11 @@
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+/*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
 
 #include <stdint.h>
 #include <stddef.h>
@@ -43,6 +48,10 @@
 uint32_t GetCameraImplDefinedFormat(uint32_t usage_flags, uint32_t format)
 {
     uint32_t pixel_format = format;
+
+    if(!IsImplDefinedFormat(pixel_format)) {
+        return pixel_format;
+    }
 
     if((usage_flags & GBM_BO_USAGE_CAMERA_READ_QTI) &&
            (usage_flags & GBM_BO_USAGE_CAMERA_WRITE_QTI)){
