@@ -1,7 +1,4 @@
 /*
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
-* Not a Contribution.
-*
 * Copyright (c) 2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -33,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -207,8 +204,8 @@ void platform_wrap_deinstnce(void) {
 }
 
 
-bool IsCameraCustomFormat(uint32_t format) {
-  return CameraInfo::GetInstance()->IsCameraCustomFormat(format);
+bool IsCameraCustomFormat(uint32_t format, uint64_t usage) {
+  return CameraInfo::GetInstance()->IsCameraCustomFormat(format, usage);
 }
 
 int GetCameraPlaneInfo(struct msmgbm_bo *msm_gbm_bo, generic_buf_layout_t *buf_lyt) {
@@ -399,11 +396,22 @@ bool platform_wrap::is_valid_uncmprsd_rgb_fmt(int format) {
   return false;
 }
 
+bool platform_wrap::is_ubwc_flex_format(int format) {
+  switch(format) {
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      return true;
+  }
+
+  return false;
+}
 
 // helper function
 unsigned int platform_wrap::get_size(int format, int width, int height, int usage,
                                         int alignedw, int alignedh) {
-  if (CameraInfo::GetInstance()->IsCameraCustomFormat(format)) {
+  if (CameraInfo::GetInstance()->IsCameraCustomFormat(format, usage)) {
     unsigned int cam_size = 0;
     int result = CameraInfo::GetInstance()->GetBufferSize(format, width, height, &cam_size);
     if (result != 0) {
@@ -456,10 +464,12 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
     case GBM_FORMAT_RGBA5551:
     case GBM_FORMAT_RGBA4444:
     case GBM_FORMAT_RAW16:
+    case GBM_FORMAT_Y16:
       size = alignedw * alignedh * 2;
       break;
     case GBM_FORMAT_R8:
     case GBM_FORMAT_RAW8:
+    case GBM_FORMAT_Y8:
       size = alignedw * alignedh * 1;
       break;
     case GBM_FORMAT_RAW10:
@@ -496,13 +506,11 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
       LOG(LOG_INFO," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                             size, width, height);
       break;
-    #ifdef MMM_COLOR_FMT_NV12_512
     case GBM_FORMAT_NV12_HEIF:
       size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_512, width, height);
       LOG(LOG_INFO," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                             size, width, height);
       break;
-    #endif
     case GBM_FORMAT_YCrCb_420_SP_VENUS:
       size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV21, width, height);
       break;
@@ -565,12 +573,33 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
       size = alignedw * alignedh * ASTC_BLOCK_SIZE;
       break;
     default:
-      LOG(LOG_ERR," Unrecognized pixel format: 0x%x\n",format);
+      LOG(LOG_ERR," Unrecognized pixel format: %s\n", get_msmgbm_format_name(format));
       return 0;
   }
 
 
   return size;
+}
+
+uint32_t platform_wrap::get_batch_size(int format) {
+  uint32_t batchsize = 1;
+  switch (format) {
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+      batchsize = 2;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+      batchsize = 4;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      batchsize = 8;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+      batchsize = 16;
+      break;
+    default:
+      break;
+  }
+  return batchsize;
 }
 
 void platform_wrap::get_yuv_ubwc_wdth_hght(int width, int height, int format,
@@ -581,6 +610,10 @@ void platform_wrap::get_yuv_ubwc_wdth_hght(int width, int height, int format,
     case GBM_FORMAT_NV12_ENCODEABLE:
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
       *aligned_w = MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width);
       *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
       break;
@@ -618,7 +651,8 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
   bool ubwc_enabled = false;
   int tile = 0;
 
-  LOG(LOG_DBG,"width=%d, height=%d,format=%d, usage=%d\n", width, height, format, prod_usage);
+  LOG(LOG_DBG,"width=%d, height=%d,format=%s, usage=%d\n", width, height,
+              get_msmgbm_format_name(format), prod_usage);
 
   if (descriptor->Usage & GBM_BO_USAGE_NO_ALLIGNMENT) {
     *alignedw = width;
@@ -626,7 +660,8 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
     return;
   }
 
-  if (CameraInfo::GetInstance()->IsCameraCustomFormat(format)) {
+  if (CameraInfo::GetInstance()->IsCameraCustomFormat(format, descriptor->Usage)) {
+    LOG(LOG_DBG,"Querying aligned width and height from camera utility\n");
     CameraInfo::GetInstance()->GetStrideInBytes(format, (PlaneComponent)PLANE_COMPONENT_Y,
                                                 width, (int *)alignedw);
 
@@ -637,29 +672,37 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
 
   // Currently surface padding is only computed for RGB* surfaces.
   ubwc_enabled = is_ubwc_enbld(format, prod_usage, cons_usage);
-
-  LOG(LOG_DBG,"ubwc_enabled=%d, tile=%d \n",ubwc_enabled,tile);
-
   tile = ubwc_enabled;
   // initialize aligned to actual
   *alignedw = width;
   *alignedh = height;
 
-  LOG(LOG_DBG,"ubwc_enabled=%d, tile=%d \n",ubwc_enabled,tile);
+  LOG(LOG_DBG,"ubwc_enabled=%d, tile=%d \n", ubwc_enabled, tile);
 
   if (is_valid_uncmprsd_rgb_fmt(format)) {
+    LOG(LOG_DBG,"Querying aligned width and height from adreno for uncompressed rgb format\n");
     if (adreno_helper_) {
       adreno_helper_->get_aligned_wdth_hght_uncmprsd_rgb_fmt(width, height, format, tile, alignedw, alignedh);
+    } else {
+      LOG(LOG_WARN,"adreno helper is null\n");
     }
+    return;
   }
 
-  if (ubwc_enabled && !is_valid_rgb_fmt(format))
+  if (ubwc_enabled && !is_valid_rgb_fmt(format)) {
+    LOG(LOG_DBG,"Querying aligned width and height for yuv ubwc formats\n");
     get_yuv_ubwc_wdth_hght(width, height, format, alignedw, alignedh);
+    return;
+  }
 
   if (is_valid_cmprsd_rgb_fmt(format)) {
+    LOG(LOG_DBG,"Querying aligned width and height from adreno for compressed rgb format\n");
     if (adreno_helper_) {
        adreno_helper_->get_aligned_wdth_hght_cmprsd_rgb_fmt(width, height, format, alignedw, alignedh);
+    } else {
+      LOG(LOG_WARN,"adreno helper is null\n");
     }
+    return;
   }
 
   // Below should be only YUV family
@@ -729,16 +772,18 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
     case GBM_FORMAT_BLOB:
     case GBM_FORMAT_RAW_OPAQUE:
       break;
+    case GBM_FORMAT_Y16:
+    case GBM_FORMAT_Y8:
+      *alignedw = ALIGN(width, 16);
+      *alignedh = height;
     case GBM_FORMAT_NV21_ZSL:
       *alignedw = ALIGN(width, 64);
       *alignedh = ALIGN(height, 64);
       break;
-#ifdef MMM_COLOR_FMT_NV12_512
     case GBM_FORMAT_NV12_HEIF:
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_512, width));
       *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_512, height));
       break;
-#endif
     default:
       break;
   }
@@ -787,6 +832,7 @@ bool platform_wrap::is_ubwc_enbld(int format, int prod_usage,
 
     // Allow UBWC, if client is using an explicitly defined UBWC pixel format.
     if (is_valid_ubwc_fmt(format)) {
+        LOG(LOG_DBG,"format: %s is valid ubwc format\n", get_msmgbm_format_name(format));
         return true;
     }
 
@@ -812,6 +858,9 @@ bool platform_wrap::is_ubwc_enbld(int format, int prod_usage,
         if (enable && !(cpu_can_accss(prod_usage, cons_usage))) {
             return true;
         }
+    }
+    if (is_ubwc_flex_format(format)) {
+      return true;
     }
 
     return false;
@@ -925,6 +974,13 @@ unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, uns
       y_meta_stride = MMM_COLOR_FMT_Y_META_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width);
       y_meta_scanlines = MMM_COLOR_FMT_Y_META_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
       size += MMM_COLOR_FMT_ALIGN(y_meta_stride * y_meta_scanlines, 4096);
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      size = get_batch_size(format) * MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC,
+                                                                width, height);
       break;
     default:
       LOG(LOG_ERR," Unsupported pixel format: 0x%x\n",format);

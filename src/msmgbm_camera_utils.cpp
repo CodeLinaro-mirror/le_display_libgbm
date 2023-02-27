@@ -30,7 +30,7 @@
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -429,7 +429,7 @@ CamxPlaneType CameraInfo::GetCamxPlaneType(int plane_type) {
   return camx_plane_type;
 }
 
-bool CameraInfo::IsCameraCustomFormat(uint32_t format) {
+bool CameraInfo::IsCameraCustomFormat(uint32_t format, uint64_t usage) {
   switch (format) {
     case GBM_FORMAT_NV21_ZSL:
     case GBM_FORMAT_NV12_LINEAR_FLEX:
@@ -438,6 +438,10 @@ bool CameraInfo::IsCameraCustomFormat(uint32_t format) {
     case GBM_FORMAT_RAW_OPAQUE:
     case GBM_FORMAT_RAW10:
     case GBM_FORMAT_RAW12:
+      if (usage & GBM_BO_USAGE_HW_RENDERING_QTI) {
+        LOG(LOG_DBG, "GBM_BO_USAGE_HW_RENDERING_QTI flag is set for camera custom format");
+        return false;
+      }
       return true;
     default:
       break;

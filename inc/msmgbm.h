@@ -30,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -504,6 +504,14 @@ void msmgbm_log_hdr_color_info_mdata(ColorMetaData * color_mdata);
 void config_dbg_lvl(void);
 void msmgbm_log_hdr_color_info_mdata(ColorMetaData * color_mdata);
 void msmsgbm_default_init_hdr_color_info_mdata(ColorMetaData * color_mdata);
+
+/**
+ * Get msm gbm format name
+ * Input  : gbm format
+ * Return : gbm format character array
+ *
+ */
+char * get_msmgbm_format_name(int format);
 
 #ifdef __cplusplus
 }

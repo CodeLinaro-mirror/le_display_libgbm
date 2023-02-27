@@ -27,6 +27,12 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
+
 #ifndef __MSMGBM_PFM_WRP_H__
 #define __MSMGBM_PFM_WRP_H__
 
@@ -172,6 +178,9 @@ class platform_wrap {
     void get_yuv_ubwc_wdth_hght(int width, int height, int format,
                                           unsigned int *aligned_w, unsigned int *aligned_h);
 
+    bool is_ubwc_flex_format(int format);
+    uint32_t get_batch_size(int format);
+
  private:
   bool gpu_support_macrotile = false;
   bool display_support_macrotile = false;
@@ -255,7 +264,7 @@ extern "C" {
      * @return true  : if format is camera custom format
      *         false : if format is not camera custom format
      */
-    bool IsCameraCustomFormat(uint32_t format);
+    bool IsCameraCustomFormat(uint32_t format, uint64_t usage);
 
     /**
      * C wrapper function to Get camera planeInfo
