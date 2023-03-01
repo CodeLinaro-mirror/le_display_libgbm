@@ -1114,11 +1114,14 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                = &msm_gbmbo->base;
     gbmbo->ion_fd        = buffer_info->fd;
     gbmbo->ion_metadata_fd = gbo_info.metadata_fd;
     gbmbo->handle.u32    = gemimport_req.handle;
     gbmbo->usage_flags   = bufdesc.Usage;
+    gbmbo->plane_count   = plane_count;
     gbmbo->format        = buffer_info->format;
     gbmbo->width         = buffer_info->width;
     gbmbo->height        = buffer_info->height;
@@ -1308,12 +1311,14 @@ msmgbm_bo_import_wl_buffer(struct msmgbm_device *msm_dev,
         LOG(LOG_ERR,"Unable to allocate BO\n");
         return NULL;
     }
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
 
     gbmbo                = &msm_gbmbo->base;
     gbmbo->ion_fd        = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32    = gemimport_req.handle;
     gbmbo->usage_flags   = usage;
+    gbmbo->plane_count   = plane_count;
     gbmbo->format        = buffer_info->format;
     gbmbo->width         = buffer_info->width;
     gbmbo->height        = buffer_info->height;
@@ -1479,11 +1484,14 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                  = &msm_gbmbo->base;
     gbmbo->ion_fd          = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32      = gemimport_req.handle;
     gbmbo->usage_flags     = bufdesc.Usage;
+    gbmbo->plane_count     = plane_count;
     gbmbo->format          = buffer_info->format;
     gbmbo->width           = buffer_info->width;
     gbmbo->height          = buffer_info->height;
@@ -1686,11 +1694,14 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                  = &msm_gbmbo->base;
     gbmbo->ion_fd          = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32      = gemimport_req.handle;
     gbmbo->usage_flags     = bufdesc.Usage;
+    gbmbo->plane_count     = plane_count;
     gbmbo->format          = buffer_info->format;
     gbmbo->width           = buffer_info->width;
     gbmbo->height          = buffer_info->height;
