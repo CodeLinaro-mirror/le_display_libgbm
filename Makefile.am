@@ -11,14 +11,6 @@ AM_CPPFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs
 AM_CPPFLAGS+= -I./inc
 AM_CPPFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DVENUS_COLOR_FORMAT
 
-if ENABLE_COMPILEWITHDRM
-AM_CFLAGS += -DENABLE_DRM
-AM_CPPFLAGS += -DENABLE_DRM
-else
-AM_CFLAGS += -DENABLE_FB
-AM_CPPFLAGS += -DENABLE_FB
-endif
-
 lib_LTLIBRARIES  = libgbm.la libgbmutils.la
 libgbm_la_CFLAGS = $(AM_CFLAGS)
 libgbm_la_CPPFLAGS = $(AM_CPPFLAGS)
@@ -34,14 +26,9 @@ libgbm_la_SOURCES = src/gbm.c \
                     src/msmgbm_platform_wrapper.cpp \
                     src/msmgbm_adreno_utils.cpp \
                     src/msmgbm_camera_utils.cpp \
-                    src/msmgbm_mapper.cpp
-
-if ENABLE_COMPILEWITHDRM
-libgbm_la_SOURCES += src/msmgbm.c
-libgbm_la_SOURCES += src/msmgbm_dma.cpp
-else
-libgbm_la_SOURCES += src/msmgbm_fb.c
-endif
+                    src/msmgbm_mapper.cpp \
+                    src/msmgbm.c \
+                    src/msmgbm_dma.cpp
 
 libgbmutils_la_CFLAGS = $(AM_CFLAGS)
 libgbmutils_la_CPPFLAGS = $(AM_CFLAGS)
