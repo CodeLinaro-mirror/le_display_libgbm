@@ -440,6 +440,8 @@ static int GetFormatBpp(uint32_t format)
 #endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
+        case GBM_FORMAT_YCbCr_422_I:
+        case GBM_FORMAT_YCrCb_422_I:
              LOG(LOG_DBG,"YUV format BPP\n");
             return 1;
         case GBM_FORMAT_RGB161616F:
@@ -2995,6 +2997,8 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
             break;
         case GBM_FORMAT_P010:
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
+        case GBM_FORMAT_YCbCr_422_I:
+        case GBM_FORMAT_YCrCb_422_I:
             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                   CHROMA_STEP, buf_lyt);
             break;
