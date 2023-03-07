@@ -1520,15 +1520,6 @@ static int test_surface_ubwc_status()
 }
 
 /*
- * Tests to validate gbm buf info from wl resource
- */
-static int test_validate_gbmbuf_wlresource()
-{
-   printf("Bo allocation with wl_resource is depricated.\n");
-   return 1;
-}
-
-/*
  * Tests that we can allocate different buffer dimensions.
  */
 static int test_alloc_free_sizes()
@@ -1840,54 +1831,6 @@ static int test_import_gbm_buf()
 
     return 1;
 }
-
-static int test_import_wl_buffer()
-{
-    struct gbm_bo *bo1, *bo2;
-    char *data1, *data2;
-    struct wl_resource resource;
-    static struct gbm_buf_info buf_info;
-    size_t bo_size;
-    uint32_t ret=GBM_ERROR_NONE;
-
-    resource.data=&buf_info;
-
-    bo1 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
-
-    buf_info.fd=bo1->ion_fd;
-    buf_info.metadata_fd=bo1->ion_metadata_fd;
-    buf_info.height=1024;
-    buf_info.width=1024;
-    buf_info.format=GBM_FORMAT_XRGB8888;
-
-    bo2 = gbm_bo_import(gbm, GBM_BO_IMPORT_WL_BUFFER,&resource,GBM_BO_USE_RENDERING);
-
-    ret=gbm_perform(GBM_PERFORM_GET_BO_SIZE, bo2, &bo_size);
-    if(ret == GBM_ERROR_NONE)
-        printf("GET BO size=%d success\n",bo_size);
-    else{
-        printf("GET BO size failed\n");
-        return 0;
-    }
-
-    if(gbm_bo_get_width(bo2)!= 1024){
-        printf("test_alloc_free BO width mismatch (expected =%d)\n",1024);
-        return 0;
-    }
-    if(gbm_bo_get_height(bo2)!= 1024){
-        printf("test_alloc_free BO height mismatch (expected=%d)\n",1024);
-        return 0;
-    }
-    if(gbm_bo_get_format(bo2)!= GBM_FORMAT_XRGB8888){
-        printf("test_alloc_free BO format mismatch (expected=%d)\n",GBM_FORMAT_XRGB8888);
-        return 0;
-    }
-
-    gbm_bo_destroy(bo1);
-
-    return 1;
-}
-
 
 /*
  * Tests focussed on validating GBM_FORMAT_P010 format
@@ -2429,22 +2372,20 @@ int gbm_test_help() {
   printf("9 for BO Create/Destroy and with VENUS FORMAT\n");
   printf("10 for BO Create/Destroy and import fd\n");
   printf("11 for BO Create/Destroy and import gbm buf\n");
-  printf("12 for BO Create/Destroy and import wl buf\n");
-  printf("13 for BO Write/Read and CPU map/unmap Operation on Secure Buffer\n");
-  printf("14 for GBM  Multiple device/destroy calls\n");
-  printf("15 Test Metadata fd\n");
-  printf("16 Test Get aligned width and height\n");
-  printf("17 Test Get UBWC status\n");
-  printf("18 Test UBWC status on Surface\n");
-  printf("19 Validate gbm_buf_info from wl_resource\n");
-  printf("20 Test Colorspace metadata operations on BO\n");
-  printf("21 Test GBM_FORMAT_P010 format operations on BO\n");
-  printf("22 Test Device names returned by gbm_perform call\n");
-  printf("23 Test GBM_FORMAT_IMPLEMENTATION_DEFINED format\n");
-  printf("24 Test  alloc with modifiers \n");
-  printf("25 Test plane info \n");
-  printf("26 for BO secure buffer Create/Destroy \n");
-  printf("27 Test gbm_bo_get_fd \n");
+  printf("12 for BO Write/Read and CPU map/unmap Operation on Secure Buffer\n");
+  printf("13 for GBM  Multiple device/destroy calls\n");
+  printf("14 Test Metadata fd\n");
+  printf("15 Test Get aligned width and height\n");
+  printf("16 Test Get UBWC status\n");
+  printf("17 Test UBWC status on Surface\n");
+  printf("18 Test Colorspace metadata operations on BO\n");
+  printf("19 Test GBM_FORMAT_P010 format operations on BO\n");
+  printf("20 Test Device names returned by gbm_perform call\n");
+  printf("21 Test GBM_FORMAT_IMPLEMENTATION_DEFINED format\n");
+  printf("22 Test  alloc with modifiers \n");
+  printf("23 Test plane info \n");
+  printf("24 for BO secure buffer Create/Destroy \n");
+  printf("25 Test gbm_bo_get_fd \n");
   return 0;
 }
 int main(int argc, char *argv[])
@@ -2506,77 +2447,68 @@ int main(int argc, char *argv[])
             result &= test_import_gbm_buf();
             break;
         case 12:
-            result &= test_init();
-            result &= test_import_wl_buffer();
-            break;
-        case 13:
             result &= test_bo_write_secure(GBM_BO_USAGE_PROTECTED_QTI |
                                            GBM_BO_ALLOC_SECURE_HEAP_QTI);
             break;
-        case 14:
+        case 13:
             result &= test_multi_create_device();
             break;
-        case 15:
+        case 14:
             result &= test_init();
             result &= test_alloc_free_validate_meta_fd();
             result &= test_destroy();
             break;
-        case 16:
+        case 15:
             result &= test_init();
             result &= test_get_aligned_width_height();
             result &= test_destroy();
             break;
-        case 17:
+        case 16:
             result &= test_init();
             result &= test_get_ubwc_status();
             result &= test_destroy();
             break;
-        case 18:
+        case 17:
             result &= test_init();
             result &= test_surface_ubwc_status();
             result &= test_destroy();
             break;
-        case 19:
-            result &= test_init();
-            result &= test_validate_gbmbuf_wlresource();
-            result &= test_destroy();
-            break;
-        case 20:
+        case 18:
             result &= test_init();
             result &= test_validate_colorspace();
             result &= test_destroy();
             break;
-        case 21:
+        case 19:
             result &= test_init();
             result &= test_validate_p010_format();
             result &= test_destroy();
             break;
-        case 22:
+        case 20:
             result &= test_init();
             result &= test_device_names();
             result &= test_destroy();
             break;
-        case 23:
+        case 21:
             result &= test_init();
             result &= test_implement_defined_format();
             result &= test_destroy();
             break;
-        case 24:
+        case 22:
             result &= test_init();
             result &= test_alloc_with_modifiers();
             result &= test_destroy();
         break;
-        case 25:
+        case 23:
             result &= test_init();
             result &= test_plane_info();
             result &= test_destroy();
         break;
-        case 26:
+        case 24:
             result &= test_init();
             result &= test_secure_buffer_alloc_free();
             result &= test_destroy();
         break;
-        case 27:
+        case 25:
             result &= test_init();
             result &= test_gbm_bo_get_fd();
             result &= test_destroy();
