@@ -341,6 +341,7 @@ int platform_wrap::is_valid_rgb_fmt(int format){
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_RGB888:
         case GBM_FORMAT_BGR888:
+        case GBM_FORMAT_BGRA8888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
