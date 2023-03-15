@@ -214,6 +214,48 @@ static char *get_usage_string(uint32_t usage)
     }
 }
 
+static bool is_valid_ubwc_fmt(int format) {
+  switch (format) {
+    // yuv ubwc format
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC:
+    case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+    case GBM_FORMAT_YCbCr_420_P010_UBWC:
+    case GBM_FORMAT_C8:
+    // rgb ubwc format
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_4x4_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x4_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x5_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x5_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x6_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x5_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x6_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x5_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x6_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x8_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x10_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x10_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x12_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+      return true;
+    default:
+      return false;
+  }
+}
+
 static int open_device()
 {
     int fd = -1;
@@ -1642,7 +1684,9 @@ static int test_alloc_free_formats()
         uint32_t format = format_list[i];
         if (gbm_device_is_format_supported(gbm, format, GBM_BO_USE_RENDERING)) {
             struct gbm_bo *bo;
-            bo = gbm_bo_create(gbm, 1080, 1920, format, GBM_BO_USE_RENDERING);
+            uint32_t ubwc_usage = is_valid_ubwc_fmt(format)?GBM_BO_USAGE_UBWC_ALIGNED_QTI:0x0;
+
+            bo = gbm_bo_create(gbm, 1080, 1920, format, ubwc_usage | GBM_BO_USE_RENDERING);
             CHECK(check_bo(bo));
             printf("test_alloc_free_formats BO width(%d)\n",gbm_bo_get_width(bo));
             printf("test_alloc_free_formats BO height(%d)\n",gbm_bo_get_height(bo));
@@ -2107,9 +2151,17 @@ static int test_alloc_with_modifiers()
                                    };
    printf("inside  test_alloc_with_modifiers \n");
    for (int j = 0; j < numtest; j++) {
+        uint64_t inuse_modifiers[2] = {0};
+        int count = 1;
+        bool is_ubwc_fmt = is_valid_ubwc_fmt(gbm_format[j]);
+        inuse_modifiers[0] = modifiers[j];
+         if(is_ubwc_fmt) {
+            inuse_modifiers[1] = DRM_FORMAT_MOD_QCOM_COMPRESSED;
+            count = 2;
+         }
 
          gb_bo = gbm_bo_create_with_modifiers(gbm, width, height, gbm_format[j],
-                                                   &modifiers[j], 1);
+                                                   &inuse_modifiers, count);
          CHECK(check_bo(gb_bo));
          printf(" Allocated bo  %d \n",j);
          if (gbm_bo_get_width(gb_bo)!=width) {
@@ -2128,7 +2180,7 @@ static int test_alloc_with_modifiers()
          /////check modifiers with usage
          int64_t modifier = gbm_bo_get_modifier(gb_bo);
 
-         if (modifier != modifiers[j]) {
+         if (modifier != (inuse_modifiers[0] | inuse_modifiers[1])) {
            test_case_status = false;
            printf("Error: mismatch of expected modifier with actual modifier j = %d \n",j);
          } else {

@@ -198,16 +198,12 @@ msmgbm_bo_map(uint32_t x, uint32_t y, uint32_t width,
 
 static uint32_t
 msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
-  uint32_t stride = 0;
-  if (is_valid_uncmprsd_rgb_format(bo->format)) {
-    if(plane == 0) {
-      return bo->stride;
-    } else {
-     return 0;
-    }
-  }
   bool ubwc_enabled = is_ubwc_enbld(bo->format, bo->usage_flags, bo->usage_flags);
-  bool valid_rgb_format = is_valid_rgb_fmt(bo->format);
+  bool cmprsd_rgb_format = is_valid_cmprsd_rgb_format(bo->format);
+  bool is_yuv_format = is_valid_yuv_format(bo->format);
+
+  LOG(LOG_DBG,"plane=%d bo->format=%d ubwc_enabled=%d is_yuv_format=%d cmprsd_rgb=%d\n",
+                plane, bo->format, ubwc_enabled, is_yuv_format, cmprsd_rgb_format);
 
   if (is_valid_raw_format(bo->format)) {
     switch (bo->format) {
@@ -220,10 +216,11 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
         default:
             return bo->aligned_width;
     }
-  } else if (!valid_rgb_format) {
+  } else if (is_yuv_format) {
     // yuv format
     return bo->buf_lyt.planes[plane].stride;
-  } else if (ubwc_enabled && valid_rgb_format) {
+  } else if (ubwc_enabled && cmprsd_rgb_format) {
+    uint32_t stride = 0;
     // UBWC RGB format
     // there are two planes.
     if (plane == 0) {
@@ -235,8 +232,9 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
         stride = MMM_COLOR_FMT_RGB_STRIDE(MMM_COLOR_FMT_RGBA8888_UBWC, bo->width);
       }
     }
+    return stride;
   }
-  return stride;
+  return bo->stride;
 }
 
 static void
