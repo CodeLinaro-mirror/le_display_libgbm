@@ -143,6 +143,24 @@ class platform_wrap {
   bool is_valid_uncmprsd_rgb_fmt(int format);
 
   /**
+   * Function to check whether the format is uncompressed RGB
+   * @params    gbm format
+   * @return    boolean 0 (uncompressed RGB format)
+   *                    1 (compressed RGB format)
+   *
+   */
+  bool is_valid_cmprsd_rgb_fmt(int format);
+
+  /**
+   * Function to check whether the format is yuv format
+   * @params    gbm format
+   * @return   true : success
+   *           false : fail
+   *
+   */
+  bool is_valid_yuv_fmt(int format);
+
+  /**
    * Function to query UBWC feature support
    * @return   true : success
    *           false : fail
@@ -261,6 +279,22 @@ extern "C" {
     *                    1 (uncompressed RGB format)
     */
     bool is_valid_uncmprsd_rgb_format(int format);
+
+    /**
+    * C wrapper Function to check whether the format is uncompressed RGB format or not.
+    * @params    gbm format
+    * @return    boolean 0 (uncompressed RGB format)
+    *                    1 (compressed RGB format)
+    */
+    bool is_valid_cmprsd_rgb_format(int format);
+
+    /**
+    * C wrapper Function to check whether the format is yuv format or not.
+    * @params    gbm format
+    * @return    boolean 0 (non yuv format)
+    *                    1 (yuv format)
+    */
+    bool is_valid_yuv_format(int format);
 
     /**
      * C wrapper function to know if the format is UBWC
