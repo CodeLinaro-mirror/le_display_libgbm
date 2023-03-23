@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
+*
 * Copyright (c) 2017, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -279,7 +282,11 @@ unsigned int
 gbm_bo_get_stride(struct gbm_bo *bo)
 {
     if(bo!=NULL){
-        return bo->stride;
+        if(bo->usage_flags & GBM_BO_USAGE_UBWC_ALIGNED_QTI){
+            return bo->stride_for_plane(1, bo);
+        } else {
+            return bo->stride_for_plane(0, bo);
+        }
     }
     else {
         fprintf(stderr,"%s(%d): NULL or Invalid bo pointer\n",__func__,__LINE__);
@@ -371,10 +378,14 @@ gbm_bo_get_handle(struct gbm_bo *bo)
         return bo->handle;
 }
 
-/** Returns the file description of the buffer object
+/** Get a file descriptor for the buffer object
+ *
+ * Each call to gbm_bo_get_fd() returns a new file descriptor and the caller 
+ * is responsible for closing the file descriptor.
  *
  * \param bo The buffer object
- * \return Returns a file descriptor referring	to the underlying buffer
+ * \return Returns a file descriptor referring to the underlying buffer or -1
+ * if an error occurs.
  */
 int
 gbm_bo_get_fd(struct gbm_bo *bo)
@@ -384,7 +395,7 @@ gbm_bo_get_fd(struct gbm_bo *bo)
     }
     else {
         fprintf(stderr,"%s(%d): NULL or Invalid bo pointer\n",__func__,__LINE__);
-        return 0;
+        return -1;
     }
 }
 
