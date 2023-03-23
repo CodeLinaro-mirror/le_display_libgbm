@@ -1,6 +1,6 @@
 //**************************************************************************************************
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2017 - 2018, 2021 The Linux Foundation. All rights reserved.
@@ -53,6 +53,7 @@
 #include <gbm_priv.h>
 #include <wayland-server.h>
 #include <drm/drm_fourcc.h>
+#include <display/drm/sde_drm.h>
 #ifdef USE_GLIB
 #include <glib.h>
 #define strlcat g_strlcat
@@ -2538,6 +2539,29 @@ static int test_secure_buffer_alloc_free()
     return 1;
 }
 
+static int test_gbm_bo_get_fd()
+{
+    struct gbm_bo *bo;
+    int temp_fd;
+
+    printf("test_gbm_bo_get_fd start\n");
+
+    bo = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo));
+
+    for(int i = 0; i < 100; i++) {
+        temp_fd = gbm_bo_get_fd(bo);
+        printf("gbm_bo->ion_fd=%d, gbm_bo_get_fd get duplicated fd=%d\n", bo->ion_fd, temp_fd);
+        CHECK(temp_fd>=0 && bo->ion_fd!=temp_fd);
+        close(temp_fd);
+    }
+
+    gbm_bo_destroy(bo);
+
+    printf("test_gbm_bo_get_fd success\n");
+    return 1;
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2570,6 +2594,7 @@ int gbm_test_help() {
   printf("28 Test  alloc with modifiers \n");
   printf("29 Test plane info \n");
   printf("30 for BO secure buffer Create/Destroy \n");
+  printf("31 Test gbm_bo_get_fd \n");
   return 0;
 }
 int main(int argc, char *argv[])
@@ -2721,6 +2746,11 @@ int main(int argc, char *argv[])
             result &= test_secure_buffer_alloc_free();
             result &= test_destroy();
             break;
+        case 31:
+            result &= test_init();
+            result &= test_gbm_bo_get_fd();
+            result &= test_destroy();
+        break;
         default:
             gbm_test_help();
             return 0;

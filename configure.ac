@@ -25,6 +25,10 @@
 # OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 # IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+# Changes from Qualcomm Innovation Center are provided under the following license:
+# Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause-Clear
+
 AC_PREREQ(2.61)
 
 m4_define([mesa_version], [21.1.1])
@@ -42,6 +46,12 @@ AM_MAINTAINER_MODE
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
 
+# Check for programs
+AM_PROG_AR
+
+PKG_CHECK_MODULES([LIBDMABUFHEAP], [libdmabufheap])
+AC_SUBST([LIBDMABUFHEAP_CFLAGS])
+AC_SUBST([LIBDMABUFHEAP_LIBS])
 
 AC_ARG_WITH([glib],
       AC_HELP_STRING([--with-glib],

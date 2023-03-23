@@ -164,7 +164,6 @@ struct msmgbm_device {
    struct gbm_device base;
    uint32_t magic;
    int fd;  /* device fd */
-   int iondev_fd;  /* ION device fd */
 };
 
 struct msmgbm_surface {

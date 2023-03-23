@@ -56,6 +56,7 @@
 #endif
 #include <gbm_priv.h>
 #include <msmgbm.h>
+#include <msmgbm_dma.h>
 #include <msmgbm_common.h>
 #include <linux/version.h>
 
@@ -93,6 +94,7 @@ void config_dbg_lvl(void);
 
 //Global Variables
 static pthread_mutex_t mutex_obj = PTHREAD_MUTEX_INITIALIZER;
+static int mutex_ref_count = 0;
 static inline void lock_init(void)
 {
     if(pthread_mutex_init(&mutex_obj, NULL))
@@ -126,15 +128,6 @@ static inline void lock_destroy(void)
     if(pthread_mutex_destroy(&mutex_obj))
         LOG(LOG_ERR,"Failed to init Mutex\n %s\n",strerror(errno));
 
-}
-
-//ION Helper Functions
-int ion_open(void)
-{
-    int fd = open("/dev/ion", O_RDONLY);
-    if (fd < 0)
-        LOG(LOG_ERR, "open /dev/ion failed!\n %s\n",strerror(errno));
-    return fd;
 }
 
 static inline
@@ -209,13 +202,16 @@ msmgbm_bo_unmap(void *map_data)
 static int
 msmgbm_bo_get_fd(struct gbm_bo *bo)
 {
-
-    if(bo!=NULL){
-        return bo->ion_fd;
-    }
-    else {
+    if (bo != NULL) {
+        int new_fd = dup(bo->ion_fd);
+        if (new_fd < 0) {
+            LOG(LOG_ERR, "Fail to dup ion_fd. Err:\n%s\n", strerror(errno));
+            return -1;
+        }
+        return new_fd;
+    } else {
         LOG(LOG_ERR, "NULL or Invalid bo pointer\n");
-    return 0;
+        return -1;
     }
 }
 
@@ -629,13 +625,6 @@ msmgbm_bo_create(struct gbm_device *gbm,
     struct msmgbm_bo *msm_gbmbo = NULL;
     int data_fd = 0;
     int mt_data_fd = 0;
-#ifndef TARGET_ION_ABI_VERSION
-    struct ion_handle_data handle_data;
-    struct ion_fd_data fd_data;
-    struct ion_handle_data mt_handle_data;
-    struct ion_fd_data mt_fd_data;
-#endif
-    struct ion_allocation_data ionAllocData;
     struct drm_prime_handle drm_args;
     /* Callers of this may specify a modifier, or a dri usage, but not both. The
      * newer modifier interface deprecates the older usage flags.
@@ -686,79 +675,27 @@ msmgbm_bo_create(struct gbm_device *gbm,
     LOG(LOG_DBG,"\n size=%d\n width=%d\n height=%d\n aligned_width=%d\n"
           " aligned_height=%d\n",size, width, height, aligned_width, aligned_height);
 
-    /* First we will get ion_fd and gem handle for the frame buffer
+    /* First we will get ion / dma fd and gem handle for the frame buffer
      * Size of the ION buffer is in accordance to returned from the adreno helpers
      * Alignment of the buffer is fixed to Page size
      * ION Memory is from, the System heap
      * We get the gem handle from the ion fd using PRIME ioctls
      */
-    memset(&ionAllocData, 0, sizeof(ionAllocData));
-#ifndef TARGET_ION_ABI_VERSION
-    memset(&fd_data, 0, sizeof(fd_data));
-    memset(&handle_data, 0, sizeof(handle_data));
-#endif
+     data_fd = AllocBuffer(usage, size, PAGE_SIZE);
+     if (data_fd < 0) {
+        LOG(LOG_ERR,"Failed to allocate buffer\n");
+        return NULL;
+     }
+     LOG(LOG_DBG,"allocated data fd := %p\n",data_fd);
 
-    /*
-     * Depending on the usage flag settinggs we check for the heap from which the ION buffer
-     * has to be allocated from.
-     * Also cache/non cache buffer allocation
-     */
-    ionAllocData.heap_id_mask = GetIonHeapId(usage);
-    ionAllocData.flags = GetIonAllocFlags(usage);
-
-    ionAllocData.len = size;
-#ifndef TARGET_ION_ABI_VERSION
-    ionAllocData.align = PAGE_SIZE; /*Page size */
-#endif
-
-    //This ioctl should have failed for a wrong fd, but it does not returns 0
-    if(!(ioctl(msm_dev->iondev_fd, ION_IOC_ALLOC, &ionAllocData))){
-#ifdef TARGET_ION_ABI_VERSION
-
-        data_fd = ionAllocData.fd;
-        LOG(LOG_DBG,"ionAllocData.fd := %p\n",ionAllocData.fd);
-
-        //Do not mmap if it is secure operation.
-        if(!(ionAllocData.flags & ION_FLAG_SECURE)) {
-            base = mmap(NULL,size, PROT_READ|PROT_WRITE, MAP_SHARED,
-                    ionAllocData.fd, 0);
-            if(base == MAP_FAILED) {
-                LOG(LOG_ERR,"mmap failed memory on BO Err:\n%s\n",strerror(errno));
-                return NULL;
-            }
-            LOG(LOG_DBG,"BO Mapped Addr:= %p\n",base);
-        }
-#else
-        fd_data.handle = ionAllocData.handle;
-        handle_data.handle = ionAllocData.handle;
-        LOG(LOG_DBG,"fd_data.handle:= %p\n",fd_data.handle);
-        LOG(LOG_DBG,"ionAllocData.handle:= %p\n",ionAllocData.handle);
-
-        if(!(ioctl(msm_dev->iondev_fd, ION_IOC_MAP, &fd_data))){
-
-            data_fd = fd_data.fd;
-            LOG(LOG_DBG,"fd_data.fd:= %d\n",fd_data.fd);
-
-            //Do not mmap if it is secure operation.
-            if(!(ionAllocData.flags & ION_FLAG_SECURE)) {
-                base = mmap(NULL,size, PROT_READ|PROT_WRITE, MAP_SHARED,
-                        fd_data.fd, 0);
-                if(base == MAP_FAILED) {
-                    LOG(LOG_ERR,"mmap failed memory on BO Err:\n%s\n",strerror(errno));
-                    ioctl(msm_dev->iondev_fd, ION_IOC_FREE, &handle_data);
-                    return NULL;
-                }
-                LOG(LOG_DBG,"BO Mapped Addr:= %p\n",base);
-            }
-        }else{
-            LOG(LOG_ERR,"ION_IOC_MAP failed on BO Err:\n%s\n",strerror(errno));
-            ioctl(msm_dev->iondev_fd, ION_IOC_FREE, &handle_data);
+    //Do not mmap if it is secure operation.
+    if(!(GetIonAllocFlags(usage) & ION_FLAG_SECURE)) {
+        base = mmap(NULL,size, PROT_READ|PROT_WRITE, MAP_SHARED, data_fd, 0);
+        if(base == MAP_FAILED) {
+            LOG(LOG_ERR,"mmap failed memory on BO Err:\n%s\n",strerror(errno));
             return NULL;
         }
-#endif
-    }else{
-        LOG(LOG_ERR,"Failed ION_IOC_ALLOC on BO Err:\n%s\n",strerror(errno));
-        return NULL;
+        LOG(LOG_DBG,"BO Mapped Addr:= %p\n",base);
     }
 
     //Use PRIME ioctl to convert to GEM handle
@@ -777,7 +714,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         }
         else
         {
-            LOG(LOG_ERR,"ION_IOC_MAP failed on BO Err:\n%s\n",strerror(errno));
+            LOG(LOG_ERR,"Failed to get data gem handle on BO Err:\n%s\n",strerror(errno));
             return NULL;
         }
 
@@ -790,84 +727,30 @@ msmgbm_bo_create(struct gbm_device *gbm,
     gem_handle=drm_args.handle;
     LOG(LOG_DBG," Gem Handle for BO =:%p\n",gem_handle);
 
-#ifndef TARGET_ION_ABI_VERSION
-    //Free the ION Handle since we have the fd to deal with
-    if(ioctl(msm_dev->iondev_fd, ION_IOC_FREE, &handle_data)){
-        LOG(LOG_ERR," Failed to do ION_IOC_FREE  on BO Err:\n %s\n",
-                                                   strerror(errno));
-        return NULL;
-    }
-#endif
 
     /* To get ion_fd and gem handle for the metadata structure
      * Alignment of the buffer is fixed to Page size
      * ION Memory is from, the System heap
      * We get the gem handle from the ion fd using PRIME ioctls
      */
+    mt_size = sizeof(struct meta_data_t);
+    mt_data_fd = AllocBuffer(0, mt_size, PAGE_SIZE);
+    if (mt_data_fd < 0) {
+      LOG(LOG_ERR,"Failed to allocate metadata buffer\n");
+      return NULL;
+    }
 
-   //Reset the data objects to be used for ION IOCTL's
-    memset(&ionAllocData, 0, sizeof(ionAllocData));
-#ifndef TARGET_ION_ABI_VERSION
-    memset(&mt_fd_data, 0, sizeof(mt_fd_data));
-    memset(&handle_data, 0, sizeof(handle_data));
-#endif
+    LOG(LOG_DBG,"meta data fd:= %d\n",mt_data_fd);
 
-    ionAllocData.len = sizeof(struct meta_data_t);
-#ifndef TARGET_ION_ABI_VERSION
-    ionAllocData.align = 4096; /*Page size */
-#endif
-    ionAllocData.heap_id_mask= ION_HEAP(ION_SYSTEM_HEAP_ID); /* System Heap */
-    ionAllocData.flags |= ION_FLAG_CACHED;
-
-    mt_size = ionAllocData.len;
-
-    if((ioctl(msm_dev->iondev_fd, ION_IOC_ALLOC, &ionAllocData)) == 0){
-#ifdef TARGET_ION_ABI_VERSION
-
-        mt_data_fd = ionAllocData.fd;
-        LOG(LOG_DBG,"ionAllocData.fd:= %d\n",ionAllocData.fd);
-
-        mt_base = msmgbm_cpu_map_metafd(ionAllocData.fd, mt_size);
-        if(mt_base == NULL) {
-            LOG(LOG_ERR,"Failed to do  mapping on Metadata BO Err:\n%s\n",strerror(errno));
-            return NULL;
-        }
-        LOG(LOG_DBG,"MT_BO Mapped Addr:= %p\n",mt_base);
-
-        // Initiliaze the meta_data structure
-        memset(mt_base, 0 , mt_size);
-#else
-        mt_fd_data.handle = ionAllocData.handle;
-        mt_handle_data.handle = ionAllocData.handle;
-
-
-        if((ioctl(msm_dev->iondev_fd, ION_IOC_MAP, &mt_fd_data)) == 0){
-            mt_data_fd = mt_fd_data.fd;
-            LOG(LOG_DBG,"mt_fd_data.fd:= %d\n",mt_fd_data.fd);
-
-            mt_base = msmgbm_cpu_map_metafd(mt_fd_data.fd, mt_size);
-            if(mt_base == NULL) {
-                LOG(LOG_ERR,"Failed to do  mapping on Metadata BO Err:\n%s\n",strerror(errno));
-                ioctl(msm_dev->iondev_fd, ION_IOC_FREE, &mt_handle_data);
-                return NULL;
-            }
-            LOG(LOG_DBG,"MT_BO Mapped Addr:= %p\n",mt_base);
-
-             // Initiliaze the meta_data structure
-             memset(mt_base, 0 , mt_size);
-        }else
-        {
-            LOG(LOG_ERR,"ION_IOC_MAP failed on Metadata BO Err:\n%s\n",strerror(errno));
-            ioctl(msm_dev->iondev_fd, ION_IOC_FREE, &mt_handle_data);
-            return NULL;
-        }
-#endif
-
-    }else
-    {
-        LOG(LOG_ERR,"Failed ION_IOC_ALLOC on Metadata BO Err:\n%s\n",strerror(errno));
+    mt_base = msmgbm_cpu_map_metafd(mt_data_fd, mt_size);
+    if(mt_base == NULL) {
+        LOG(LOG_ERR,"Failed to do mapping on Metadata BO Err:\n%s\n",strerror(errno));
         return NULL;
     }
+    LOG(LOG_DBG,"MT_BO Mapped Addr:= %p\n",mt_base);
+
+    // Initiliaze the meta_data structure
+    memset(mt_base, 0 , mt_size);
 
     //Use PRIME ioctl to convert to GEM handle
     memset(&drm_args, 0, sizeof(drm_args));
@@ -883,21 +766,13 @@ msmgbm_bo_create(struct gbm_device *gbm,
     }
     else
     {
-        LOG(LOG_ERR,"ION_IOC_MAP failed for Metadata Err:\n%s\n",strerror(errno));
+        LOG(LOG_ERR,"Failed to get metadata gem handle Err:\n%s\n",strerror(errno));
         return NULL;
     }
 
     mt_gem_handle=drm_args.handle;
     LOG(LOG_DBG,"Gem Handle for Metadata =:%p\n",mt_gem_handle);
 
-#ifndef TARGET_ION_ABI_VERSION
-    //Free the ION Handle since we have the fd to deal with
-    if(ioctl(msm_dev->iondev_fd, ION_IOC_FREE, &mt_handle_data)){
-        LOG(LOG_ERR," Failed to do ION_IOC_FREE  on Metadata BO Err:\n %s\n",
-                                                            strerror(errno));
-        return NULL;
-    }
-#endif
     //Update the secure buffer flag info
     if(usage & GBM_BO_USAGE_PROTECTED_QTI)
     {
@@ -979,10 +854,6 @@ msmgbm_bo_create(struct gbm_device *gbm,
     msm_gbmbo->size = size;
     msm_gbmbo->mt_size = mt_size;
     msm_gbmbo->magic = QCMAGIC;
-#ifndef TARGET_ION_ABI_VERSION
-    msm_gbmbo->ion_handle = handle_data.handle;
-    msm_gbmbo->ion_mt_handle = mt_handle_data.handle;
-#endif
 
     bo_handles[0] = gbmbo->handle.u32;
     pitches[0] = gbmbo->stride;
@@ -1051,7 +922,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
         gbo_info.height=buffer_info->height;
 
         //we cannot map cpu address as we dont have a reliable way to find
-        //whether ion fd is secure or not since metadata_fd is not present
+        //whether fd is secure or not since metadata_fd is not present
         lock();
         register_to_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info);
         incr_refcnt(buffer_info->fd);
@@ -1983,17 +1854,10 @@ msmgbm_device_destroy(struct gbm_device *gbm)
     //Destroy the  mapper cpp object
     msmgbm_mapper_deinstnce();
 
-    lock_destroy();
-
-    if (!msm_dev) {
-        LOG(LOG_ERR,"NULL or Invalid device pointer\n");
-        return;
+    mutex_ref_count--;
+    if (mutex_ref_count == 0) {
+      lock_destroy();
     }
-
-    LOG(LOG_DBG, "iondev_fd:%d \n", msm_dev->iondev_fd);
-    //Close the ion device fd
-    if(msm_dev->iondev_fd > 0)
-        close(msm_dev->iondev_fd);
 
     if(msm_dev != NULL){
         free(msm_dev);
@@ -2026,15 +1890,10 @@ msmgbm_device_create(int fd)
     if(msmgbm_mapper_instnce())
       return NULL;
 
-    lock_init();
-
-    //open the ion device
-    msm_gbmdevice->iondev_fd = ion_open();
-    LOG(LOG_DBG,"msmgbm_device_create: iondev_fd:%d", msm_gbmdevice->iondev_fd);
-    if (msm_gbmdevice->iondev_fd < 0){
-        LOG(LOG_ERR,"Failed to open ION device\n");
-        return NULL;
+    if (mutex_ref_count == 0) {
+      lock_init();
     }
+    mutex_ref_count++;
 
     gbmdevice =  &msm_gbmdevice->base;
     gbmdevice->fd = fd;
