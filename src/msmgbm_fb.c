@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017-2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -2310,6 +2313,22 @@ int msmgbm_perform(int operation, ... )
                 qry_aligned_wdth_hght(&bufdesc, align_wdth, align_hght);
 
                 *size = qry_size(&bufdesc, *align_wdth, *align_hght);
+
+                res = GBM_ERROR_NONE;
+            }
+            break;
+        case GBM_PERFORM_GET_BUFFER_STRIDE_SCANLINE_SIZE:
+            {
+                struct gbm_buf_info * buf_info = va_arg(args, struct gbm_buf_info *);
+                uint32_t usage_flags = va_arg(args, uint32_t);
+                uint32_t *stride = va_arg(args, uint32_t *);
+                uint32_t *scanline = va_arg(args, uint32_t *);
+                uint32_t *size = va_arg(args, uint32_t *);
+
+                struct gbm_bufdesc bufdesc = {buf_info->width, buf_info->height,
+                                              buf_info->format, usage_flags};
+
+                qry_stride_scanline_size(&bufdesc, stride, scanline, size);
 
                 res = GBM_ERROR_NONE;
             }
