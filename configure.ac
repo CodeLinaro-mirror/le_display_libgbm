@@ -91,13 +91,6 @@ AC_ARG_WITH(sanitized-headers,
        [Specify the location of the sanitized Linux headers]),
    [CPPFLAGS="$CPPFLAGS -I$withval"])
 
-AC_ARG_ENABLE([compilewithdrm],
-   AC_HELP_STRING([--enable-compilewithdrm],
-      [enable compilewithdrm, build gbm with compilewithdrm]),
-      [enable_compilewithdrm="${enableval}"],
-      enable_compilewithdrm=no)
-AM_CONDITIONAL([ENABLE_COMPILEWITHDRM], [test "x${enable_compilewithdrm}" = "xyes"])
-
 AC_ARG_ENABLE([wayland-support],
    AC_HELP_STRING([--enable-wayland-support],
       [with wayland support, build gbm with wayland-support]),
