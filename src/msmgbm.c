@@ -2894,7 +2894,14 @@ int msmgbm_perform(int operation, ... )
                 void **rgb_data = va_arg(args, void **);
                 res = msmgbm_get_rgb_data_address(gbo, rgb_data);
             }
-			break;
+            break;
+        case GBM_PERFORM_GET_FD_WITH_NEW:
+            {
+                uint32_t *with_new = va_arg(args, uint32_t *);
+                *with_new = false;
+                res = GBM_ERROR_NONE;
+            }
+            break;
         case GBM_PERFORM_GET_WL_RESOURCE_FROM_GBM_BUF_INFO:
             {
                 LOG(LOG_WARN, "GBM_PERFORM_GET_WL_RESOURCE_FROM_GBM_BUF_INFO is deprecated\n");
