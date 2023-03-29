@@ -600,13 +600,13 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_NV12_ENCODEABLE:
         case GBM_FORMAT_NV12:
             size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12, width, height);
-            LOG(LOG_INFO," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
+            LOG(LOG_DBG," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
 #ifdef MMM_COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
             size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_512, width, height);
-            LOG(LOG_INFO," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
+            LOG(LOG_DBG," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
 #endif
@@ -618,7 +618,7 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
             //*aligned_w = (MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width) * 3) / 4;
             //*aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_BPP10_UBWC, height);
             size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width, height);
-            LOG(LOG_INFO," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
+            LOG(LOG_DBG," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
