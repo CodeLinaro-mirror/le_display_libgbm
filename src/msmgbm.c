@@ -251,7 +251,11 @@ static int
 msmgbm_bo_get_fd(struct gbm_bo *bo)
 {
     if (bo != NULL) {
+#ifdef GET_FD_WITH_NEW
         int new_fd = dup(bo->ion_fd);
+#else
+        int new_fd = bo->ion_fd;
+#endif
         if (new_fd < 0) {
             LOG(LOG_ERR, "Fail to dup ion_fd. Err:\n%s\n", strerror(errno));
             return -1;
@@ -2585,7 +2589,18 @@ int msmgbm_perform(int operation, ... )
                 void **rgb_data = va_arg(args, void **);
                 res = msmgbm_get_rgb_data_address(gbo, rgb_data);
             }
-			break;
+            break;
+        case GBM_PERFORM_GET_FD_WITH_NEW:
+            {
+                uint32_t *with_new  = va_arg(args, uint32_t *);
+#ifdef GET_FD_WITH_NEW
+                *with_new = true;
+#else
+                *with_new = false;
+#endif
+                res = GBM_ERROR_NONE;
+            }
+            break;
          default:
                 LOG(LOG_INFO,"PERFORM Operation not supported\n");
             break;
