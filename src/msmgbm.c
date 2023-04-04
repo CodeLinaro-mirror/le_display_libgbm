@@ -96,7 +96,6 @@ void config_dbg_lvl(void);
 
 //Global Variables
 static pthread_mutex_t mutex_obj = PTHREAD_MUTEX_INITIALIZER;
-static int mutex_ref_count = 0;
 static inline void lock_init(void)
 {
     if(pthread_mutex_init(&mutex_obj, NULL))
@@ -130,6 +129,16 @@ static inline void lock_destroy(void)
     if(pthread_mutex_destroy(&mutex_obj))
         LOG(LOG_ERR,"Failed to init Mutex\n %s\n",strerror(errno));
 
+}
+
+void __attribute__ ((constructor)) msmgbm_library_open(void)
+{
+    lock_init();
+}
+
+void __attribute__ ((destructor)) msmgbm_library_close(void)
+{
+    lock_destroy();
 }
 
 static inline
@@ -2083,16 +2092,13 @@ msmgbm_device_destroy(struct gbm_device *gbm)
     //Destroy the  mapper cpp object
     msmgbm_mapper_deinstnce();
 
-    mutex_ref_count--;
-    if (mutex_ref_count == 0) {
-      lock_destroy();
-    }
-
     if(msm_dev != NULL){
         free(msm_dev);
         msm_dev = NULL;
     }
-
+    else {
+         LOG(LOG_ERR,"NULL or Invalid device pointer\n");
+    }
     return;
 }
 
@@ -2118,11 +2124,6 @@ msmgbm_device_create(int fd)
     //Instantiate the mapper cpp object
     if(msmgbm_mapper_instnce())
       return NULL;
-
-    if (mutex_ref_count == 0) {
-      lock_init();
-    }
-    mutex_ref_count++;
 
     gbmdevice =  &msm_gbmdevice->base;
     gbmdevice->fd = fd;
