@@ -119,7 +119,6 @@ int g_debug_level = LOG_INFO;
 
 //Global Variables
 static pthread_mutex_t mutex_obj = PTHREAD_MUTEX_INITIALIZER;
-static int mutex_ref_count = 0;
 static inline void lock_init(void)
 {
     if(pthread_mutex_init(&mutex_obj, NULL))
@@ -153,6 +152,16 @@ static inline void lock_destroy(void)
     if(pthread_mutex_destroy(&mutex_obj))
         LOG(LOG_ERR,"Failed to init Mutex\n %s\n",strerror(errno));
 
+}
+
+void __attribute__ ((constructor)) msmgbm_library_open(void)
+{
+    lock_init();
+}
+
+void __attribute__ ((destructor)) msmgbm_library_close(void)
+{
+    lock_destroy();
 }
 
 static inline
@@ -189,16 +198,12 @@ msmgbm_bo_map(uint32_t x, uint32_t y, uint32_t width,
 
 static uint32_t
 msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
-  uint32_t stride = 0;
-  if (is_valid_uncmprsd_rgb_format(bo->format)) {
-    if(plane == 0) {
-      return bo->stride;
-    } else {
-     return 0;
-    }
-  }
   bool ubwc_enabled = is_ubwc_enbld(bo->format, bo->usage_flags, bo->usage_flags);
-  bool valid_rgb_format = is_valid_rgb_fmt(bo->format);
+  bool cmprsd_rgb_format = is_valid_cmprsd_rgb_format(bo->format);
+  bool is_yuv_format = is_valid_yuv_format(bo->format);
+
+  LOG(LOG_DBG,"plane=%d bo->format=%d ubwc_enabled=%d is_yuv_format=%d cmprsd_rgb=%d\n",
+                plane, bo->format, ubwc_enabled, is_yuv_format, cmprsd_rgb_format);
 
   if (is_valid_raw_format(bo->format)) {
     switch (bo->format) {
@@ -211,10 +216,11 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
         default:
             return bo->aligned_width;
     }
-  } else if (!valid_rgb_format) {
+  } else if (is_yuv_format) {
     // yuv format
     return bo->buf_lyt.planes[plane].stride;
-  } else if (ubwc_enabled && valid_rgb_format) {
+  } else if (ubwc_enabled && cmprsd_rgb_format) {
+    uint32_t stride = 0;
     // UBWC RGB format
     // there are two planes.
     if (plane == 0) {
@@ -226,8 +232,9 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
         stride = MMM_COLOR_FMT_RGB_STRIDE(MMM_COLOR_FMT_RGBA8888_UBWC, bo->width);
       }
     }
+    return stride;
   }
-  return stride;
+  return bo->stride;
 }
 
 static void
@@ -410,6 +417,7 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_BGR888:
             return 3;
         case GBM_FORMAT_RG1616:
+        case GBM_FORMAT_BGRA8888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -472,6 +480,7 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
         case GBM_FORMAT_BGR888:
+        case GBM_FORMAT_BGRA8888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -533,6 +542,7 @@ is_format_rgb(uint32_t format)
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
         case GBM_FORMAT_BGR888:
+        case GBM_FORMAT_BGRA8888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -1437,6 +1447,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    lock();
     incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
     unlock();
 
@@ -1746,17 +1757,11 @@ msmgbm_device_destroy(struct gbm_device *gbm)
     //Destroy the  mapper cpp object
     msmgbm_mapper_deinstnce();
 
-    mutex_ref_count--;
-    if (mutex_ref_count == 0) {
-      lock_destroy();
-    }
-
     if(msm_dev != NULL){
         free(msm_dev);
         msm_dev = NULL;
     }
     else {
-
          LOG(LOG_ERR,"NULL or Invalid device pointer\n");
     }
     return;
@@ -1784,11 +1789,6 @@ msmgbm_device_create(int fd)
     //Instantiate the mapper cpp object
     if(msmgbm_mapper_instnce())
       return NULL;
-
-    if (mutex_ref_count == 0) {
-      lock_init();
-    }
-    mutex_ref_count++;
 
     gbmdevice =  &msm_gbmdevice->base;
     gbmdevice->fd = fd;

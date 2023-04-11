@@ -174,6 +174,28 @@ bool is_valid_uncmprsd_rgb_format( int format) {
 }
 
 /**
+ * Function to check whether the format is uncompressed RGB or not from the platform wrapper
+ * @params    gbm format
+ * @return    boolean 0 (uncompressed RGB format)
+ *                    1 (compressed RGB format)
+ *
+ */
+bool is_valid_cmprsd_rgb_format( int format) {
+   return platform_wrap_->is_valid_cmprsd_rgb_fmt(format);
+}
+
+/**
+ * Function to check whether the format is yuv or not from the platform wrapper
+ * @params    gbm format
+ * @return    boolean 0 (non yuv format)
+ *                    1 (yuv format)
+ *
+ */
+bool is_valid_yuv_format( int format) {
+   return platform_wrap_->is_valid_yuv_fmt(format);
+}
+
+/**
  * Function to check whether the format is RAW or not from the platform wrapper
  * @params    gbm format
  * @return    boolean 0 (non RAW format)
@@ -243,44 +265,6 @@ bool cpu_can_wr(int prod_usage) {
   return false;
 }
 
-bool is_valid_cmprsd_rgb_fmt(int format) {
-  switch (format) {
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_4x4_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x4_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x5_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x5_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x6_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x5_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x6_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x5_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x6_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x8_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x10_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x10_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
-    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x12_KHR:
-    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
-      return true;
-    default:
-      break;
-  }
-
-  return false;
-}
-
 platform_wrap::platform_wrap() {
 }
 
@@ -341,6 +325,7 @@ int platform_wrap::is_valid_rgb_fmt(int format){
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_RGB888:
         case GBM_FORMAT_BGR888:
+        case GBM_FORMAT_BGRA8888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -416,6 +401,44 @@ uint32_t platform_wrap::get_bpp_for_uncmprsd_rgb_fmt(int format) {
   return bpp;
 }
 
+bool platform_wrap:: is_valid_cmprsd_rgb_fmt(int format) {
+  switch (format) {
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_4x4_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x4_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_5x5_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x5_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_6x6_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x5_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x6_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_8x8_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x5_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x6_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x8_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_10x10_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x10_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR:
+    case GBM_FORMAT_COMPRESSED_RGBA_ASTC_12x12_KHR:
+    case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
+      return true;
+    default:
+      break;
+  }
+
+  return false;
+}
+
 /* Not currently supported formats
  case HAL_PIXEL_FORMAT_R_8:
  case HAL_PIXEL_FORMAT_RG_88:
@@ -460,6 +483,33 @@ bool platform_wrap::is_valid_uncmprsd_rgb_fmt(int format) {
   return false;
 }
 
+bool platform_wrap:: is_valid_yuv_fmt(int format) {
+  switch (format) {
+        case GBM_FORMAT_YCbCr_420_SP:
+        case GBM_FORMAT_YCrCb_420_SP:
+        case GBM_FORMAT_YCbCr_420_SP_VENUS:
+        case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
+#ifdef COLOR_FMT_NV12_512
+        case GBM_FORMAT_NV12_HEIF:
+#endif
+        case GBM_FORMAT_NV12:
+        case GBM_FORMAT_NV21_ZSL:
+        case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC:
+        case GBM_FORMAT_YCbCr_420_P010_UBWC:
+        case GBM_FORMAT_P010:
+        case GBM_FORMAT_YCbCr_420_P010_VENUS:
+        case GBM_FORMAT_YCbCr_422_I:
+        case GBM_FORMAT_YCrCb_422_I:
+        case GBM_FORMAT_C8:
+        case GBM_FORMAT_UYVY:
+          return true;
+        default:
+          break;
+  }
+
+  return false;
+}
 
 // helper function
 unsigned int platform_wrap::get_size(int format, int width, int height, int usage,
