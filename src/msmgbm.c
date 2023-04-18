@@ -247,7 +247,11 @@ static int
 msmgbm_bo_get_fd(struct gbm_bo *bo)
 {
     if (bo != NULL) {
+#ifdef GET_FD_WITH_NEW
         int new_fd = dup(bo->ion_fd);
+#else
+        int new_fd = bo->ion_fd;
+#endif
         if (new_fd < 0) {
             LOG(LOG_ERR, "Fail to dup ion_fd. Err:\n%s\n", strerror(errno));
             return -1;
@@ -376,7 +380,6 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
                     LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%p\n%s\n",
                                      bo->metadata_handle.u32,strerror(errno));
-
             }
         }
         unlock();
@@ -980,8 +983,8 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     {
         LOG(LOG_DBG,"Map retrieved buf info\n gbm_buf_info.width=%d\n",
                                                         gbo_info.width);
-        LOG(LOG_DBG,"gbm_buf_info.fd,gbm_buf_info.metadata_fd,"
-                    "gbm_buf_info.height=%d\n gbm_buf_info.format = %d\n",
+        LOG(LOG_DBG,"gbm_buf_info.fd=%d,gbm_buf_info.metadata_fd=%d,"
+                    "gbm_buf_info.height=%d\n gbm_buf_info.format=%d\n",
                     gbo_info.fd,gbo_info.metadata_fd,gbo_info.height,gbo_info.format);
 
         //we have a valid entry within the map table so Increment ref count
@@ -989,7 +992,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     }
     else
     {
-        LOG(LOG_INFO,"Search failed so register_to_map\n",
+        LOG(LOG_DBG,"Search failed so register_to_map\n",
                                                     __func__,__LINE__);
         //Copy the buffer info credentials
         gbo_info.fd=buffer_info->fd;
@@ -1162,9 +1165,9 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
                                     temp_buf_info.metadata_fd);
     }else
     {
-        LOG(LOG_INFO," MAP table is empty\n");
+        LOG(LOG_DBG," MAP table is empty\n");
         register_map = 1;
-        LOG(LOG_INFO,"Registered fd=%d to table\n",fd_data->fds[0]);
+        LOG(LOG_DBG,"Registered fd=%d to table\n",fd_data->fds[0]);
     }
     //Initialize the helper structure
     bufdesc.Width  = fd_data->width;
@@ -1349,10 +1352,9 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     }
     else
     {
-        LOG(LOG_INFO," MAP table is empty\n");
-
+        LOG(LOG_DBG," MAP table is empty\n");
         register_map = 1;
-        LOG(LOG_INFO,"Registered fd=%d to table\n",buffer_info->fd);
+        LOG(LOG_DBG,"Registered fd=%d to table\n",buffer_info->fd);
     }
 
     //Initialize the helper structure
@@ -1966,7 +1968,7 @@ void* msmgbm_bo_meta_map(struct gbm_bo *bo)
             {
                 mt_cpuaddr = msm_gbm_bo->mt_cpuaddr;
             } else {
-                LOG(LOG_INFO, "This is not optimized path: %s,%d\n", __func__, __LINE__);
+                LOG(LOG_DBG, "This is not optimized path: %s,%d\n", __func__, __LINE__);
                 mt_size = query_metadata_size();
                 mt_cpuaddr = msmgbm_cpu_map_metafd(bo->ion_metadata_fd, mt_size);
                 msm_gbm_bo->mt_cpuaddr = mt_cpuaddr;
@@ -1992,7 +1994,7 @@ void* msmgbm_bo_cpu_map(struct gbm_bo *bo)
         {
             cpuaddr = msm_gbm_bo->cpuaddr;
         } else {
-            LOG(LOG_INFO, "This is not optimized path for cpu bo map\n");
+            LOG(LOG_DBG, "This is not optimized path for cpu bo map\n");
             mt_cpuaddr = (struct meta_data_t *)msmgbm_bo_meta_map(bo);
             cpuaddr = msmgbm_cpu_map_ionfd(bo->ion_fd, bo->size, mt_cpuaddr);
             msm_gbm_bo->cpuaddr = cpuaddr;
@@ -2614,6 +2616,17 @@ int msmgbm_perform(int operation, ... )
                 res = msmgbm_get_rgb_data_address(gbo, rgb_data);
             }
 			break;
+        case GBM_PERFORM_GET_FD_WITH_NEW:
+            {
+                uint32_t *with_new  = va_arg(args, uint32_t *);
+#ifdef GET_FD_WITH_NEW
+                *with_new = true;
+#else
+                *with_new = false;
+#endif
+                res = GBM_ERROR_NONE;
+            }
+            break;
          default:
                 LOG(LOG_INFO,"PERFORM Operation not supported\n");
             break;
@@ -2775,9 +2788,9 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
         }
         else
         {
-            LOG(LOG_INFO,"metadata_fd=%d and hence valid meta info cannot be retrieved\n",
+            LOG(LOG_DBG,"metadata_fd=%d and hence valid meta info cannot be retrieved\n",
                                                                       gbo->ion_metadata_fd);
-            LOG(LOG_INFO,"We will make a graceful exit\n");
+            LOG(LOG_DBG,"We will make a graceful exit\n");
             return GBM_ERROR_NONE;
         }
 
