@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
@@ -300,6 +300,10 @@ extern "C" {
                                                                  wl_resource */
 
 #define GBM_PERFORM_GET_RENDER_DEVICE_NAME          0x36 /* Get render node for user */
+
+#define GBM_PERFORM_GET_BUFFER_STRIDE_SCANLINE_SIZE      0x37 /* Query Buffer stride, scanline and size
+                                                                (stride, scanline and size)*/
+
 /**
  * Error representation for GBM  API's
  *

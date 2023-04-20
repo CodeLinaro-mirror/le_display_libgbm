@@ -77,18 +77,32 @@ bool platform_wrap_instnce(void) {
 }
 
 /**
- * Function to query the aligned width and hieght from the platform specific object
- * @return    : alignedw
- *            : alignedh
+ * C wrapper function to know if the format is UBWC
  */
 bool is_ubwc_enbld(int format, int prod_usage,
                               int cons_usage) {
     return platform_wrap_->is_ubwc_enbld(format, prod_usage,prod_usage);
 }
 
+/**
+ * Function to query the aligned width and hieght from the platform specific object
+ * @return    : alignedw
+ *            : alignedh
+ */
 void qry_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int *alignedw,
                                                              unsigned int *alignedh) {
     platform_wrap_->get_aligned_wdth_hght(descriptor, alignedw,alignedh);
+}
+
+/**
+ * Function to query the stride, scanline and size from the platform specific object
+ * @return    : stride
+ *            : scanline
+ *            : size
+ */
+void qry_stride_scanline_size(gbm_bufdesc *descriptor, unsigned int *stride,
+                              unsigned int *scanline, unsigned int *size) {
+    platform_wrap_->get_stride_scanline_size(descriptor, stride, scanline, size);
 }
 
 /**
@@ -122,6 +136,17 @@ bool is_valid_ubwc_format( int format) {
  */
 bool is_valid_uncmprsd_rgb_format( int format) {
    return platform_wrap_->is_valid_uncmprsd_rgb_fmt(format);
+}
+
+/*
+ * Function to check whether the format is RAW or not from the platform wrapper
+ * @params    gbm format
+ * @return    boolean 0 (non RAW format)
+ *                    1 (RAW format)
+ *
+ */
+bool is_valid_raw_format( int format) {
+   return platform_wrap_->is_valid_raw_fmt(format);
 }
 
 /**
@@ -256,6 +281,20 @@ bool is_valid_rgb_fmt(int format)
   return (bool)platform_wrap_->is_valid_rgb_fmt(format);
 }
 
+bool platform_wrap::is_valid_raw_fmt(int format) {
+  switch (format) {
+    case GBM_FORMAT_RAW8:
+    case GBM_FORMAT_RAW10:
+    case GBM_FORMAT_RAW12:
+    case GBM_FORMAT_RAW16:
+      return true;
+    default:
+      break;
+  }
+
+  return false;
+}
+
 int platform_wrap::is_valid_rgb_fmt(int format){
     int is_supported;
     switch(format)
@@ -307,9 +346,18 @@ uint32_t platform_wrap::get_bpp_for_uncmprsd_rgb_fmt(int format) {
     case GBM_FORMAT_RGBX8888:
     case GBM_FORMAT_BGRA8888:
     case GBM_FORMAT_BGRX8888:
+    case GBM_FORMAT_XRGB8888:
     case GBM_FORMAT_XBGR8888:
+    case GBM_FORMAT_ARGB8888:
     case GBM_FORMAT_ABGR8888:
+    case GBM_FORMAT_RGBA1010102:
+    case GBM_FORMAT_ARGB2101010:
+    case GBM_FORMAT_RGBX1010102:
+    case GBM_FORMAT_XRGB2101010:
+    case GBM_FORMAT_BGRA1010102:
     case GBM_FORMAT_ABGR2101010:
+    case GBM_FORMAT_BGRX1010102:
+    case GBM_FORMAT_XBGR2101010:
       bpp = 4;
       break;
     case GBM_FORMAT_RGB888:
@@ -425,7 +473,6 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGBA5551:
         case GBM_FORMAT_RGBA4444:
-        case GBM_FORMAT_RAW16:
             size = alignedw * alignedh * 2;
             break;
         case GBM_FORMAT_R8:
@@ -433,8 +480,13 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
             size = alignedw * alignedh * 1;
             break;
         case GBM_FORMAT_RAW10:
+            size = ALIGN(alignedw * alignedh * 10 / 8, 4096);
+            break;
         case GBM_FORMAT_RAW12:
-            size = ALIGN(alignedw * alignedh, 4096);
+            size = ALIGN(alignedw * alignedh * 12 / 8, 4096);
+            break;
+        case GBM_FORMAT_RAW16:
+            size = ALIGN(alignedw * alignedh * 2, 4096);
             break;
         case GBM_FORMAT_YV12:
             if ((format == GBM_FORMAT_YV12) && ((width&1) || (height&1))) {
@@ -638,18 +690,16 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedw = ALIGN(width, alignment);
       break;
     case GBM_FORMAT_RAW16:
+    case GBM_FORMAT_RAW10:
     case GBM_FORMAT_RAW8:
       *alignedw = ALIGN(width, 16);
       break;
     case GBM_FORMAT_RAW12:
 #ifdef ENABLE_CAM_MIMAS
-      *alignedw = MIMAS_ALIGN(width * 12 / 8, 48);
+      *alignedw = MIMAS_ALIGN(width, 48);
 #else
-      *alignedw = ALIGN(width * 12 / 8, 16);
+      *alignedw = ALIGN(width, 16);
 #endif
-      break;
-    case GBM_FORMAT_RAW10:
-      *alignedw = ALIGN(width * 10 / 8, 16);
       break;
     case GBM_FORMAT_YV12:
     case GBM_FORMAT_YCbCr_422_SP:
@@ -719,6 +769,60 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
 
   LOG(LOG_DBG,"alignedw=%d, alignedh=%d \n",*alignedw,*alignedh);
 
+}
+
+void platform_wrap::get_stride_scanline_size(gbm_bufdesc *descriptor, unsigned int *stride,
+                                             unsigned int *scanline, unsigned int *size) {
+  unsigned int width = descriptor->Width;
+  unsigned int height = descriptor->Height;
+  unsigned int format = descriptor->Format;
+  unsigned int usage = descriptor->Usage;
+  unsigned int alignedw = 0, alignedh = 0;
+
+  // Get the aligned width and height in pixels.
+  get_aligned_wdth_hght(descriptor, &alignedw, &alignedh);
+
+  // Calculate the size wusing the returned aligned width and height.
+  *size = get_size(format, width, height, usage, alignedw, alignedh);
+
+  *stride = alignedw;
+  *scanline = alignedh;
+
+  if (is_valid_uncmprsd_rgb_fmt(format)) {
+    uint32_t bpp = get_bpp_for_uncmprsd_rgb_fmt(format);
+    *stride = alignedw * bpp;
+  }
+
+  // Adjust the actual stride and scanline using the aligned width and height.
+  switch (format) {
+    case GBM_FORMAT_RAW10:
+      *stride = (alignedw * 10) / 8;
+      break;
+    case GBM_FORMAT_RAW12:
+      *stride = (alignedw * 12) / 8;
+      break;
+    case GBM_FORMAT_RAW16:
+      *stride = alignedw * 2;
+      break;
+    case GBM_FORMAT_YCbCr_422_I:
+    case GBM_FORMAT_YCrCb_422_I:
+      *stride = alignedw * 2;
+      break;
+    case GBM_FORMAT_P010:
+    case GBM_FORMAT_YCbCr_420_P010_VENUS:
+      *stride = alignedw * 2;
+      break;
+    case GBM_FORMAT_YCbCr_420_P010_UBWC:
+      *stride = alignedw * 2;
+      break;
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC:
+      *stride = (alignedw * 4) / 3;
+      break;
+    default:
+      break;
+  }
+
+  LOG(LOG_DBG,"stride=%u, scanline=%u, size=%u \n", *stride, *scanline, *size);
 }
 
 // Explicitly defined UBWC formats Typically used for Video formats.
