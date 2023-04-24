@@ -1219,8 +1219,8 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
-    LOG(LOG_DBG,"fd=%d format: %s width: %d height: %d\n", get_msmgbm_format_name(buffer_info->fd),
-        buffer_info->format, buffer_info->width, buffer_info->height);
+    LOG(LOG_DBG,"fd=%d format: %s width: %d height: %d\n", buffer_info->fd,
+        get_msmgbm_format_name(buffer_info->format), buffer_info->width, buffer_info->height);
 
     if(1 == IsFormatSupported(buffer_info->format))
         Bpp = GetFormatBpp(buffer_info->format);
@@ -1376,9 +1376,9 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
-        "gbmbo->width=%d,gbmbo->height=%d,gbmbo->format=0x%x\n",
+        "gbmbo->width=%d,gbmbo->height=%d,gbmbo->format=%s\n",
         gbmbo->ion_fd,gbmbo->ion_metadata_fd,gbmbo->width,
-        gbmbo->height,gbmbo->format);
+        gbmbo->height, get_msmgbm_format_name(gbmbo->format));
 
     return gbmbo;
 
