@@ -3234,8 +3234,8 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
     if(!msm_gbm_bo || !buf_lyt)
         return GBM_ERROR_BAD_HANDLE;
 
-     switch(gbo->format){
-       //Semiplanar
+    switch(gbo->format) {
+        //Semiplanar
         case GBM_FORMAT_YCbCr_420_SP:
         case GBM_FORMAT_YCrCb_420_SP:
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
@@ -3269,7 +3269,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         default:
             res = GBM_ERROR_UNSUPPORTED;
             break;
-     }
+    }
 
     return res;
 }
@@ -3365,34 +3365,11 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
         buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = 0;
         buf_lyt->planes[0].bits_per_component = Bpp;
         buf_lyt->planes[0].v_increment = ((gbo->aligned_width)*Bpp); //stride
+        buf_lyt->planes[0].stride = buf_lyt->planes[0].v_increment;
     }
     else
     {
-        switch(gbo->format){
-           //Semiplanar
-            case GBM_FORMAT_YCbCr_420_SP:
-            case GBM_FORMAT_YCrCb_420_SP:
-            case GBM_FORMAT_YCbCr_420_SP_VENUS:
-            case GBM_FORMAT_NV12:
-            case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
-#ifdef COLOR_FMT_NV12_512
-            case GBM_FORMAT_NV12_HEIF:
-#endif
-                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                       YUV_420_SP_BPP, buf_lyt);
-                 break;
-            case GBM_FORMAT_YCbCr_420_TP10_UBWC:
-                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                            COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
-                 break;
-            case GBM_FORMAT_P010:
-                get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                      CHROMA_STEP, buf_lyt);
-                break;
-            default:
-                 res = GBM_ERROR_UNSUPPORTED;
-                 break;
-        }
+        res = msmgbm_yuv_plane_info(gbo, buf_lyt);
     }
     return res;
 }
