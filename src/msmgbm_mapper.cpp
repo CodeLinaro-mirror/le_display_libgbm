@@ -33,6 +33,7 @@
 * SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
+#include <cstring>
 #include "msmgbm_mapper.h"
 
 namespace msm_gbm {
@@ -70,7 +71,7 @@ bool msmgbm_mapper_instnce(void) {
  */
 void register_to_hashmap(int fd, struct gbm_buf_info * gbm_buf,
                                        struct msmgbm_private_info * gbo_private_info) {
-    msmgbm_mapper_->register_to_map(fd, gbm_buf, gbo_private_info);
+      msmgbm_mapper_->register_to_map(fd, gbm_buf, gbo_private_info);
 }
 
 /**
@@ -102,6 +103,40 @@ int  update_hashmap(int fd, struct gbm_buf_info *buf_info,
 }
 
 /**
+ * C wrapper function to register dup fd to hash map using ion_fd and retrieve the gbm_buf_info
+ * @input param: ion_fd , dup_ion_fd
+ * @return     : GBM error status
+ *
+ */
+void  register_dup_fd_to_hashmap(int fd, int dup_fd) {
+      struct gbm_buf_info buf_info;
+      struct msmgbm_private_info gbo_private_info;
+
+      if (!msmgbm_mapper_) {
+          LOG(LOG_INFO,"gbm mapper had been de-instantiated\n");
+          return;
+      }
+
+      memset((void*)&buf_info, 0x0, sizeof(buf_info));
+      memset((void*)&gbo_private_info, 0x0, sizeof(gbo_private_info));
+      if (msmgbm_mapper_->search_map(fd, &buf_info, &gbo_private_info))
+      {
+        buf_info.fd = dup_fd;
+        buf_info.fd_flg |= IS_DUP_FD;
+        buf_info.src_fd = fd;
+        msmgbm_mapper_->register_to_map(dup_fd, &buf_info, &gbo_private_info);
+        LOG(LOG_DBG,"register src_fd[%d] -> dup fd[%d]\n", buf_info.src_fd, buf_info.fd);
+        LOG(LOG_DBG,"\t  meta_fd[%d]\n", buf_info.metadata_fd);
+        LOG(LOG_DBG,"\t  width[%u] height[%u] format[%u]\n", buf_info.width, buf_info.height, buf_info.format);
+        LOG(LOG_DBG,"\t  cpuaddr[%p] mt_cpuaddr[%p]\n", gbo_private_info.cpuaddr, gbo_private_info.mt_cpuaddr);
+        return;
+      }
+
+      LOG(LOG_ERR,"error! cannot find the fd[%d] in hashmap\n", fd);
+      return;
+}
+
+/**
  * C wrapper function to dump hash map
  * @input param: void
  * @return     : none
@@ -110,7 +145,6 @@ int  update_hashmap(int fd, struct gbm_buf_info *buf_info,
 void  dump_hashmap(void) {
       msmgbm_mapper_->map_dump();
 }
-
 
 
 /**
@@ -227,10 +261,17 @@ bool msmgbm_mapper::init() {
  */
 void msmgbm_mapper::register_to_map(int fd,      struct gbm_buf_info * gbm_buf,
                                                  struct msmgbm_private_info *gbo_private_info) {
-  auto buffer = std::make_shared<msmgbm_buffer>(fd,gbm_buf->metadata_fd,
-                                  gbm_buf->width,gbm_buf->height,gbm_buf->format,
-                                  gbo_private_info->cpuaddr, gbo_private_info->mt_cpuaddr);
-  gbm_buf_map_.emplace(std::make_pair(fd, buffer));
+  struct gbm_buf_info temp_buf_info;
+  struct msmgbm_private_info temp_private_info;
+
+  if (msmgbm_mapper_->search_map(fd, &temp_buf_info, &temp_private_info)) {
+    msmgbm_mapper_->update_map(fd,gbm_buf, gbo_private_info);
+  } else {
+    auto buffer = std::make_shared<msmgbm_buffer>(fd,gbm_buf->metadata_fd,
+                                    gbm_buf->width,gbm_buf->height,gbm_buf->format,gbm_buf->fd_flg,gbm_buf->src_fd,
+                                    gbo_private_info->cpuaddr, gbo_private_info->mt_cpuaddr);
+    gbm_buf_map_.emplace(std::make_pair(fd, buffer));
+  }
 }
 
 /**
@@ -248,6 +289,8 @@ int msmgbm_mapper::search_map(int fd, struct gbm_buf_info *buf_info,
     buf_info->width=it->second->width;
     buf_info->height=it->second->height;
     buf_info->format=it->second->format;
+    buf_info->fd_flg=it->second->fd_flg;
+    buf_info->src_fd=it->second->src_fd;
     gbo_private_info->cpuaddr = it->second->cpuaddr;
     gbo_private_info->mt_cpuaddr = it->second->mt_cpuaddr;
     return 1;
@@ -271,6 +314,8 @@ int msmgbm_mapper::update_map(int fd, struct gbm_buf_info *buf_info,
     it->second->width=buf_info->width;
     it->second->height=buf_info->height;
     it->second->format=buf_info->format;
+    it->second->fd_flg=buf_info->fd_flg;
+    it->second->src_fd=buf_info->src_fd;
     it->second->cpuaddr=gbo_private_info->cpuaddr;
     it->second->mt_cpuaddr=gbo_private_info->mt_cpuaddr;
     return 1;
@@ -298,6 +343,8 @@ void msmgbm_mapper::map_dump(void) {
     printf("----width           = %u\n",buf->width);
     printf("----height          = %u\n",buf->height);
     printf("----format          = %u\n",buf->format);
+    printf("----fd_flg          = %u\n",buf->fd_flg);
+    printf("----src_fd          = %u\n",buf->src_fd);
     printf("----cpuaddr         = %p\n",buf->cpuaddr);
     printf("----mt_cpuaddr      = %p\n",buf->mt_cpuaddr);
     printf("---------------------------------\n");
