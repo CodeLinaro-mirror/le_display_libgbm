@@ -767,6 +767,10 @@ struct gbm_surface {
 };
 
 
+#define INTERNAL_FD 0x000000001  /* fd flag - internal fd, created by gbm_bo_create() */
+#define EXTERNAL_FD 0x000000002  /* fd flag - external fd, imported foreign fd */
+#define IS_DUP_FD  0x000000004  /* fd flag - dup fd, get from gbm_bo_get_fd() */
+
 /**
  * The gbm buffer data object used by the import fd API.
  *
@@ -777,6 +781,8 @@ struct gbm_buf_info {
    uint32_t width;         /* width of surface in pixels */
    uint32_t height;        /* height of surface in pixels */
    uint32_t format;        /* pixel format*/
+   uint32_t fd_flg;        /* fd flag */
+   int src_fd;             /* source fd for dup */
 };
 
 
