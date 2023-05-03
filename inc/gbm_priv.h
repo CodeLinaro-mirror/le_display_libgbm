@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -297,6 +300,10 @@ extern "C" {
                                                                  wl_resource */
 
 #define GBM_PERFORM_GET_RENDER_DEVICE_NAME          0x36 /* Get render node for user */
+
+#define GBM_PERFORM_GET_BUFFER_STRIDE_SCANLINE_SIZE      0x37 /* Query Buffer stride, scanline and size
+                                                                (stride, scanline and size)*/
+
 /**
  * Error representation for GBM  API's
  *
@@ -455,6 +462,14 @@ extern "C" {
 #define GBM_FORMAT_NV12_UBWC_FLEX                           fourcc_mod_code_qti(QTI, 52)
 
 #define GBM_FORMAT_MULTIPLANAR_FLEX                         fourcc_mod_code_qti(QTI, 53)
+
+#define GBM_FORMAT_RGBA16161616F                            fourcc_mod_code_qti(QTI, 54)
+
+#define GBM_FORMAT_RGB161616F                               fourcc_mod_code_qti(QTI, 55)
+
+#define GBM_FORMAT_RGBA32323232F                            fourcc_mod_code_qti(QTI, 56)
+
+#define GBM_FORMAT_RGB323232F                               fourcc_mod_code_qti(QTI, 57)
 
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'A')
 
