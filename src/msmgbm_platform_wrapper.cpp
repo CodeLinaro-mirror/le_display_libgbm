@@ -461,6 +461,7 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
                                         int alignedw, int alignedh) {
   if (CameraInfo::GetInstance()->IsCameraCustomFormat(format, usage)) {
     unsigned int cam_size = 0;
+    LOG(LOG_DBG,"Querying buffer size from camera utility\n");
     int result = CameraInfo::GetInstance()->GetBufferSize(format, width, height, &cam_size);
     if (result != 0) {
       LOG(LOG_ERR,"Failed to get buffer size from camera\n");
