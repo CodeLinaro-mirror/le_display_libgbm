@@ -1902,6 +1902,7 @@ msmgbm_surface_create(struct gbm_device *gbm, uint32_t width,
 
     msm_gbmsurf->device = msm_dev;
     msm_gbmsurf->magic = QCMAGIC;
+    msm_gbmsurf->inuse_index = -1;
 
 #ifdef ALLOCATE_SURFACE_BO_AT_CREATION
     for(index =0; index < NUM_BACK_BUFFERS; index++) {
@@ -2093,16 +2094,18 @@ struct gbm_bo* msmgbm_surface_get_free_bo(struct gbm_surface *surf)
 
     if(msm_gbm_surface != NULL)
     {
-            for(index =0; index < NUM_BACK_BUFFERS; index++)
+        for(index = 0; index < NUM_BACK_BUFFERS; index++)
+        {
+            int cur_index = (msm_gbm_surface->inuse_index + index + 1) % NUM_BACK_BUFFERS;
+            if((msm_gbm_surface->bo[cur_index]!= NULL) && \
+                (msm_gbm_surface->bo[cur_index]->current_state == GBM_BO_STATE_FREE))
             {
-                if((msm_gbm_surface->bo[index]!= NULL) && \
-                    (msm_gbm_surface->bo[index]->current_state == GBM_BO_STATE_FREE))
-                {
-                    msm_gbm_surface->bo[index]->current_state = GBM_BO_STATE_INUSE_BY_GPU;
-                    return &msm_gbm_surface->bo[index]->base;
-                }
+                msm_gbm_surface->bo[cur_index]->current_state = GBM_BO_STATE_INUSE_BY_GPU;
+                msm_gbm_surface->inuse_index = cur_index;
+                return &msm_gbm_surface->bo[cur_index]->base;
             }
-            LOG(LOG_ERR," NO Free BO found!!\n");
+        }
+        LOG(LOG_ERR," NO Free BO found!!\n");
     }
     else
     {
