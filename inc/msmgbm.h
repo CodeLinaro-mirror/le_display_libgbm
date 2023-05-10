@@ -171,6 +171,7 @@ struct msmgbm_surface {
    uint32_t magic;
    struct msmgbm_device* device;
    struct msmgbm_bo *bo[NUM_BACK_BUFFERS];
+   int inuse_index;
 #ifndef ALLOCATE_SURFACE_BO_AT_CREATION
    int bo_slot[NUM_BACK_BUFFERS];
 #endif
