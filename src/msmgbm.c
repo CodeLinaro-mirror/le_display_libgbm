@@ -1493,7 +1493,8 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
          * if dup fd, use the metadata and mmap info from map
          * if new external fd, metadata=-1 and mmap=NULL
          */
-        if ((temp_buf_info.fd_flg & IS_DUP_FD) && (false == is_dup_fd(temp_buf_info.src_fd, temp_buf_info.fd))) {
+        if ((temp_buf_info.fd_flg & IS_DUP_FD) &&
+            (false == is_dup_fd(temp_buf_info.src_fd, temp_buf_info.fd))) {
             register_map = 1;
             gbo_private_info.cpuaddr = NULL;
             gbo_private_info.mt_cpuaddr = NULL;
@@ -1502,8 +1503,6 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
             temp_buf_info.src_fd = -1;
             LOG(LOG_DBG,"It's dup fd cache, overwrite it\n");
         } else {
-            //we have a valid entry within the map table so Increment ref count
-            incr_refcnt(buffer_info->fd);
             LOG(LOG_DBG,"It's existing fd\n");
         }
     }
