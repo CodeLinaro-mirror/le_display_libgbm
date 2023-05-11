@@ -1658,8 +1658,6 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
             temp_buf_info.src_fd = -1;
             LOG(LOG_DBG,"It's dup fd cache, overwrite it\n");
         } else {
-            //we have a valid entry within the map table so Increment ref count
-            incr_refcnt(buffer_info->fd);
             LOG(LOG_DBG,"It's existing fd\n");
         }
     }
