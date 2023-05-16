@@ -840,7 +840,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
      * ION Memory is from, the System heap
      * We get the gem handle from the ion fd using PRIME ioctls
      */
-    mt_size = sizeof(struct meta_data_t);
+    mt_size = query_metadata_size();
     mt_data_fd = AllocBuffer(0, mt_size, PAGE_SIZE);
     if (mt_data_fd < 0) {
       LOG(LOG_ERR,"Failed to allocate metadata buffer\n");
@@ -2291,8 +2291,9 @@ void* msmgbm_cpu_map_ionfd(int ion_fd, unsigned int size, struct meta_data_t *me
                 cpuaddr = NULL;
                 LOG(LOG_DBG, "cpu mapping failed for ion fd = %d, %s", ion_fd, strerror(errno));
             }
+        } else {
+            LOG(LOG_DBG, "Can't map secure buffer");
         }
-        LOG(LOG_DBG, "Can't map secure buffer");
     }
 
     return cpuaddr;
@@ -3316,12 +3317,10 @@ void get_yuv_ubwc_sp_plane_info(int width, int height,
    buf_lyt->planes[1].top_left = buf_lyt->planes[1].offset = y_meta_size + y_size + c_meta_size;
    buf_lyt->planes[2].top_left = buf_lyt->planes[2].offset = 0;
    buf_lyt->planes[3].top_left = buf_lyt->planes[3].offset = y_meta_size + y_size;
-   buf_lyt->planes[0].v_increment = y_stride;
-   buf_lyt->planes[1].v_increment = c_stride;
-   buf_lyt->planes[0].stride = y_stride;
-   buf_lyt->planes[1].stride = c_stride;
-   buf_lyt->planes[2].stride = y_meta_stride;
-   buf_lyt->planes[3].stride = c_meta_stride;
+   buf_lyt->planes[0].stride = buf_lyt->planes[0].v_increment = y_stride;
+   buf_lyt->planes[1].stride = buf_lyt->planes[1].v_increment = c_stride;
+   buf_lyt->planes[2].stride = buf_lyt->planes[2].v_increment = y_meta_stride;
+   buf_lyt->planes[3].stride = buf_lyt->planes[3].v_increment = c_meta_stride;
 }
 
 int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
