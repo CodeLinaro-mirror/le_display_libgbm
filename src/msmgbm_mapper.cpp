@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -368,13 +371,31 @@ void msmgbm_mapper::add_map_entry(int fd) {
  *
  */
 int msmgbm_mapper::del_map_entry(int fd) {
-    auto it = gbm_buf_map_.find(fd);
-    if (it!= gbm_buf_map_.end())
-       if(it->second->DecRef()){
-           gbm_buf_map_.erase(fd);
-           return 1;
-       }else
-           return 0;
-    return 1;
+  bool is_src_fd = false;
+  auto it = gbm_buf_map_.find(fd);
+  if (it != gbm_buf_map_.end()) {
+    if (it->second->src_fd == -1) {
+      is_src_fd = true;
+    }
+    if(it->second->DecRef()) {
+      gbm_buf_map_.erase(fd);
+      if (is_src_fd) {
+        // iterate and remove all dups of the src fd which is removed,
+        // since cpu addresses will be unmapped for the source buffer
+        auto it2 = gbm_buf_map_.begin();
+        for (;it2 != gbm_buf_map_.end();) {
+          if (it2->second->src_fd == fd) {
+            it2 = gbm_buf_map_.erase(it2);
+          } else {
+            ++it2;
+          }
+        }
+      }
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  return 1;
 }
 }  // namespace msm_gbm
