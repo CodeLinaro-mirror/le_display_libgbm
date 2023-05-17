@@ -177,7 +177,7 @@ struct msmgbm_surface * to_msmgbm_surface(struct gbm_surface*surf)
     return (struct msmgbm_surface *)surf;
 }
 
-inline
+static inline
 void  msmgbm_dump_hashmap(void)
 {
     dump_hashmap();
