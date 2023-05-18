@@ -105,6 +105,27 @@ int  update_hashmap(int fd, struct gbm_buf_info *buf_info,
         return GBM_ERROR_BAD_HANDLE;
 }
 
+static int get_root_src_fd(int src_fd)
+{
+  struct gbm_buf_info buf_info = {};
+  struct msmgbm_private_info gbo_private_info = {};
+  if (!msmgbm_mapper_) {
+    LOG(LOG_INFO,"gbm mapper had been de-instantiated\n");
+      return -1;
+  }
+
+  if (msmgbm_mapper_->search_map(src_fd, &buf_info, &gbo_private_info)) {
+    if (buf_info.src_fd != -1) {
+      return get_root_src_fd(buf_info.src_fd);
+    }
+    else {
+      LOG(LOG_DBG,"src_fd[%d] is the root source fd!\n", src_fd);
+    }
+  }
+
+  return src_fd;
+}
+
 /**
  * C wrapper function to register dup fd to hash map using ion_fd and retrieve the gbm_buf_info
  * @input param: ion_fd , dup_ion_fd
@@ -126,7 +147,7 @@ void  register_dup_fd_to_hashmap(int fd, int dup_fd) {
       {
         buf_info.fd = dup_fd;
         buf_info.fd_flg |= IS_DUP_FD;
-        buf_info.src_fd = fd;
+        buf_info.src_fd = get_root_src_fd(fd);
         msmgbm_mapper_->register_to_map(dup_fd, &buf_info, &gbo_private_info);
         LOG(LOG_DBG,"register src_fd[%d] -> dup fd[%d]\n", buf_info.src_fd, buf_info.fd);
         LOG(LOG_DBG,"\t  meta_fd[%d]\n", buf_info.metadata_fd);
