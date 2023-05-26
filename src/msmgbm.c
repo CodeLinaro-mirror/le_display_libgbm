@@ -315,9 +315,18 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
         unlock();
 
         LOG(LOG_DBG,"Destroy called for fd=%d meta_fd=%d fd_flg=%d src_fd=%d import_flg=%x",
-                            bo->ion_fd,bo->ion_metadata_fd,temp_buf_info.fd_flg,temp_buf_info.src_fd,msm_gbm_bo->import_flg);
+                            bo->ion_fd,bo->ion_metadata_fd,temp_buf_info.fd_flg,
+                            temp_buf_info.src_fd,msm_gbm_bo->import_flg);
         LOG(LOG_DBG,"\nmsm_gbm_bo->cpuaddr=0x%x\n msm_gbm_bo->mt_cpuaddr=0x%x\n",
                             msm_gbm_bo->cpuaddr, msm_gbm_bo->mt_cpuaddr);
+
+        if(ret != GBM_ERROR_NONE) {
+            LOG(LOG_DBG,"Search failed, only free bo\n");
+            free(msm_gbm_bo);
+            msm_gbm_bo = NULL;
+            return;
+        }
+
         //Delete the Map entries if reference count is 0
         lock();
         if(decr_refcnt(bo->ion_fd))
