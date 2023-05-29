@@ -146,7 +146,7 @@ void  register_dup_fd_to_hashmap(int fd, int dup_fd) {
       if (msmgbm_mapper_->search_map(fd, &buf_info, &gbo_private_info))
       {
         buf_info.fd = dup_fd;
-        buf_info.fd_flg |= IS_DUP_FD;
+        buf_info.fd_flg = (IS_DUP_FD | EXTERNAL_FD);
         buf_info.src_fd = get_root_src_fd(fd);
         msmgbm_mapper_->register_to_map(dup_fd, &buf_info, &gbo_private_info);
         LOG(LOG_DBG,"register src_fd[%d] -> dup fd[%d]\n", buf_info.src_fd, buf_info.fd);
