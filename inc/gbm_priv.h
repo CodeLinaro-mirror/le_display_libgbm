@@ -306,6 +306,9 @@ extern "C" {
 
 #define GBM_PERFORM_GET_FD_WITH_NEW                      0x38 /* Query whether get fd with new */
 
+#define GBM_PERFORM_GET_REGISTERED_DUP_FD           0x39 /* Get a duped fd for passed fd,
+                                                            and get it registered to the map. */
+
 /**
  * Error representation for GBM  API's
  *
