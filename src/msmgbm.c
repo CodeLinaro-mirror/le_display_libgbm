@@ -2836,8 +2836,34 @@ int msmgbm_perform(int operation, ... )
                 res = GBM_ERROR_NONE;
             }
             break;
-         default:
-                LOG(LOG_INFO,"PERFORM Operation not supported\n");
+        case GBM_PERFORM_GET_REGISTERED_DUP_FD:
+            {
+#ifdef GET_FD_WITH_NEW
+                int fd  = va_arg(args, int);
+                int *dup_fd  = va_arg(args, int *);
+                *dup_fd = -1;
+                struct gbm_buf_info gbo_info = {};
+                struct msmgbm_private_info gbo_private_info = {NULL, NULL};
+                lock();
+                if(search_hashmap(fd, &gbo_info, &gbo_private_info) == GBM_ERROR_NONE) {
+                    *dup_fd = dup(fd);
+                    if (*dup_fd > -1) {
+                        LOG(LOG_DBG, "Dup fd[%d] (src fd[%d]), registering to map\n", *dup_fd, fd);
+                        register_dup_fd_to_hashmap(fd, *dup_fd);
+                    } else {
+                        LOG(LOG_ERR, "Failed to dup ion_fd. Err:\n%s\n", strerror(errno));
+                    }
+                } else {
+                    LOG(LOG_ERR, "Failed to find entry of fd [%d] in hashmap.\n", fd);
+                }
+                unlock();
+#else
+                LOG(LOG_WARN, "GBM_PERFORM_GET_REGISTERED_DUP_FD is not supported\n");
+#endif
+            }
+            break;
+        default:
+            LOG(LOG_INFO,"PERFORM Operation not supported\n");
             break;
     }
     va_end(args);
