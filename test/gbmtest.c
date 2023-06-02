@@ -2411,6 +2411,48 @@ static int test_gbm_bo_get_fd()
     return 1;
 }
 
+static int test_metafd_from_bo_import() {
+    int iterations = 5000;
+    struct gbm_bo *bo1, *bo2;
+    struct gbm_import_fd_data buf_data;
+    int temp_fd, meta_fd;
+    int ret = GBM_ERROR_NONE;
+    printf("test_metafd_from_bo_import start\n");
+    while (iterations--) {
+        temp_fd = -1;
+        meta_fd = -1;
+        bo1 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+        CHECK(check_bo(bo1));
+        temp_fd = gbm_bo_get_fd(bo1);
+        printf("gbm_bo->ion_fd=%d, gbm_bo_get_fd get duplicated fd=%d\n", bo1->ion_fd, temp_fd);
+        CHECK(temp_fd>=0 && bo1->ion_fd!=temp_fd);
+        printf("Importing bo from fd = %d\n", temp_fd);
+        buf_data.fd = temp_fd;
+        buf_data.height = 1024;
+        buf_data.width = 1024;
+        buf_data.format = GBM_FORMAT_XRGB8888;
+        bo2 = gbm_bo_import(gbm, GBM_BO_IMPORT_FD, &buf_data, GBM_BO_USE_RENDERING);
+        CHECK(check_bo(bo2));
+        ret = gbm_perform(GBM_PERFORM_GET_METADATA_ION_FD, bo2, &meta_fd);
+        if(ret == GBM_ERROR_NONE) {
+            if (meta_fd != -1) {
+                printf("GET BO Metadata fd=%d success\n", meta_fd);
+            } else {
+                printf("GET BO Metadata failed, returned fd = -1\n");
+                return 0;
+            }
+        } else {
+            printf("GET BO Metadata fd failed\n");
+            return 0;
+        }
+        gbm_bo_destroy(bo2);
+        close(temp_fd);
+        gbm_bo_destroy(bo1);
+    }
+    printf("test_metafd_from_bo_import success\n");
+    return 1;
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2438,6 +2480,7 @@ int gbm_test_help() {
   printf("23 Test plane info \n");
   printf("24 for BO secure buffer Create/Destroy \n");
   printf("25 Test gbm_bo_get_fd \n");
+  printf("26 Test preservation of metadata using gbm_bo_get_fd and bo_import\n");
   return 0;
 }
 int main(int argc, char *argv[])
@@ -2563,6 +2606,11 @@ int main(int argc, char *argv[])
         case 25:
             result &= test_init();
             result &= test_gbm_bo_get_fd();
+            result &= test_destroy();
+        break;
+        case 26:
+            result &= test_init();
+            result &= test_metafd_from_bo_import();
             result &= test_destroy();
         break;
         default:
