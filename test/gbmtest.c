@@ -2412,7 +2412,7 @@ static int test_gbm_bo_get_fd()
 }
 
 static int test_metafd_from_bo_import() {
-    int iterations = 5000;
+    int iterations = 5000, cnt = 0;
     struct gbm_bo *bo1, *bo2;
     struct gbm_import_fd_data buf_data;
     int temp_fd, meta_fd;
@@ -2448,8 +2448,100 @@ static int test_metafd_from_bo_import() {
         gbm_bo_destroy(bo2);
         close(temp_fd);
         gbm_bo_destroy(bo1);
+        printf("Iteration %d ending **************\n", cnt);
+        cnt++;
     }
     printf("test_metafd_from_bo_import success\n");
+    return 1;
+}
+
+static int test_dup_mapping_bo_import() {
+    int iterations = 100, cnt = 0;
+    int width = 3840, height = 2160;
+    int format = GBM_FORMAT_XRGB8888;
+    struct gbm_bo *bo1, *bo2, *bo3;
+    struct gbm_import_fd_data buf_data1, buf_data2;
+    int tmp_fd1, meta_fd1, tmp_fd2, meta_fd2;
+    int ret = GBM_ERROR_NONE;
+
+    printf("%s start\n", __func__);
+
+    while (iterations--) {
+        printf("\n\nIteration %d starting **************\n", cnt);
+        tmp_fd1 = meta_fd1 = tmp_fd2 = meta_fd2 = -1;
+        bo1 = gbm_bo_create(gbm, width, height, format, GBM_BO_USE_RENDERING);
+        CHECK(check_bo(bo1));
+
+        // First import calls
+        tmp_fd1 = gbm_bo_get_fd(bo1);
+        printf("FIRST: gbm_bo->ion_fd=%d, gbm_bo_get_fd get duplicated fd=%d\n",
+                bo1->ion_fd, tmp_fd1);
+        CHECK(tmp_fd1 >=0 && bo1->ion_fd != tmp_fd1);
+
+        printf("FIRST: Importing bo from fd = %d\n", tmp_fd1);
+
+        buf_data1.fd = tmp_fd1;
+        buf_data1.height = height;
+        buf_data1.width = width;
+        buf_data1.format = format;
+
+        bo2 = gbm_bo_import(gbm, GBM_BO_IMPORT_FD, &buf_data1, GBM_BO_USE_RENDERING);
+        CHECK(check_bo(bo2));
+
+        ret = gbm_perform(GBM_PERFORM_GET_METADATA_ION_FD, bo2, &meta_fd1);
+        if(ret == GBM_ERROR_NONE) {
+            if (meta_fd1 != -1) {
+                printf("GET BO Metadata fd=%d success\n", meta_fd1);
+            } else {
+                printf("GET BO Metadata failed, returned fd = -1\n");
+            }
+        } else {
+            printf("GET BO Metadata fd failed\n");
+            return 0;
+        }
+
+        // Closing parent buffer object
+        printf("Destroying the source buffer object\n");
+        gbm_bo_destroy(bo1);
+
+        // Second import calls
+        tmp_fd2 = gbm_bo_get_fd(bo2);
+        printf("SECOND: gbm_bo->ion_fd=%d, gbm_bo_get_fd get duplicated fd=%d\n",
+                bo2->ion_fd, tmp_fd2);
+        CHECK(tmp_fd2 >= 0 && bo2->ion_fd != tmp_fd2);
+
+        printf("SECOND: Importing bo from fd = %d\n", tmp_fd2);
+        buf_data2.fd = tmp_fd2;
+        buf_data2.height = height;
+        buf_data2.width = width;
+        buf_data2.format = format;
+
+        printf("%s: if seg-fault occurs after this log, consider test as failed:\n", __func__);
+        bo3 = gbm_bo_import(gbm, GBM_BO_IMPORT_FD, &buf_data2, GBM_BO_USE_RENDERING);
+        printf("\t\tNo seg-fault observed for 2nd import, test proceeding...\n");
+        CHECK(check_bo(bo3));
+
+        ret = gbm_perform(GBM_PERFORM_GET_METADATA_ION_FD, bo3, &meta_fd2);
+        if(ret == GBM_ERROR_NONE) {
+            if (meta_fd2 != -1) {
+                printf("GET BO Metadata fd=%d success\n", meta_fd2);
+            } else {
+                printf("GET BO Metadata failed, returned fd = -1\n");
+            }
+        } else {
+            printf("GET BO Metadata fd failed\n");
+            return 0;
+        }
+
+        gbm_bo_destroy(bo3);
+        gbm_bo_destroy(bo2);
+        close(tmp_fd2);
+        close(tmp_fd1);
+        printf("Iteration %d ending **************\n", cnt);
+        cnt++;
+    }
+
+    printf("%s success\n", __func__);
     return 1;
 }
 
@@ -2481,6 +2573,7 @@ int gbm_test_help() {
   printf("24 for BO secure buffer Create/Destroy \n");
   printf("25 Test gbm_bo_get_fd \n");
   printf("26 Test preservation of metadata using gbm_bo_get_fd and bo_import\n");
+  printf("27 Test src-dup fd mappings and cpu addr validity (if seg-fault, test FAILED)\n");
   return 0;
 }
 int main(int argc, char *argv[])
@@ -2611,6 +2704,11 @@ int main(int argc, char *argv[])
         case 26:
             result &= test_init();
             result &= test_metafd_from_bo_import();
+            result &= test_destroy();
+        break;
+        case 27:
+            result &= test_init();
+            result &= test_dup_mapping_bo_import();
             result &= test_destroy();
         break;
         default:

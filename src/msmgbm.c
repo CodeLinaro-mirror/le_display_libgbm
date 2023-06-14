@@ -347,9 +347,18 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
         unlock();
 
         LOG(LOG_DBG,"Destroy called for fd=%d meta_fd=%d fd_flg=%d src_fd=%d import_flg=%x",
-                            bo->ion_fd,bo->ion_metadata_fd,temp_buf_info.fd_flg,temp_buf_info.src_fd,msm_gbm_bo->import_flg);
+                            bo->ion_fd,bo->ion_metadata_fd,temp_buf_info.fd_flg,
+                            temp_buf_info.src_fd,msm_gbm_bo->import_flg);
         LOG(LOG_DBG,"\nmsm_gbm_bo->cpuaddr=0x%x\n msm_gbm_bo->mt_cpuaddr=0x%x\n",
                             msm_gbm_bo->cpuaddr, msm_gbm_bo->mt_cpuaddr);
+
+        if(ret != GBM_ERROR_NONE) {
+            LOG(LOG_DBG,"Search failed, only free bo\n");
+            free(msm_gbm_bo);
+            msm_gbm_bo = NULL;
+            return;
+        }
+
         //Delete the Map entries if reference count is 0
         lock();
         if(decr_refcnt(bo->ion_fd))
@@ -1746,11 +1755,12 @@ msmgbm_surface_lock_front_buffer(struct gbm_surface *surf)
 #ifdef ALLOCATE_SURFACE_BO_AT_CREATION
         for(index =0; index < NUM_BACK_BUFFERS; index++)
         {
-            if((msm_gbm_surface->bo[index]!= NULL) && \
-                (msm_gbm_surface->bo[index]->current_state == GBM_BO_STATE_NEW_FRONT_BUFFER))
+            int cur_index = (msm_gbm_surface->inuse_index + index + 1) % NUM_BACK_BUFFERS;
+            if((msm_gbm_surface->bo[cur_index]!= NULL) && \
+                (msm_gbm_surface->bo[cur_index]->current_state == GBM_BO_STATE_NEW_FRONT_BUFFER))
             {
-                msm_gbm_surface->bo[index]->current_state = GBM_BO_STATE_INUSE_BY_COMPOSITOR;
-                return &msm_gbm_surface->bo[index]->base;
+                msm_gbm_surface->bo[cur_index]->current_state = GBM_BO_STATE_INUSE_BY_COMPOSITOR;
+                return &msm_gbm_surface->bo[cur_index]->base;
             }
         }
         LOG(LOG_ERR,"No Front BO found\n");
@@ -2068,18 +2078,18 @@ struct gbm_bo* msmgbm_surface_get_free_bo(struct gbm_surface *surf)
 
     if(msm_gbm_surface != NULL)
     {
-            int cur_index = msm_gbm_surface->inuse_index;
-            for(index = ((cur_index + 1) % NUM_BACK_BUFFERS); index < NUM_BACK_BUFFERS; index++)
+        for(index = 0; index < NUM_BACK_BUFFERS; index++)
+        {
+            int cur_index = (msm_gbm_surface->inuse_index + index + 1) % NUM_BACK_BUFFERS;
+            if((msm_gbm_surface->bo[cur_index]!= NULL) && \
+                (msm_gbm_surface->bo[cur_index]->current_state == GBM_BO_STATE_FREE))
             {
-                if((msm_gbm_surface->bo[index]!= NULL) && \
-                    (msm_gbm_surface->bo[index]->current_state == GBM_BO_STATE_FREE))
-                {
-                    msm_gbm_surface->bo[index]->current_state = GBM_BO_STATE_INUSE_BY_GPU;
-                    msm_gbm_surface->inuse_index = index;
-                    return &msm_gbm_surface->bo[index]->base;
-                }
+                msm_gbm_surface->bo[cur_index]->current_state = GBM_BO_STATE_INUSE_BY_GPU;
+                msm_gbm_surface->inuse_index = cur_index;
+                return &msm_gbm_surface->bo[cur_index]->base;
             }
-            LOG(LOG_ERR," NO Free BO found!!\n");
+        }
+        LOG(LOG_ERR," NO Free BO found!!\n");
     }
     else
     {

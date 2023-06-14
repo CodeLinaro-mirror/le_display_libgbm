@@ -76,6 +76,7 @@
 #define INT(exp) static_cast<int>(exp)
 #define UINT(exp) static_cast<unsigned int>(exp)
 #define ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
+#define ALIGN_G(x, align) ((x % align == 0) ? (x) : (x - (x % align) + align))
 #define ASTC_BLOCK_SIZE 16
 
 bool g_ubwc_disable = false;
@@ -781,8 +782,14 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedw = ALIGN(width, alignment);
       break;
     case GBM_FORMAT_RAW16:
+      *alignedw = ALIGN(width, 16);
+      break;
     case GBM_FORMAT_RAW12:
+      *alignedw = ALIGN_G(width * 3 / 2, 48);
+      break;
     case GBM_FORMAT_RAW10:
+      *alignedw = ALIGN_G(width * 5 / 4, 80);
+      break;
     case GBM_FORMAT_RAW8:
       *alignedw = ALIGN(width, 16);
       break;
