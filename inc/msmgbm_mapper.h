@@ -76,6 +76,30 @@ class msmgbm_mapper {
 
   std::unordered_map<int, std::shared_ptr<msmgbm_buffer>>gbm_buf_map_;
 
+  struct gem_handle_key {
+    int device_fd;
+    uint32_t handle;
+    gem_handle_key(int device_fd, uint32_t handle) : device_fd(device_fd), handle(handle){}
+  };
+
+  struct HashFunc {
+        std::size_t operator()(const gem_handle_key &key) const
+        {
+            using std::size_t;
+            using std::hash;
+
+            return ((hash<int>()(key.device_fd)
+                    ^ (hash<uint32_t>()(key.handle) << 1)) >> 1);
+        }
+  };
+  struct EqualKey {
+        bool operator () (const gem_handle_key &key1, const gem_handle_key &key2) const
+        {
+            return key1.device_fd == key2.device_fd && key1.handle == key2.handle;
+        }
+  };
+
+  std::unordered_map<gem_handle_key, int, HashFunc, EqualKey>gem_object_map_;
   void register_to_map(int ion_fd, struct gbm_buf_info * gbm_buf,
                                        struct msmgbm_private_info * gbo_private_info);
   int search_map(int ion_fd, struct gbm_buf_info * gbm_buf,
@@ -85,6 +109,8 @@ class msmgbm_mapper {
   void map_dump(void);
   void add_map_entry(int ion_fd);
   int  del_map_entry(int ion_fd);
+  void  incr_handle_refcnt(int device_fd, uint32_t handle);
+  int  decr_handle_refcnt(int device_fd, uint32_t handle);
 
 };
 
