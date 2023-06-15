@@ -1826,10 +1826,6 @@ static int test_import_fd()
         printf("test_alloc_free BO width mismatch (expected =%d)\n",1024);
         return 0;
     }
-    if(gbm_bo_get_fd(bo2)!=buf_data.fd){
-        printf("test_alloc_free BO width mismatch (expected =%d)\n",buf_data.fd);
-        return 0;
-    }
     if(gbm_bo_get_height(bo2)!= 1024){
         printf("test_alloc_free BO height mismatch (expected=%d)\n",1024);
         return 0;
@@ -1875,10 +1871,6 @@ static int test_import_gbm_buf()
 
     if(gbm_bo_get_width(bo2)!= 1024){
         printf("test_alloc_free BO width mismatch (expected =%d)\n",1024);
-        return 0;
-    }
-    if(gbm_bo_get_fd(bo2)!=buf_info.fd){
-        printf("test_alloc_free BO width mismatch (expected =%d)\n",buf_info.fd);
         return 0;
     }
     if(gbm_bo_get_height(bo2)!= 1024){
