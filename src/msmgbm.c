@@ -186,6 +186,27 @@ msmgbm_bo_map(uint32_t x, uint32_t y, uint32_t width,
   return NULL;
 }
 
+static uint32_t GetRawFormatStride(struct gbm_bo * bo) {
+  uint32_t stride = 0;
+  switch (bo->format) {
+    case GBM_FORMAT_RAW10:
+      stride = (bo->aligned_width * 10) / 8;
+      break;
+    case GBM_FORMAT_RAW12:
+      stride = (bo->aligned_width * 12) / 8;
+      break;
+    case GBM_FORMAT_RAW16:
+      stride = bo->aligned_width * 2;
+      break;
+    case GBM_FORMAT_RAW8:
+      stride = bo->aligned_width;
+      break;
+    default:
+      break;
+  }
+  return stride;
+}
+
 static uint32_t
 msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
   uint32_t stride = 0;
@@ -200,16 +221,7 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
   bool valid_rgb_format = is_valid_rgb_fmt(bo->format);
 
   if (is_valid_raw_format(bo->format)) {
-    switch (bo->format) {
-        case GBM_FORMAT_RAW10:
-            return (bo->aligned_width * 10) / 8;
-        case GBM_FORMAT_RAW12:
-            return (bo->aligned_width * 12) / 8;
-        case GBM_FORMAT_RAW16:
-            return bo->aligned_width * 2;
-        default:
-            return bo->aligned_width;
-    }
+    return GetRawFormatStride(bo);
   } else if (!valid_rgb_format) {
     // yuv format
     return bo->buf_lyt.planes[plane].stride;
@@ -398,6 +410,7 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_YCbCr_422_SP:
         case GBM_FORMAT_YCrCb_422_SP:
+        case GBM_FORMAT_RAW16:
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_P010:
             return 2;
@@ -428,7 +441,6 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
         case GBM_FORMAT_RAW10:
         case GBM_FORMAT_RAW12:
-        case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
         case GBM_FORMAT_BLOB:
         case GBM_FORMAT_RAW_OPAQUE:
@@ -2956,7 +2968,9 @@ int GetRawPlaneInfo(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt) {
     buf_lyt->planes[0].v_subsampling = 0;
     buf_lyt->planes[0].offset = 0;
     buf_lyt->planes[0].h_increment = step * bpp;
-    buf_lyt->planes[0].stride = gbo->aligned_width * bpp;
+    buf_lyt->planes[0].stride = GetRawFormatStride(gbo);
+    buf_lyt->planes[0].aligned_width = gbo->aligned_width;
+    buf_lyt->planes[0].aligned_height = gbo->aligned_height;
     buf_lyt->planes[0].v_increment = gbo->aligned_width * bpp;
     buf_lyt->planes[0].size = gbo->size;
 

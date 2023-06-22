@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -67,6 +67,7 @@ int GbmUtils::GetFormatLayout(gbm_buf_desc descriptor, generic_buf_layout_t *buf
   bo.usage_flags = descriptor.usage;
   bo.aligned_width = alignedw;
   bo.aligned_height = alignedh;
+  bo.size = *size;
 
   gbm_perform(GBM_PERFORM_GET_YUV_PLANE_INFO, &bo, buf_lyt);
 
