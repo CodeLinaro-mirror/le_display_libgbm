@@ -68,6 +68,10 @@ bool msmgbm_mapper_instnce(void) {
  */
 void register_to_hashmap(int fd, struct gbm_buf_info * gbm_buf,
                                        struct msmgbm_private_info * gbo_private_info) {
+      if (!msmgbm_mapper_) {
+        LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+        return;
+      }
       msmgbm_mapper_->register_to_map(fd, gbm_buf, gbo_private_info);
 }
 
@@ -79,6 +83,10 @@ void register_to_hashmap(int fd, struct gbm_buf_info * gbm_buf,
  */
 int  search_hashmap(int fd, struct gbm_buf_info *buf_info,
                                 struct msmgbm_private_info * gbo_private_info) {
+      if (!msmgbm_mapper_) {
+        LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+        return GBM_ERROR_UNDEFINED;
+      }
       if(msmgbm_mapper_->search_map(fd,buf_info, gbo_private_info))
         return GBM_ERROR_NONE;
       else
@@ -93,6 +101,10 @@ int  search_hashmap(int fd, struct gbm_buf_info *buf_info,
  */
 int  update_hashmap(int fd, struct gbm_buf_info *buf_info,
                                 struct msmgbm_private_info * gbo_private_info) {
+      if (!msmgbm_mapper_) {
+        LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+        return GBM_ERROR_UNDEFINED;
+      }
       if(msmgbm_mapper_->update_map(fd,buf_info, gbo_private_info))
         return GBM_ERROR_NONE;
       else
@@ -103,12 +115,9 @@ static int get_root_src_fd(int src_fd)
 {
   struct gbm_buf_info buf_info = {};
   struct msmgbm_private_info gbo_private_info = {};
-  if (!msmgbm_mapper_) {
-    LOG(LOG_INFO,"gbm mapper had been de-instantiated\n");
-      return -1;
-  }
 
-  if (msmgbm_mapper_->search_map(src_fd, &buf_info, &gbo_private_info)) {
+  if (msmgbm_mapper_ &&
+      msmgbm_mapper_->search_map(src_fd, &buf_info, &gbo_private_info)) {
     if (buf_info.src_fd != -1) {
       return get_root_src_fd(buf_info.src_fd);
     }
@@ -131,7 +140,7 @@ void  register_dup_fd_to_hashmap(int fd, int dup_fd) {
       struct msmgbm_private_info gbo_private_info;
 
       if (!msmgbm_mapper_) {
-          LOG(LOG_INFO,"gbm mapper had been de-instantiated\n");
+          LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
           return;
       }
 
@@ -161,7 +170,11 @@ void  register_dup_fd_to_hashmap(int fd, int dup_fd) {
  *
  */
 void  dump_hashmap(void) {
-      msmgbm_mapper_->map_dump();
+    if (!msmgbm_mapper_) {
+      LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+      return;
+    }
+    msmgbm_mapper_->map_dump();
 }
 
 
@@ -172,7 +185,11 @@ void  dump_hashmap(void) {
  *
  */
 void  incr_refcnt(int fd) {
-     msmgbm_mapper_->add_map_entry(fd);
+    if (!msmgbm_mapper_) {
+      LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+      return;
+    }
+    msmgbm_mapper_->add_map_entry(fd);
 }
 
 /**
@@ -191,7 +208,11 @@ int  decr_refcnt(int fd){
 }
 
 void  incr_handle_refcnt(int device_fd, uint32_t handle) {
-     msmgbm_mapper_->incr_handle_refcnt(device_fd, handle);
+    if (!msmgbm_mapper_) {
+      LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+      return;
+    }
+    msmgbm_mapper_->incr_handle_refcnt(device_fd, handle);
 }
 
 int  decr_handle_refcnt(int device_fd, uint32_t handle){
@@ -281,6 +302,10 @@ void msmgbm_mapper::register_to_map(int fd,      struct gbm_buf_info * gbm_buf,
                                                  struct msmgbm_private_info *gbo_private_info) {
   struct gbm_buf_info temp_buf_info;
   struct msmgbm_private_info temp_private_info;
+  if (!msmgbm_mapper_) {
+    LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+    return;
+  }
 
   if (msmgbm_mapper_->search_map(fd, &temp_buf_info, &temp_private_info)) {
     msmgbm_mapper_->update_map(fd,gbm_buf, gbo_private_info);
