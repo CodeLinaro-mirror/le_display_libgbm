@@ -305,6 +305,7 @@ extern "C" {
 #define GBM_PERFORM_GET_BUFFER_STRIDE_SCANLINE_SIZE      0x37 /* Query Buffer stride, scanline and size
                                                                  (stride, scanline and size)*/
 
+#define GBM_PERFORM_GET_FD_WITH_NEW                      0x38 /* Query whether get fd with new */
 /**
  * Error representation for GBM  API's
  *
