@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2017 - 2021 The Linux Foundation. All rights reserved.
@@ -168,20 +168,29 @@ msmgbm_bo_map(uint32_t x, uint32_t y, uint32_t width,
 
 static uint32_t
 msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
-  uint32_t stride = 0;
-  if (is_valid_uncmprsd_rgb_format(bo->format)) {
-    if(plane == 0) {
-      return bo->stride;
-    } else {
-     return 0;
-    }
-  }
   bool ubwc_enabled = is_ubwc_enbld(bo->format, bo->usage_flags, bo->usage_flags);
-  bool valid_rgb_format = is_valid_rgb_fmt(bo->format);
-  if (!valid_rgb_format) {
+  bool cmprsd_rgb_format = is_valid_cmprsd_rgb_format(bo->format);
+  bool is_yuv_format = is_valid_yuv_format(bo->format);
+
+  LOG(LOG_DBG,"plane=%d bo->format=%d ubwc_enabled=%d is_yuv_format=%d cmprsd_rgb=%d\n",
+                plane, bo->format, ubwc_enabled, is_yuv_format, cmprsd_rgb_format);
+
+  if (is_valid_raw_format(bo->format)) {
+    switch (bo->format) {
+        case GBM_FORMAT_RAW10:
+            return (bo->aligned_width * 10) / 8;
+        case GBM_FORMAT_RAW12:
+            return (bo->aligned_width * 12) / 8;
+        case GBM_FORMAT_RAW16:
+            return bo->aligned_width * 2;
+        default:
+            return bo->aligned_width;
+    }
+  } else if (is_yuv_format) {
     // yuv format
     return bo->buf_lyt.planes[plane].stride;
-  } else if (ubwc_enabled && valid_rgb_format) {
+  } else if (ubwc_enabled && cmprsd_rgb_format) {
+    uint32_t stride = 0;
     // UBWC RGB format
     // there are two planes.
     if (plane == 0) {
@@ -193,8 +202,9 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
         stride = VENUS_RGB_STRIDE(COLOR_FMT_RGBA8888_UBWC, bo->width);
       }
     }
+    return stride;
   }
-  return stride;
+  return bo->stride;
 }
 
 static void
@@ -640,6 +650,11 @@ msmgbm_bo_create(struct gbm_device *gbm,
    if(usage && count) {
      LOG(LOG_ERR," Usage and modifier both cannot be supplied \n");
      return NULL;
+   }
+
+   /* Currently these two flags are equivalent */
+   if (usage & GBM_BO_USE_PROTECTED) {
+        usage |= GBM_BO_USAGE_PROTECTED_QTI;
    }
 
    if(count > 0 && count <= MAX_NUM_MODIFIERS) {
@@ -1104,11 +1119,14 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                = &msm_gbmbo->base;
     gbmbo->ion_fd        = buffer_info->fd;
     gbmbo->ion_metadata_fd = gbo_info.metadata_fd;
     gbmbo->handle.u32    = gemimport_req.handle;
     gbmbo->usage_flags   = bufdesc.Usage;
+    gbmbo->plane_count   = plane_count;
     gbmbo->format        = buffer_info->format;
     gbmbo->width         = buffer_info->width;
     gbmbo->height        = buffer_info->height;
@@ -1118,6 +1136,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     gbmbo->aligned_height = aligned_height;
     gbmbo->bo_destroy    = msmgbm_bo_destroy;
     gbmbo->bo_get_fd     = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device = msmgbm_bo_get_device;
     gbmbo->bo_write      = msmgbm_bo_write;
     msm_gbmbo->device    = msm_dev;
@@ -1129,6 +1148,8 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     msm_gbmbo->mt_size   = mt_size;
     msm_gbmbo->magic     = QCMAGIC;
     msm_gbmbo->import_flg = 1;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
@@ -1295,12 +1316,14 @@ msmgbm_bo_import_wl_buffer(struct msmgbm_device *msm_dev,
         LOG(LOG_ERR,"Unable to allocate BO\n");
         return NULL;
     }
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
 
     gbmbo                = &msm_gbmbo->base;
     gbmbo->ion_fd        = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32    = gemimport_req.handle;
     gbmbo->usage_flags   = usage;
+    gbmbo->plane_count   = plane_count;
     gbmbo->format        = buffer_info->format;
     gbmbo->width         = buffer_info->width;
     gbmbo->height        = buffer_info->height;
@@ -1310,6 +1333,7 @@ msmgbm_bo_import_wl_buffer(struct msmgbm_device *msm_dev,
     gbmbo->aligned_height = aligned_height;
     gbmbo->bo_destroy    = msmgbm_bo_destroy;
     gbmbo->bo_get_fd     = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device = msmgbm_bo_get_device;
     gbmbo->bo_write      = msmgbm_bo_write;
     msm_gbmbo->device    = msm_dev;
@@ -1322,6 +1346,7 @@ msmgbm_bo_import_wl_buffer(struct msmgbm_device *msm_dev,
     msm_gbmbo->magic     = QCMAGIC;
     msm_gbmbo->import_flg = 1;
 
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
     return gbmbo;
 
 }
@@ -1464,11 +1489,14 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                  = &msm_gbmbo->base;
     gbmbo->ion_fd          = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32      = gemimport_req.handle;
     gbmbo->usage_flags     = bufdesc.Usage;
+    gbmbo->plane_count     = plane_count;
     gbmbo->format          = buffer_info->format;
     gbmbo->width           = buffer_info->width;
     gbmbo->height          = buffer_info->height;
@@ -1478,6 +1506,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     gbmbo->size            = size;
     gbmbo->bo_destroy      = msmgbm_bo_destroy;
     gbmbo->bo_get_fd       = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device   = msmgbm_bo_get_device;
     gbmbo->bo_write        = msmgbm_bo_write;
     msm_gbmbo->device      = msm_dev;
@@ -1489,6 +1518,8 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     msm_gbmbo->mt_size         = mt_size;
     msm_gbmbo->magic           = QCMAGIC;
     msm_gbmbo->import_flg      = 1;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
@@ -1668,11 +1699,14 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                  = &msm_gbmbo->base;
     gbmbo->ion_fd          = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32      = gemimport_req.handle;
     gbmbo->usage_flags     = bufdesc.Usage;
+    gbmbo->plane_count     = plane_count;
     gbmbo->format          = buffer_info->format;
     gbmbo->width           = buffer_info->width;
     gbmbo->height          = buffer_info->height;
@@ -1682,6 +1716,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     gbmbo->size            = size;
     gbmbo->bo_destroy      = msmgbm_bo_destroy;
     gbmbo->bo_get_fd       = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device   = msmgbm_bo_get_device;
     gbmbo->bo_write        = msmgbm_bo_write;
     msm_gbmbo->device      = msm_dev;
@@ -1693,6 +1728,8 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     msm_gbmbo->mt_size         = mt_size;
     msm_gbmbo->magic           = QCMAGIC;
     msm_gbmbo->import_flg      = 1;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
@@ -1713,6 +1750,10 @@ msmgbm_bo_import(struct gbm_device *gbm,
     if(msm_dev == NULL){
         LOG(LOG_ERR," INVALID Device pointer\n");
         return NULL;
+    }
+
+    if (usage & GBM_BO_USE_PROTECTED) {
+        usage |= GBM_BO_USAGE_PROTECTED_QTI;
     }
 
     LOG(LOG_DBG,"msmgbm_bo_import invoked\n");
@@ -2405,6 +2446,7 @@ struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int 
     gbmbo->handle.u32 = gemimport_req.handle;
     gbmbo->bo_destroy = msmgbm_bo_destroy;
     gbmbo->bo_get_fd= msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device = msmgbm_bo_get_device;
     gbmbo->bo_write = msmgbm_bo_write;
     msm_gbmbo->device = msm_dev;
@@ -2413,6 +2455,7 @@ struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int 
     msm_gbmbo->name = name;
     //msm_gbmbo->size = gem_open.size;
 
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
     return gbmbo;
 }
 
@@ -2812,6 +2855,22 @@ int msmgbm_perform(int operation, ... )
                 res = GBM_ERROR_NONE;
             }
             break;
+        case GBM_PERFORM_GET_BUFFER_STRIDE_SCANLINE_SIZE:
+            {
+                struct gbm_buf_info * buf_info = va_arg(args, struct gbm_buf_info *);
+                uint32_t usage_flags = va_arg(args, uint32_t);
+                uint32_t *stride = va_arg(args, uint32_t *);
+                uint32_t *scanline = va_arg(args, uint32_t *);
+                uint32_t *size = va_arg(args, uint32_t *);
+
+                struct gbm_bufdesc bufdesc = {buf_info->width, buf_info->height,
+                                              buf_info->format, usage_flags};
+
+                qry_stride_scanline_size(&bufdesc, stride, scanline, size);
+
+                res = GBM_ERROR_NONE;
+            }
+            break;
         case GBM_PERFORM_GET_SURFACE_UBWC_STATUS:
             {
                 struct gbm_surface *gbm_surf = va_arg(args, struct gbm_surface *);
@@ -2828,7 +2887,14 @@ int msmgbm_perform(int operation, ... )
                 void **rgb_data = va_arg(args, void **);
                 res = msmgbm_get_rgb_data_address(gbo, rgb_data);
             }
-			break;
+            break;
+        case GBM_PERFORM_GET_FD_WITH_NEW:
+            {
+                uint32_t *with_new = va_arg(args, uint32_t *);
+                *with_new = false;
+                res = GBM_ERROR_NONE;
+            }
+            break;
         case GBM_PERFORM_GET_WL_RESOURCE_FROM_GBM_BUF_INFO:
             {
                 LOG(LOG_WARN, "GBM_PERFORM_GET_WL_RESOURCE_FROM_GBM_BUF_INFO is deprecated\n");
@@ -3135,10 +3201,11 @@ void get_yuv_ubwc_sp_plane_info(int width, int height,
                           int color_format, generic_buf_layout_t *buf_lyt)
 {
    // UBWC buffer has these 4 planes in the following sequence:
-   // Y_Meta_Plane, Y_Plane, UV_Meta_Plane, UV_Plane
-   unsigned int y_meta_stride, y_meta_height, y_meta_size;
-   unsigned int y_stride, y_height, y_size;
-   unsigned int c_meta_stride, c_meta_height, c_meta_size;
+   // Y_Plane, UV_Plane, Y_Meta_Plane, UV_Meta_Plane
+   unsigned int y_meta_stride = 0, y_meta_height = 0, y_meta_size = 0;
+   unsigned int y_stride = 0, y_height = 0, y_size = 0;
+   unsigned int c_meta_stride = 0, c_meta_height = 0, c_meta_size = 0;
+   unsigned int c_stride = 0;
    unsigned int alignment = 4096;
 
    y_meta_stride = VENUS_Y_META_STRIDE(color_format, width);
@@ -3153,23 +3220,20 @@ void get_yuv_ubwc_sp_plane_info(int width, int height,
    c_meta_height = VENUS_UV_META_SCANLINES(color_format, height);
    c_meta_size = ALIGN((c_meta_stride * c_meta_height), alignment);
 
-   buf_lyt->num_planes = DUAL_PLANES;
+   c_stride = VENUS_UV_STRIDE(color_format, width);
+
+   buf_lyt->num_planes = 4;
 
    buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = y_meta_size;
    buf_lyt->planes[1].top_left = buf_lyt->planes[1].offset = y_meta_size + y_size + c_meta_size;
-   buf_lyt->planes[2].top_left = buf_lyt->planes[2].offset = y_meta_size + y_size + c_meta_size + 1;
+   buf_lyt->planes[2].top_left = buf_lyt->planes[2].offset = 0;
+   buf_lyt->planes[3].top_left = buf_lyt->planes[3].offset = y_meta_size + y_size;
    buf_lyt->planes[0].v_increment = y_stride;
-   buf_lyt->planes[1].v_increment = VENUS_UV_STRIDE(color_format, width);
-
-   if(color_format == COLOR_FMT_NV12_BPP10_UBWC ||
-      color_format == COLOR_FMT_NV12_UBWC ||
-      color_format == COLOR_FMT_P010_UBWC) {
-     buf_lyt->num_planes = 4;
-     buf_lyt->planes[0].stride = VENUS_Y_META_STRIDE(color_format, width);
-     buf_lyt->planes[1].stride = VENUS_Y_STRIDE(color_format, width);
-     buf_lyt->planes[2].stride = VENUS_UV_META_STRIDE(color_format, width);
-     buf_lyt->planes[3].stride = VENUS_UV_STRIDE(color_format, width);
-   }
+   buf_lyt->planes[1].v_increment = c_stride;
+   buf_lyt->planes[0].stride = y_stride;
+   buf_lyt->planes[1].stride = c_stride;
+   buf_lyt->planes[2].stride = y_meta_stride;
+   buf_lyt->planes[3].stride = c_meta_stride;
 }
 
 int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
@@ -3179,8 +3243,8 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
     if(!msm_gbm_bo || !buf_lyt)
         return GBM_ERROR_BAD_HANDLE;
 
-     switch(gbo->format){
-       //Semiplanar
+    switch(gbo->format) {
+        //Semiplanar
         case GBM_FORMAT_YCbCr_420_SP:
         case GBM_FORMAT_YCrCb_420_SP:
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
@@ -3188,36 +3252,33 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
 #ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
 #endif
-             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                   YUV_420_SP_BPP, buf_lyt);
-             break;
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_NV21_ZSL:
-        case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
-             if (is_ubwc_enabled(gbo->format, gbo->usage_flags, gbo->usage_flags))
+            if (is_ubwc_enabled(gbo->format, gbo->usage_flags, gbo->usage_flags))
                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                            COLOR_FMT_NV12_UBWC, buf_lyt);
-             else
+            else
                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                       YUV_420_SP_BPP, buf_lyt);
-             break;
+            break;
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
-             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                        COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
-             break;
+            get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                       COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
+            break;
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
-                get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                           COLOR_FMT_P010_UBWC, buf_lyt);
-        break;
+            get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                       COLOR_FMT_P010_UBWC, buf_lyt);
+            break;
         case GBM_FORMAT_P010:
+        case GBM_FORMAT_YCbCr_420_P010_VENUS:
             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                   CHROMA_STEP, buf_lyt);
             break;
         default:
-             res = GBM_ERROR_UNSUPPORTED;
-             break;
-     }
+            res = GBM_ERROR_UNSUPPORTED;
+            break;
+    }
 
     return res;
 }
@@ -3313,34 +3374,11 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
         buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = 0;
         buf_lyt->planes[0].bits_per_component = Bpp;
         buf_lyt->planes[0].v_increment = ((gbo->aligned_width)*Bpp); //stride
+        buf_lyt->planes[0].stride = buf_lyt->planes[0].v_increment;
     }
     else
     {
-        switch(gbo->format){
-           //Semiplanar
-            case GBM_FORMAT_YCbCr_420_SP:
-            case GBM_FORMAT_YCrCb_420_SP:
-            case GBM_FORMAT_YCbCr_420_SP_VENUS:
-            case GBM_FORMAT_NV12:
-            case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
-#ifdef COLOR_FMT_NV12_512
-            case GBM_FORMAT_NV12_HEIF:
-#endif
-                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                       YUV_420_SP_BPP, buf_lyt);
-                 break;
-            case GBM_FORMAT_YCbCr_420_TP10_UBWC:
-                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                            COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
-                 break;
-            case GBM_FORMAT_P010:
-                get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
-                                      CHROMA_STEP, buf_lyt);
-                break;
-            default:
-                 res = GBM_ERROR_UNSUPPORTED;
-                 break;
-        }
+        res = msmgbm_yuv_plane_info(gbo, buf_lyt);
     }
     return res;
 }
@@ -3397,7 +3435,7 @@ int msmgbm_bo_dump(struct gbm_bo * gbo)
     get_time_in_usec(&time_usec);
 
     //sprintf(tmp_str, "%d", count++);
-    snprintf(tmp_str, sizeof(tmp_str), "__%d_%d_%d_%d_%d_%lld", getpid(),ion_fd,width,height,format,time_usec);
+    snprintf(tmp_str, sizeof(tmp_str), "__%lld_%d_%d_%d_%d_%d", time_usec,width,height,format,ion_fd,getpid());
     strlcat(file_nme,tmp_str, sizeof(file_nme));
     strlcat(file_nme,".dat", sizeof(file_nme));
 
