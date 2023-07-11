@@ -398,6 +398,8 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_YCbCr_422_SP:
         case GBM_FORMAT_YCrCb_422_SP:
+        case GBM_FORMAT_YCbCr_420_P010_VENUS:
+        case GBM_FORMAT_P010:
             return 2;
         case GBM_FORMAT_RGB888:
             return 3;
@@ -421,7 +423,6 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_NV12_HEIF:
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
-        case GBM_FORMAT_P010:
         case GBM_FORMAT_NV21_ZSL:
         case GBM_FORMAT_YCbCr_420_888:
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
@@ -433,7 +434,6 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_RAW_OPAQUE:
         case GBM_FORMAT_C8_LINEAR:
         case GBM_FORMAT_C8:
-        case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
         case GBM_FORMAT_Y8:
         case GBM_FORMAT_NV12_UBWC_FLEX:
@@ -2784,11 +2784,12 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
 
 
 void get_yuv_sp_plane_info(int width, int height, int format, int unaligned_width,
-                           int unaligned_height, int bpp, generic_buf_layout_t *buf_lyt)
+                           int unaligned_height, generic_buf_layout_t *buf_lyt)
 {
     unsigned int y_stride = 0, y_height = 0, y_size = 0;
     unsigned int c_stride = 0, c_height = 0, c_size = 0;
     uint64_t y_offset, c_offset;
+    int bpp = GetFormatBpp(format);
 
     y_stride = c_stride = width * bpp;
     y_height = height;
@@ -2989,7 +2990,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_Y8:
         case GBM_FORMAT_Y16:
              get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
-                                   gbo->width, gbo->height, YUV_420_SP_BPP, buf_lyt);
+                                   gbo->width, gbo->height, buf_lyt);
              break;
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_NV21_ZSL:
@@ -2999,7 +3000,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
                                            MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
             else
                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
-                                      gbo->width, gbo->height, YUV_420_SP_BPP, buf_lyt);
+                                      gbo->width, gbo->height, buf_lyt);
             break;
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
@@ -3012,7 +3013,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_P010:
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
-                                  gbo->width, gbo->height, CHROMA_STEP, buf_lyt);
+                                  gbo->width, gbo->height, buf_lyt);
             break;
         case GBM_FORMAT_C8:
             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
