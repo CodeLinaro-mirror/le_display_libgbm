@@ -115,7 +115,7 @@
 #define ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
 
 //Global variables
-int g_debug_level = LOG_INFO;
+int g_debug_level = LOG_WARN;
 
 //Global Variables
 static pthread_mutex_t mutex_obj = PTHREAD_MUTEX_INITIALIZER;
