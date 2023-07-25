@@ -89,7 +89,7 @@
 #define ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
 
 //Global variables
-int g_debug_level = LOG_INFO;
+int g_debug_level = LOG_WARN;
 void msmgbm_log_hdr_color_info_mdata(ColorMetaData * color_mdata);
 void msmsgbm_default_init_hdr_color_info_mdata(ColorMetaData * color_mdata);
 void config_dbg_lvl(void);
