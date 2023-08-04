@@ -904,13 +904,13 @@ void platform_wrap::get_stride_scanline_size(gbm_bufdesc *descriptor, unsigned i
       break;
     case GBM_FORMAT_P010:
     case GBM_FORMAT_YCbCr_420_P010_VENUS:
-      *stride = alignedw;
+      *stride = alignedw * 2;
       break;
     case GBM_FORMAT_YCbCr_420_P010_UBWC:
-      *stride = alignedw;
+      *stride = alignedw * 2;
       break;
     case GBM_FORMAT_YCbCr_420_TP10_UBWC:
-      *stride = alignedw;
+      *stride = (alignedw * 4) / 3;
       break;
     default:
       break;
