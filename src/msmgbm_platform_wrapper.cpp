@@ -504,6 +504,7 @@ bool platform_wrap:: is_valid_yuv_fmt(int format) {
         case GBM_FORMAT_YCrCb_422_I:
         case GBM_FORMAT_C8:
         case GBM_FORMAT_UYVY:
+        case GBM_FORMAT_YUYV:
           return true;
         default:
           break;
@@ -591,6 +592,7 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_YCbCr_422_I:
         case GBM_FORMAT_YCrCb_422_I:
         case GBM_FORMAT_UYVY:
+        case GBM_FORMAT_YUYV:
             if (width & 1) {
                 LOG(LOG_ERR," width is odd for the YUV422_SP format\n");
                 return 0;
@@ -803,6 +805,7 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedh = height;
       break;
     case GBM_FORMAT_UYVY:
+    case GBM_FORMAT_YUYV:
       *alignedw = ALIGN(width, 32);
       break;
     case GBM_FORMAT_YCbCr_420_P010_VENUS:

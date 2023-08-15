@@ -244,6 +244,8 @@ ADRENOPIXELFORMAT adreno_mem_info::get_gpu_pxl_fmt(unsigned int gbm_format) {
       return ADRENO_PIXELFORMAT_NV12;
     case GBM_FORMAT_UYVY:
       return ADRENO_PIXELFORMAT_UYVY;
+    case GBM_FORMAT_YUYV:
+      return ADRENO_PIXELFORMAT_YUY2;
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
     case GBM_FORMAT_NV12:

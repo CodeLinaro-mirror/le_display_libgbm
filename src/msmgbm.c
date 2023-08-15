@@ -458,6 +458,7 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_R8:
             return 1;
         case GBM_FORMAT_UYVY:
+        case GBM_FORMAT_YUYV:
         case GBM_FORMAT_RG88:
         case GBM_FORMAT_R16:
         case GBM_FORMAT_RGB565:
@@ -543,6 +544,7 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_NV12_ENCODEABLE:
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_UYVY:
+        case GBM_FORMAT_YUYV:
         case GBM_FORMAT_ABGR2101010:
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
@@ -3213,6 +3215,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
                                        MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
             break;
         case GBM_FORMAT_UYVY:
+        case GBM_FORMAT_YUYV:
             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                   YUV_422_SP_BPP, buf_lyt);
             buf_lyt->num_planes = 1;
