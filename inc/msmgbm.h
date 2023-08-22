@@ -76,6 +76,31 @@ extern "C" {
 #include <stdlib.h>
 #include <display/drm/sde_drm.h>
 
+enum PlaneComponent {
+  /* luma */
+  PLANE_COMPONENT_Y = 1 << 0,
+  /* chroma blue */
+  PLANE_COMPONENT_Cb = 1 << 1,
+  /* chroma red */
+  PLANE_COMPONENT_Cr = 1 << 2,
+
+  /* red */
+  PLANE_COMPONENT_R = 1 << 10,
+  /* green */
+  PLANE_COMPONENT_G = 1 << 11,
+  /* blue */
+  PLANE_COMPONENT_B = 1 << 12,
+
+  /* alpha */
+  PLANE_COMPONENT_A = 1 << 20,
+
+  /* raw data plane */
+  PLANE_COMPONENT_RAW = 1 << 30,
+
+  /* meta information plane */
+  PLANE_COMPONENT_META = 1 << 31,
+};
+
 //Enables debug log
 #ifdef GBM_DEBUG
     #define  GBM_DBG_LOG fprintf

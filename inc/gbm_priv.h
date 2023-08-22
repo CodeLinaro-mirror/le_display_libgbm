@@ -658,7 +658,7 @@ typedef struct generic_plane {
                                    NULL */
     uint32_t offset;            /* offset to the first byte of the top-left
                                    pixel of the plane */
-    int32_t component_id;       /* ID to represent  */
+    uint32_t component_id;      /* ID to represent  */
     uint32_t aligned_width;     /* Aligned width  in pixels */
     uint32_t aligned_height;    /* Aligned height in pixels*/
     uint32_t size;              /* size in bytes*/
