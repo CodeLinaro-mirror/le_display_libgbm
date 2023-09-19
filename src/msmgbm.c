@@ -186,6 +186,27 @@ msmgbm_bo_map(uint32_t x, uint32_t y, uint32_t width,
   return NULL;
 }
 
+static uint32_t GetRawFormatStride(struct gbm_bo * bo) {
+  uint32_t stride = 0;
+  switch (bo->format) {
+    case GBM_FORMAT_RAW10:
+      stride = (bo->aligned_width * 10) / 8;
+      break;
+    case GBM_FORMAT_RAW12:
+      stride = (bo->aligned_width * 12) / 8;
+      break;
+    case GBM_FORMAT_RAW16:
+      stride = bo->aligned_width * 2;
+      break;
+    case GBM_FORMAT_RAW8:
+      stride = bo->aligned_width;
+      break;
+    default:
+      break;
+  }
+  return stride;
+}
+
 static uint32_t
 msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
   uint32_t stride = 0;
@@ -200,16 +221,7 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
   bool valid_rgb_format = is_valid_rgb_fmt(bo->format);
 
   if (is_valid_raw_format(bo->format)) {
-    switch (bo->format) {
-        case GBM_FORMAT_RAW10:
-            return (bo->aligned_width * 10) / 8;
-        case GBM_FORMAT_RAW12:
-            return (bo->aligned_width * 12) / 8;
-        case GBM_FORMAT_RAW16:
-            return bo->aligned_width * 2;
-        default:
-            return bo->aligned_width;
-    }
+    return GetRawFormatStride(bo);
   } else if (!valid_rgb_format) {
     // yuv format
     return bo->buf_lyt.planes[plane].stride;
@@ -398,6 +410,9 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_YCbCr_422_SP:
         case GBM_FORMAT_YCrCb_422_SP:
+        case GBM_FORMAT_RAW16:
+        case GBM_FORMAT_YCbCr_420_P010_VENUS:
+        case GBM_FORMAT_P010:
             return 2;
         case GBM_FORMAT_RGB888:
             return 3;
@@ -421,19 +436,16 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_NV12_HEIF:
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
-        case GBM_FORMAT_P010:
         case GBM_FORMAT_NV21_ZSL:
         case GBM_FORMAT_YCbCr_420_888:
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
         case GBM_FORMAT_RAW10:
         case GBM_FORMAT_RAW12:
-        case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
         case GBM_FORMAT_BLOB:
         case GBM_FORMAT_RAW_OPAQUE:
         case GBM_FORMAT_C8_LINEAR:
         case GBM_FORMAT_C8:
-        case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
         case GBM_FORMAT_Y8:
         case GBM_FORMAT_NV12_UBWC_FLEX:
@@ -635,6 +647,10 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
     case GBM_FORMAT_YCbCr_420_TP10_UBWC:
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
     case GBM_FORMAT_YCbCr_420_P010_UBWC:
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
       plane_count = 4;
     break;
     case GBM_FORMAT_BLOB:
@@ -643,6 +659,8 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
     case GBM_FORMAT_RAW12:
     case GBM_FORMAT_RAW_OPAQUE:
     case GBM_FORMAT_RAW8:
+    case GBM_FORMAT_Y16:
+    case GBM_FORMAT_Y8:
       plane_count = 1;
       break;
     default:
@@ -2782,13 +2800,49 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
     return res;
 }
 
+void get_yuv_sub_sampling_factor(int32_t format, int *h_subsampling, int *v_subsampling) {
+  switch (format) {
+    case GBM_FORMAT_YCbCr_420_SP:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC:
+    case GBM_FORMAT_YCbCr_420_P010_UBWC:
+    case GBM_FORMAT_YCbCr_420_P010_VENUS:
+    case GBM_FORMAT_YCbCr_420_SP_VENUS:
+    case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+    case GBM_FORMAT_YCrCb_420_SP_VENUS:
+    case GBM_FORMAT_YCrCb_420_SP:
+    case GBM_FORMAT_NV12_ENCODEABLE:  // Same as YCbCr_420_SP_VENUS
+    case GBM_FORMAT_YV12:
+    case GBM_FORMAT_NV12_HEIF:
+    case GBM_FORMAT_NV21_ZSL:
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH :
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH :
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH :
+      *h_subsampling = 1;
+      *v_subsampling = 1;
+      break;
+    case GBM_FORMAT_YCbCr_422_SP:
+    case GBM_FORMAT_YCrCb_422_SP:
+      *h_subsampling = 1;
+      *v_subsampling = 0;
+      break;
+    case GBM_FORMAT_Y16:
+    case GBM_FORMAT_Y8:
+    case GBM_FORMAT_BLOB:
+    default:
+      *h_subsampling = 0;
+      *v_subsampling = 0;
+      break;
+  }
+}
 
 void get_yuv_sp_plane_info(int width, int height, int format, int unaligned_width,
-                           int unaligned_height, int bpp, generic_buf_layout_t *buf_lyt)
+                           int unaligned_height, generic_buf_layout_t *buf_lyt)
 {
     unsigned int y_stride = 0, y_height = 0, y_size = 0;
     unsigned int c_stride = 0, c_height = 0, c_size = 0;
     uint64_t y_offset, c_offset;
+    int bpp = GetFormatBpp(format);
 
     y_stride = c_stride = width * bpp;
     y_height = height;
@@ -2858,6 +2912,10 @@ void get_yuv_sp_plane_info(int width, int height, int format, int unaligned_widt
     y_offset = 0;
     c_offset = y_size;
 
+    buf_lyt->planes[0].offset = buf_lyt->planes[0].offset = y_offset;
+    buf_lyt->planes[0].component_id = PLANE_COMPONENT_Y;
+    buf_lyt->planes[0].aligned_width = width;
+
     buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = y_offset;
     buf_lyt->planes[0].stride = width * bpp;
     buf_lyt->planes[0].aligned_width = width;
@@ -2865,6 +2923,10 @@ void get_yuv_sp_plane_info(int width, int height, int format, int unaligned_widt
     buf_lyt->planes[0].h_increment = CHROMA_STEP * bpp;
     buf_lyt->planes[0].bits_per_component = bpp;
     buf_lyt->planes[0].size = y_size;
+
+    buf_lyt->planes[1].offset = buf_lyt->planes[1].offset = c_offset;
+    buf_lyt->planes[1].component_id = (PLANE_COMPONENT_Cb | PLANE_COMPONENT_Cr);
+    buf_lyt->planes[1].aligned_width = width;
 
     buf_lyt->planes[1].top_left = buf_lyt->planes[1].offset = c_offset;
     buf_lyt->planes[1].stride = width * bpp;
@@ -2896,6 +2958,8 @@ void get_yuv_ubwc_sp_plane_info(int width, int height, int format,
     unsigned int y_stride, y_height, y_size;
     unsigned int c_meta_stride, c_meta_height, c_meta_size;
     unsigned int alignment = 4096;
+    unsigned int c_stride = 0, c_height = 0, c_size = 0;
+    uint64_t yOffset = 0, cOffset = 0, yMetaOffset = 0, cMetaOffset = 0;
 
     y_meta_stride = MMM_COLOR_FMT_Y_META_STRIDE(color_format, width);
     y_meta_height = MMM_COLOR_FMT_Y_META_SCANLINES(color_format, height);
@@ -2906,15 +2970,25 @@ void get_yuv_ubwc_sp_plane_info(int width, int height, int format,
     y_size = ALIGN((y_stride * y_height), alignment);
 
     c_meta_stride = MMM_COLOR_FMT_UV_META_STRIDE(color_format, width);
-    c_meta_height = MMM_COLOR_FMT_Y_META_SCANLINES(color_format, height);
+    c_meta_height = MMM_COLOR_FMT_UV_META_SCANLINES(color_format, height);
     c_meta_size = ALIGN((c_meta_stride * c_meta_height), alignment);
+
+    c_stride = MMM_COLOR_FMT_UV_STRIDE(color_format, width);
+    c_height = MMM_COLOR_FMT_UV_SCANLINES(color_format, height);
+    c_size = ALIGN((c_stride * c_height), alignment);
+
+    yMetaOffset = 0;
+    yOffset = y_meta_size;
+    cMetaOffset = y_meta_size + y_size;
+    cOffset = y_meta_size + y_size + c_meta_size;
 
     if (buf_lyt->pixel_format == GBM_FORMAT_C8) {
         get_c8_info(y_meta_stride, y_stride, y_meta_height, y_meta_size, buf_lyt);
         return;
     }
 
-    buf_lyt->num_planes = DUAL_PLANES;
+    buf_lyt->pixel_format = format;
+    buf_lyt->num_planes = msmgbm_get_format_modifier_plane_count(format, 0);
     buf_lyt->planes[0].top_left = buf_lyt->planes[0].offset = y_meta_size;
     buf_lyt->planes[1].top_left = buf_lyt->planes[1].offset = y_meta_size + y_size + c_meta_size;
     buf_lyt->planes[2].top_left = buf_lyt->planes[2].offset = y_meta_size +
@@ -2922,18 +2996,37 @@ void get_yuv_ubwc_sp_plane_info(int width, int height, int format,
     buf_lyt->planes[0].v_increment = y_stride;
     buf_lyt->planes[1].v_increment = MMM_COLOR_FMT_UV_STRIDE(color_format, width);
 
-    if(color_format == MMM_COLOR_FMT_NV12_BPP10_UBWC ||
-       color_format == MMM_COLOR_FMT_NV12_UBWC ||
-       color_format == MMM_COLOR_FMT_P010_UBWC) {
-        buf_lyt->num_planes = 4;
-        buf_lyt->planes[0].stride = MMM_COLOR_FMT_Y_META_STRIDE(color_format, width);
-        buf_lyt->planes[1].stride = MMM_COLOR_FMT_Y_STRIDE(color_format, width);
-        buf_lyt->planes[2].stride = MMM_COLOR_FMT_UV_META_STRIDE(color_format, width);
-        buf_lyt->planes[3].stride = MMM_COLOR_FMT_UV_STRIDE(color_format, width);
-    }
+    buf_lyt->planes[0].component_id = PLANE_COMPONENT_Y;
+    buf_lyt->planes[0].offset = yOffset;
+    buf_lyt->planes[0].aligned_width = width;
+    buf_lyt->planes[0].stride = y_stride;
+    buf_lyt->planes[0].aligned_height = y_height;
+    buf_lyt->planes[0].size = y_size;
+
+    buf_lyt->planes[1].component_id = (PLANE_COMPONENT_Cb | PLANE_COMPONENT_Cr);
+    buf_lyt->planes[1].offset = cOffset;
+    buf_lyt->planes[1].aligned_width = width;
+    buf_lyt->planes[1].stride = c_stride;
+    buf_lyt->planes[1].aligned_height = c_height;
+    buf_lyt->planes[1].size = c_size;
+
+    buf_lyt->planes[2].component_id = (PLANE_COMPONENT_META | PLANE_COMPONENT_Y);
+    buf_lyt->planes[2].offset = yMetaOffset;
+    buf_lyt->planes[2].aligned_width = width;
+    buf_lyt->planes[2].stride = y_meta_stride;
+    buf_lyt->planes[2].aligned_height = y_meta_height;
+    buf_lyt->planes[2].size = y_meta_size;
+
+    buf_lyt->planes[3].component_id =
+          (PLANE_COMPONENT_META | PLANE_COMPONENT_Cb | PLANE_COMPONENT_Cr);
+    buf_lyt->planes[3].offset = cMetaOffset;
+    buf_lyt->planes[3].aligned_width = width;
+    buf_lyt->planes[3].stride = c_meta_stride;
+    buf_lyt->planes[3].aligned_height = c_meta_height;
+    buf_lyt->planes[3].size = c_meta_size;
 }
 
-int GetRawPlaneInfo(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt) {
+int get_raw_plane_info(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt) {
     int32_t step = 0;
     switch(gbo->format) {
         case GBM_FORMAT_RAW10:
@@ -2955,7 +3048,9 @@ int GetRawPlaneInfo(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt) {
     buf_lyt->planes[0].v_subsampling = 0;
     buf_lyt->planes[0].offset = 0;
     buf_lyt->planes[0].h_increment = step * bpp;
-    buf_lyt->planes[0].stride = gbo->aligned_width * bpp;
+    buf_lyt->planes[0].stride = GetRawFormatStride(gbo);
+    buf_lyt->planes[0].aligned_width = gbo->aligned_width;
+    buf_lyt->planes[0].aligned_height = gbo->aligned_height;
     buf_lyt->planes[0].v_increment = gbo->aligned_width * bpp;
     buf_lyt->planes[0].size = gbo->size;
 
@@ -2965,7 +3060,7 @@ int GetRawPlaneInfo(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt) {
 int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(gbo);
     int res = GBM_ERROR_NONE;
-
+    int h_subsampling = 0, v_subsampling = 0;
     if(!msm_gbm_bo || !buf_lyt)
         return GBM_ERROR_BAD_HANDLE;
 
@@ -2986,47 +3081,92 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
         case GBM_FORMAT_NV12_HEIF:
+             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
+                                   gbo->width, gbo->height, buf_lyt);
+             get_yuv_sub_sampling_factor(gbo->format, &h_subsampling, &v_subsampling);
+             buf_lyt->planes[0].h_subsampling = 0;
+             buf_lyt->planes[0].v_subsampling = 0;
+             buf_lyt->planes[1].h_subsampling = h_subsampling;
+             buf_lyt->planes[1].v_subsampling = v_subsampling;
+             break;
+
         case GBM_FORMAT_Y8:
         case GBM_FORMAT_Y16:
              get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
-                                   gbo->width, gbo->height, YUV_420_SP_BPP, buf_lyt);
+                                   gbo->width, gbo->height, buf_lyt);
+             get_yuv_sub_sampling_factor(gbo->format, &h_subsampling, &v_subsampling);
+             buf_lyt->planes[0].h_subsampling = h_subsampling;
+             buf_lyt->planes[0].v_subsampling = v_subsampling;
              break;
+
+        case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
+                                        MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
+             get_yuv_sub_sampling_factor(gbo->format, &h_subsampling, &v_subsampling);
+             buf_lyt->planes[0].h_subsampling = 0;
+             buf_lyt->planes[0].v_subsampling = 0;
+             buf_lyt->planes[1].h_subsampling = h_subsampling;
+             buf_lyt->planes[1].v_subsampling = v_subsampling;
+             buf_lyt->planes[2].h_subsampling = buf_lyt->planes[3].h_subsampling = 0;
+             buf_lyt->planes[2].v_subsampling = buf_lyt->planes[3].v_subsampling = 0;
+             break;
+
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_NV21_ZSL:
-        case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
             if (is_ubwc_enabled(gbo->format, gbo->usage_flags, gbo->usage_flags))
                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
                                            MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
             else
                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
-                                      gbo->width, gbo->height, YUV_420_SP_BPP, buf_lyt);
+                                      gbo->width, gbo->height, buf_lyt);
             break;
+
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
-            get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
-                                       MMM_COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
+             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
+                                        MMM_COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
+             get_yuv_sub_sampling_factor(gbo->format, &h_subsampling, &v_subsampling);
+             buf_lyt->planes[0].h_subsampling = 0;
+             buf_lyt->planes[0].v_subsampling = 0;
+             buf_lyt->planes[1].h_subsampling = h_subsampling;
+             buf_lyt->planes[1].v_subsampling = v_subsampling;
+             buf_lyt->planes[2].h_subsampling = buf_lyt->planes[3].h_subsampling = 0;
+             buf_lyt->planes[2].v_subsampling = buf_lyt->planes[3].v_subsampling = 0;
              break;
+
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
-            get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
-                                       MMM_COLOR_FMT_P010_UBWC, buf_lyt);
-        break;
+             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
+                                        MMM_COLOR_FMT_P010_UBWC, buf_lyt);
+             get_yuv_sub_sampling_factor(gbo->format, &h_subsampling, &v_subsampling);
+             buf_lyt->planes[0].h_subsampling = 0;
+             buf_lyt->planes[0].v_subsampling = 0;
+             buf_lyt->planes[1].h_subsampling = h_subsampling;
+             buf_lyt->planes[1].v_subsampling = v_subsampling;
+             buf_lyt->planes[2].h_subsampling = buf_lyt->planes[3].h_subsampling = 0;
+             buf_lyt->planes[2].v_subsampling = buf_lyt->planes[3].v_subsampling = 0;
+             break;
+
         case GBM_FORMAT_P010:
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
-            get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
-                                  gbo->width, gbo->height, CHROMA_STEP, buf_lyt);
+             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
+                                  gbo->width, gbo->height, buf_lyt);
             break;
         case GBM_FORMAT_C8:
-            get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
+             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height, gbo->format,
                                        MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
             break;
         case GBM_FORMAT_RAW10:
         case GBM_FORMAT_RAW12:
         case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
-            GetRawPlaneInfo(gbo, buf_lyt);
-            break;
+             get_raw_plane_info(gbo, buf_lyt);
+             break;
         default:
-            res = GBM_ERROR_UNSUPPORTED;
-            break;
+             res = GBM_ERROR_UNSUPPORTED;
+             break;
      }
 
     return res;

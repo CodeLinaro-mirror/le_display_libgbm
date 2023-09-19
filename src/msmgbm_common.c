@@ -27,6 +27,12 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+ * Changes from Qualcomm Innovation Center are provided under the following license:
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #include <stdint.h>
 #include <stddef.h>
 #include <stdbool.h>
@@ -57,7 +63,7 @@ uint32_t GetDefaultImplDefinedFormat(uint32_t usage_flags, uint32_t format)
           pixel_format = GBM_FORMAT_YCbCr_420_TP10_UBWC;
         }
     } else if (usage_flags & GBM_BO_USAGE_10BIT_QTI) {
-      pixel_format = GBM_FORMAT_YCbCr_420_P010_VENUS;
+      pixel_format = GBM_FORMAT_P010;
     }
 
     return pixel_format;
