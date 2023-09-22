@@ -382,11 +382,13 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
                     ret = msmgbm_bo_cpu_unmap(bo);
                 }
 
-                LOG(LOG_DBG,"Currently closing metadata_fd=%d\n", bo->ion_metadata_fd);
-                if(bo->ion_metadata_fd >= 0) {
-                    if(close(bo->ion_metadata_fd))
-                        LOG(LOG_ERR,"Failed to Close bo->ion_metadata_fd=%d\n %s\n",
-                                            bo->ion_metadata_fd,strerror(errno));
+                if(temp_buf_info.fd_flg & INTERNAL_FD) {
+                    LOG(LOG_DBG,"Currently closing metadata_fd=%d\n", bo->ion_metadata_fd);
+                    if(bo->ion_metadata_fd >= 0) {
+                        if(close(bo->ion_metadata_fd))
+                            LOG(LOG_ERR,"Failed to Close bo->ion_metadata_fd=%d\n %s\n",
+                                                bo->ion_metadata_fd,strerror(errno));
+                    }
                 }
             }
 
