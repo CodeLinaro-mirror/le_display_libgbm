@@ -132,6 +132,46 @@ int  decr_refcnt(int fd){
     }
 }
 
+void  incr_handle_refcnt(int device_fd, uint32_t handle) {
+    msmgbm_mapper_->incr_handle_refcnt(device_fd, handle);
+}
+
+int  decr_handle_refcnt(int device_fd, uint32_t handle){
+    if (msmgbm_mapper_)
+        return msmgbm_mapper_->decr_handle_refcnt(device_fd, handle);
+    else {
+        LOG(LOG_INFO,"gbm mapper had been de-instantiated\n");
+        return 1;
+    }
+}
+
+void msmgbm_mapper::incr_handle_refcnt(int device_fd, uint32_t gem_handle) {
+    struct gem_handle_key key(device_fd, gem_handle);
+    auto it = gem_object_map_.find(key);
+
+    if (it != gem_object_map_.end()) {
+        it->second++;
+    } else {
+        gem_object_map_.emplace(std::make_pair(key, 1));
+    }
+}
+
+int msmgbm_mapper::decr_handle_refcnt(int device_fd, uint32_t gem_handle) {
+
+   struct gem_handle_key key(device_fd, gem_handle);
+   auto it = gem_object_map_.find(key);
+   if (it != gem_object_map_.end()) {
+       it->second--;
+       if (it->second == 0) {
+           gem_object_map_.erase(key);
+           return 1;
+       } else
+           return 0;
+   } else {
+       return 0;
+   }
+}
+
 /**
  * C wrapper function to delete msmsgbm mapper object
  * @input param: None
@@ -169,6 +209,7 @@ msmgbm_mapper::~msmgbm_mapper() {
 
 bool msmgbm_mapper::init() {
   gbm_buf_map_.clear();
+  gem_object_map_.clear();
   return true;
 }
 
