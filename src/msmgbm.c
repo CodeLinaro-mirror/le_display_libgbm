@@ -2748,14 +2748,14 @@ int msmgbm_perform(int operation, ... )
             break;
         case GBM_PERFORM_DEFAULT_INIT_COLOR_META:
             {
-                struct ColorMetaData *clr_mta = va_arg(args, struct ColorMetaData *);
+                struct GBM_ColorMetaData *clr_mta = va_arg(args, struct GBM_ColorMetaData *);
                 msmsgbm_default_init_hdr_color_info_mdata(clr_mta);
                 res = GBM_ERROR_NONE;
             }
             break;
         case GBM_PERFORM_DUMP_COLOR_META:
             {
-                struct ColorMetaData *clr_mta = va_arg(args, struct ColorMetaData *);
+                struct GBM_ColorMetaData *clr_mta = va_arg(args, struct GBM_ColorMetaData *);
                 msmgbm_log_hdr_color_info_mdata(clr_mta);
                 res = GBM_ERROR_NONE;
             }
@@ -2924,7 +2924,7 @@ int msmgbm_set_metadata(struct gbm_bo *gbo, int paramType,void *param) {
              data->igc = *((int *)param);
              break;
         case GBM_METADATA_SET_COLOR_METADATA:
-             data->color_info = *((ColorMetaData *)param);
+             data->color_info = *((GBM_ColorMetaData *)param);
              break;
         case GBM_METADATA_SET_VT_TIMESTAMP:
              data->vt_timestamp = *((uint64_t *)param);
@@ -3022,15 +3022,15 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
               *((int *)param) = data->color_space;
             } else if (data->operation & GBM_METADATA_SET_COLOR_METADATA) {
               switch (data->color_info.colorPrimaries) {
-                case ColorPrimaries_BT709_5:
+                case GBM_ColorPrimaries_BT709_5:
                   *((int *)param) = GBM_METADATA_COLOR_SPACE_ITU_R_709;
                   break;
-                case ColorPrimaries_BT601_6_525:
+                case GBM_ColorPrimaries_BT601_6_525:
                   *((int *)param) = (data->color_info.range) ?
                                       GBM_METADATA_COLOR_SPACE_ITU_R_601_FR :
                                       GBM_METADATA_COLOR_SPACE_ITU_R_601;
                   break;
-                case ColorPrimaries_BT2020:
+                case GBM_ColorPrimaries_BT2020:
                   *((int *)param) = (data->color_info.range) ?
                                      GBM_METADATA_COLOR_SPACE_ITU_R_2020_FR :
                                      GBM_METADATA_COLOR_SPACE_ITU_R_2020;
@@ -3057,7 +3057,7 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
             *((int *)param) = data->igc;
             break;
         case GBM_METADATA_GET_COLOR_METADATA:
-            *((ColorMetaData *)param) = data->color_info;
+            *((GBM_ColorMetaData *)param) = data->color_info;
             break;
         case GBM_METADATA_GET_UBWC_BUF_STAT:
             *((int *)param) = data->is_buffer_ubwc;
@@ -3228,7 +3228,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
     return res;
 }
 
-void msmgbm_log_hdr_color_info_mdata(ColorMetaData * color_mdata)
+void msmgbm_log_hdr_color_info_mdata(GBM_ColorMetaData * color_mdata)
 {
     uint8_t i = 0;
     uint8_t j = 0;
@@ -3260,7 +3260,7 @@ void msmgbm_log_hdr_color_info_mdata(ColorMetaData * color_mdata)
 }
 
 
-void msmsgbm_default_init_hdr_color_info_mdata(ColorMetaData * color_mdata)
+void msmsgbm_default_init_hdr_color_info_mdata(GBM_ColorMetaData * color_mdata)
 {
     uint8_t i = 0;
     uint8_t j = 0;

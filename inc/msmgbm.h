@@ -501,10 +501,10 @@ int msmgbm_set_metadata(struct gbm_bo *gbo, int paramType,void *param);
   */
 int msmgbm_get_rgb_data_address(struct gbm_bo *gbo, void **rgb_data);
 
-void msmgbm_log_hdr_color_info_mdata(ColorMetaData * color_mdata);
+void msmgbm_log_hdr_color_info_mdata(GBM_ColorMetaData * color_mdata);
 void config_dbg_lvl(void);
-void msmgbm_log_hdr_color_info_mdata(ColorMetaData * color_mdata);
-void msmsgbm_default_init_hdr_color_info_mdata(ColorMetaData * color_mdata);
+void msmgbm_log_hdr_color_info_mdata(GBM_ColorMetaData * color_mdata);
+void msmsgbm_default_init_hdr_color_info_mdata(GBM_ColorMetaData * color_mdata);
 
 /**
   * C wrapper function to increment the reference count for the valid gem_handle

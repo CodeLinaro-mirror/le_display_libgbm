@@ -114,6 +114,8 @@
 
 #ifdef __cplusplus
 extern "C" {
+#else
+#include <stdbool.h>
 #endif
 
 
@@ -126,7 +128,6 @@ extern "C" {
 #include <stddef.h>
 #include <stdarg.h>
 #include <gbm.h>
-#include <color_metadata.h>
 /**
  * These are the flags used by the clients during allocation to
  * indicate the purpose of allocation to the gbm backend.
@@ -565,6 +566,165 @@ enum UBWC_Version {
     UBWC_MAX_VERSION = 0xFF,
 };
 
+typedef enum GBM_ColorRange {
+  GBM_Range_Limited   = 0,
+  GBM_Range_Full      = 1,
+  GBM_Range_Extended  = 2,
+  GBM_Range_Max     = 0xff,
+} GBM_ColorRange;
+
+// The following values matches the HEVC spec
+typedef enum GBM_ColorPrimaries {
+  // Unused = 0;
+  GBM_ColorPrimaries_BT709_5     = 1,  // ITU-R BT.709-5 or equivalent
+  /* Unspecified = 2, Reserved = 3*/
+  GBM_ColorPrimaries_BT470_6M    = 4,  // ITU-R BT.470-6 System M or equivalent
+  GBM_ColorPrimaries_BT601_6_625 = 5,  // ITU-R BT.601-6 625 or equivalent
+  GBM_ColorPrimaries_BT601_6_525 = 6,  // ITU-R BT.601-6 525 or equivalent
+  GBM_ColorPrimaries_SMPTE_240M  = 7,  // SMPTE_240M
+  GBM_ColorPrimaries_GenericFilm = 8,  // Generic Film
+  GBM_ColorPrimaries_BT2020      = 9,  // ITU-R BT.2020 or equivalent
+  GBM_ColorPrimaries_SMPTE_ST428 = 10,  // SMPTE_240M
+  GBM_ColorPrimaries_AdobeRGB    = 11,
+  GBM_ColorPrimaries_DCIP3       = 12,
+  GBM_ColorPrimaries_EBU3213     = 22,
+  GBM_ColorPrimaries_Max         = 0xff,
+} GBM_ColorPrimaries;
+
+typedef enum GBM_GammaTransfer {
+  // Unused = 0;
+  GBM_Transfer_sRGB            = 1,  // ITR-BT.709-5
+  /* Unspecified = 2, Reserved = 3 */
+  GBM_Transfer_Gamma2_2        = 4,
+  GBM_Transfer_Gamma2_8        = 5,
+  GBM_Transfer_SMPTE_170M      = 6,  // BT.601-6 525 or 625
+  GBM_Transfer_SMPTE_240M      = 7,  // SMPTE_240M
+  GBM_Transfer_Linear          = 8,
+  GBM_Transfer_Log             = 9,
+  GBM_Transfer_Log_Sqrt        = 10,
+  GBM_Transfer_XvYCC           = 11,  // IEC 61966-2-4
+  GBM_Transfer_BT1361          = 12,  // Rec.ITU-R BT.1361 extended gamut
+  GBM_Transfer_sYCC            = 13,  // IEC 61966-2-1 sRGB or sYCC
+  GBM_Transfer_BT2020_2_1      = 14,  // Rec. ITU-R BT.2020-2 (same as the values 1, 6, and 15)
+  GBM_Transfer_BT2020_2_2      = 15,  // Rec. ITU-R BT.2020-2 (same as the values 1, 6, and 14)
+  GBM_Transfer_SMPTE_ST2084    = 16,  // 2084
+  // transfers unlikely to be required by Android
+  GBM_Transfer_ST_428          = 17,  // SMPTE ST 428-1
+  GBM_Transfer_HLG             = 18,  // ARIB STD-B67
+  GBM_Transfer_Max             = 0xff,
+} GBM_GammaTransfer;
+
+typedef enum GBM_MatrixCoEfficients {
+  GBM_MatrixCoEff_Identity           = 0,
+  GBM_MatrixCoEff_BT709_5            = 1,
+  /* Unspecified = 2, Reserved = 3 */
+  GBM_MatrixCoeff_FCC_73_682         = 4,
+  GBM_MatrixCoEff_BT601_6_625        = 5,
+  GBM_MatrixCoEff_BT601_6_525        = 6,
+  GBM_MatrixCoEff_SMPTE240M          = 7,  // used with 601_525_Unadjusted
+  GBM_MatrixCoEff_YCgCo              = 8,
+  GBM_MatrixCoEff_BT2020             = 9,
+  GBM_MatrixCoEff_BT2020Constant     = 10,
+  GBM_MatrixCoEff_BT601_6_Unadjusted = 11,  // Used with BT601_625(KR=0.222, KB=0.071)
+  GBM_MatrixCoEff_DCIP3              = 12,
+  GBM_MatrixCoEff_Chroma_NonConstant = 13,
+  GBM_MatrixCoEff_Max                = 0xff,
+} GBM_MatrixCoEfficients;
+
+typedef struct GBM_Primaries {
+  uint32_t rgbPrimaries[3][2];  // unit 1/50000;
+  uint32_t whitePoint[2];  // unit 1/50000;
+} GBM_Primaries;
+
+typedef struct GBM_MasteringDisplay {
+  bool      colorVolumeSEIEnabled;
+  GBM_Primaries primaries;
+  uint32_t  maxDisplayLuminance;  // unit: cd/m^2.
+  uint32_t  minDisplayLuminance;  // unit: 1/10000 cd/m^2.
+} GBM_MasteringDisplay;
+
+typedef struct GBM_ContentLightLevel {
+  bool     lightLevelSEIEnabled;
+  uint32_t maxContentLightLevel;  // unit: cd/m^2.
+  uint32_t minPicAverageLightLevel;  // unit: cd/m^2, will be DEPRECATED, use below
+  uint32_t maxPicAverageLightLevel;  // unit: cd/m^2, its same as maxFrameAvgLightLevel(CTA-861-G)
+} GBM_ContentLightLevel;
+
+typedef struct GBM_ColorRemappingInfo {
+  bool                   criEnabled;
+  uint32_t               crId;
+  uint32_t               crCancelFlag;
+  uint32_t               crPersistenceFlag;
+  uint32_t               crVideoSignalInfoPresentFlag;
+  uint32_t               crRange;
+  GBM_ColorPrimaries     crPrimaries;
+  GBM_GammaTransfer      crTransferFunction;
+  GBM_MatrixCoEfficients crMatrixCoefficients;
+  uint32_t               crInputBitDepth;
+  uint32_t               crOutputBitDepth;
+  uint32_t               crPreLutNumValMinusOne[3];
+  uint32_t               crPreLutCodedValue[3*33];
+  uint32_t               crPreLutTargetValue[3*33];
+  uint32_t               crMatrixPresentFlag;
+  uint32_t               crLog2MatrixDenom;
+  int32_t                crCoefficients[3*3];
+  uint32_t               crPostLutNumValMinusOne[3];
+  uint32_t               crPostLutCodedValue[3*33];
+  uint32_t               crPostLutTargetValue[3*33];
+} GBM_ColorRemappingInfo;
+
+#define HDR_DYNAMIC_META_DATA_SZ 1024
+typedef struct GBM_ColorMetaData {
+  // Default values based on sRGB, needs to be overridden in gralloc
+  // based on the format and size.
+  GBM_ColorPrimaries     colorPrimaries;
+  GBM_ColorRange     range;
+  GBM_GammaTransfer      transfer;
+  GBM_MatrixCoEfficients matrixCoefficients;
+
+  GBM_MasteringDisplay   masteringDisplayInfo;
+  GBM_ContentLightLevel  contentLightLevel;
+  GBM_ColorRemappingInfo cRI;
+
+  // Dynamic meta data elements
+  bool dynamicMetaDataValid;
+  uint32_t dynamicMetaDataLen;
+  uint8_t dynamicMetaDataPayload[HDR_DYNAMIC_META_DATA_SZ];
+} GBM_ColorMetaData;
+
+typedef struct GBM_Color10Bit {
+  uint32_t R: 10;
+  uint32_t G: 10;
+  uint32_t B: 10;
+  uint32_t A: 2;
+} GBM_Color10Bit;
+
+typedef struct GBM_Lut3d {
+  uint16_t dim;  // dimension of each side of LUT cube (ex: 13, 17)in lutEntries
+  uint16_t gridSize;  // number of elements in the gridEntries
+  /* Matrix ordering convension
+  for (b = 0; b < dim; b++) {
+    for (g = 0; g < dim; g++) {
+      for (r = 0; r < dim; r++) {
+        read/write [mR mG mB] associated w/ 3DLUT[r][g][b] to/from file
+      }
+    }
+  } */
+  GBM_Color10Bit *lutEntries;
+  bool validLutEntries;  // Indicates if entries are valid and can be used.
+  /*
+   The grid is a 1D LUT for each of the R,G,B channels that can be
+   used to apply an independent nonlinear transformation to each
+   channel before it is used as a coordinate for addressing
+   the uniform 3D LUT.  This effectively creates a non-uniformly
+   sampled 3D LUT.  This is useful for having independent control
+   of the sampling grid density along each dimension for greater
+   precision in spite of having a relatively small number of samples.i
+  */
+  GBM_Color10Bit *gridEntries;
+  bool validGridEntries;  // Indicates if entries are valid and can be used.
+} GBM_Lut3d;
+
 #define MAX_UBWC_STATS_LENGTH 32
 struct UBWC_2_0_Stats {
     uint32_t nCRStatsTile32;  /**< UBWC Stats info for  32 Byte Tile */
@@ -739,7 +899,7 @@ struct meta_data_t {
    int      is_buffer_ubwc;     /* Flag to query if buffer is UBWC allocated */
    int      igc;                /* IGC value*/
    float    refresh_rate;       /* video referesh rate*/
-   ColorMetaData color_info;    /* Color Aspects + HDR info */
+   GBM_ColorMetaData color_info;    /* Color Aspects + HDR info */
    uint64_t vt_timestamp;       /* timestamp set by camera, intended for VT*/
    uint32_t isVideoPerfMode;    /* set by camera indicates buffer will be used for
                                    High performace video use case */
