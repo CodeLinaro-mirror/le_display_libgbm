@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: libgbm
 Description: Userspace interface to kernel ION Memory services
 Version: @PACKAGE_VERSION@
-Libs: -L${libdir} -lgbm -lgbmutils
+Libs: -L${libdir} -lgbm
 Cflags: -I${includedir}

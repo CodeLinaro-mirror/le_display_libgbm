@@ -84,10 +84,6 @@
 #include <drm/msm_drm.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm.h>
-#include <linux/msm_ion.h>
-#ifdef TARGET_ION_ABI_VERSION
-#include <linux/ion.h>
-#endif
 #include <gbm_priv.h>
 #include <msmgbm.h>
 #include <msmgbm_dma.h>
@@ -840,7 +836,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
     LOG(LOG_DBG,"allocated data fd := %d\n",data_fd);
 
     //Do not mmap if it is secure operation.
-    if(!(GetIonAllocFlags(usage) & ION_FLAG_SECURE)) {
+    if(!(usage & GBM_BO_USAGE_PROTECTED_QTI)) {
         base = mmap(NULL,size, PROT_READ|PROT_WRITE, MAP_SHARED, data_fd, 0);
         if(base == MAP_FAILED) {
             LOG(LOG_ERR,"mmap failed memory on BO Err:\n%s\n",strerror(errno));
@@ -1942,7 +1938,7 @@ msmgbm_device_destroy(struct gbm_device *gbm)
 
     //Destroy the  mapper cpp object
     msmgbm_mapper_deinstnce();
-
+    CloseDmabufFds();
     if(msm_dev != NULL){
         free(msm_dev);
         msm_dev = NULL;
@@ -2026,6 +2022,7 @@ unsigned int msmgbm_device_get_magic(struct gbm_device *dev)
         }
         return auth.magic;
     }
+    return 1;
 }
 
 int msmgbm_surface_set_front_bo(struct gbm_surface *surf, struct gbm_bo *bo)
@@ -3331,7 +3328,7 @@ void config_dbg_lvl(void)
 {
     FILE *fp = NULL;
 
-    fp = fopen("/data/misc/display/gbm_dbg_cfg.txt", "r");
+    fp = fopen("/var/cache/display/gbm_dbg_cfg.txt", "r");
     if(fp) {
         fscanf(fp, "%d", &g_debug_level);
         LOG(LOG_INFO,"\nGBM debug level set=%d\n",g_debug_level);
@@ -3361,7 +3358,7 @@ int msmgbm_bo_dump(struct gbm_bo * gbo)
 {
     FILE *fptr = NULL;
     static int count = 1;
-    const char file_nme[100] = "/data/misc/display/gbm_dump";
+    const char file_nme[100] = "/var/cache/display/gbm_dump";
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(gbo);
     int mappedNow = 0;
     size_t size = gbo->size;

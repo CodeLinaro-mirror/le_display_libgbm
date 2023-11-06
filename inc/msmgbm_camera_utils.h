@@ -52,7 +52,6 @@
 #include "gbm_priv.h"
 #include "gbm.h"
 #include "msmgbm.h"
-#include "gbm_utils.h"
 
 namespace msm_gbm {
 

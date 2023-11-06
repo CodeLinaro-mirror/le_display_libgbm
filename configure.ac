@@ -45,14 +45,6 @@ AC_CONFIG_MACRO_DIR([m4])
 # Check for programs
 AM_PROG_AR
 
-PKG_CHECK_MODULES([LIBDMABUFHEAP], [libdmabufheap])
-AC_SUBST([LIBDMABUFHEAP_CFLAGS])
-AC_SUBST([LIBDMABUFHEAP_LIBS])
-
-PKG_CHECK_MODULES([LIBVMMEM], [libvmmem])
-AC_SUBST([LIBVMMEM_CFLAGS])
-AC_SUBST([LIBVMMEM_LIBS])
-
 AC_ARG_WITH([glib],
       AC_HELP_STRING([--with-glib],
          [enable glib, building HLOS systems which use glib]))

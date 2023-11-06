@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2021 - 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2021 - 2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -40,22 +40,19 @@
 #include <gbm_priv.h>
 #include <msmgbm.h>
 #include <msmgbm_common.h>
-#include <linux/ion.h>
-#include <linux/msm_ion.h>
 
 #ifdef __cplusplus
 #include <string>
-#include <vmmem/vmmem.h>
 
-int LendBufferToSecure(int buffer_fd, std::string vm_name, int64_t *lenddma_handle);
-int ReclaimBufferFromSecure(int buffer_fd, int64_t lenddma_handle);
-void GetHeapInfo(uint64_t usage, std::string *vm_name, std::string *dma_heap_name, uint32_t flags);
+void GetHeapInfo(uint64_t usage, std::string *vm_name, std::string *dma_heap_name);
 bool IsCarveoutHeap(uint64_t usage);
 
 extern "C" {
 #endif
 
 int AllocBuffer(uint64_t usage, uint32_t size, uint32_t align);
+int CloseDmabufFds();
+
 #ifdef __cplusplus
 }
 #endif

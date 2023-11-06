@@ -28,7 +28,7 @@
 *
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2021 - 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2021 - 2023 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -61,66 +61,64 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#include <BufferAllocator/BufferAllocator.h>
+#include <unordered_map>
+#include <mutex>
 #include <msmgbm_dma.h>
+#include <unistd.h>
+#include <errno.h>
 
-BufferAllocator buffer_allocator_;
-std::unique_ptr<VmMem> vm_mem_ = nullptr;
+#include <linux/dma-buf.h>
+#include <linux/dma-heap.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/types.h>
 
-int Init() {
-  if (vm_mem_) {
-    return 0;
+
+std::unordered_map<std::string, int32_t> dmabuf_heap_fds_;
+static constexpr char kDmaHeapRoot[] = "/dev/dma_heap/";
+std::mutex heap_lock_;
+
+int CloseDmabufFds() {
+  std::lock_guard<std::mutex> lock(heap_lock_);
+  for (auto it : dmabuf_heap_fds_) {
+    close(it.second);
   }
 
-  vm_mem_ = VmMem::CreateVmMem();
-  if (!vm_mem_) {
-    LOG(LOG_ERR,"Failed to create VmMem\n");
-    return -1;
-  }
-
+  dmabuf_heap_fds_.clear();
   return 0;
 }
 
-int LendBufferToSecure(int buffer_fd, std::string vm_name, int64_t *lenddma_handle) {
-  if (Init()) {
-    return -1;
+int OpenDmabufHeap(const std::string& heap_name) {
+  std::lock_guard<std::mutex> lock(heap_lock_);
+
+  /* Check if heap has already been opened. */
+  auto it = dmabuf_heap_fds_.find(heap_name);
+  if (it != dmabuf_heap_fds_.end()) {
+    return it->second;
   }
 
-  VmPerm vm_perms;
-
-  VmHandle handle = vm_mem_->FindVmByName(vm_name);
-  if (handle < 0)  {
-    LOG(LOG_ERR,"Failed to find the %s VM!\n", vm_name.c_str());
-    return -1;
+  std::string heap_path = kDmaHeapRoot + heap_name;
+  int fd = TEMP_FAILURE_RETRY(open(heap_path.c_str(), O_RDONLY | O_CLOEXEC));
+  if (fd < 0) {
+    LOG(LOG_ERR,"%s: failed to open dmabuffheap path %s\n", __FUNCTION__, heap_path.c_str());
+    return -errno;
   }
 
-  if (vm_name == "qcom,cp_pixel") {
-    vm_perms.push_back(std::make_pair(handle, VMMEM_READ | VMMEM_WRITE));
-  } else {
-    vm_perms.push_back(std::make_pair(handle, VMMEM_READ | VMMEM_WRITE | VMMEM_EXEC));
+  auto ret = dmabuf_heap_fds_.insert({heap_name, fd});
+  if (!ret.second) {
+    LOG(LOG_WARN,"%s: map insert failed\n", __FUNCTION__);
   }
-
-  int ret = vm_mem_->LendDmabuf(buffer_fd, vm_perms, lenddma_handle);
-  if (ret) {
-    LOG(LOG_ERR,"lenddmabuf failed with ret %d\n", ret);
-    return ret;
-  }
-  LOG(LOG_DBG,"lenddmabuf successful lenddma_handle %d\n", *lenddma_handle);
-
-  return ret;
+  return fd;
 }
 
-int ReclaimBufferFromSecure(int buffer_fd, int64_t lenddma_handle) {
-  if (Init()) {
-    return -1;
-  }
-  int ret = vm_mem_->ReclaimDmabuf(buffer_fd, lenddma_handle);
-  if (ret) {
-    LOG(LOG_ERR,"Failed to reclaim buffer from secure %d\n", ret);
-    return ret;
+int DmabufSetName(uint64_t dmabuf_fd, const std::string& name) {
+  /* dma_buf_set_name truncates instead of returning an error */
+  if (name.length() > DMA_BUF_NAME_LEN) {
+      errno = ENAMETOOLONG;
+      return -1;
   }
 
-  return ret;
+  return TEMP_FAILURE_RETRY(ioctl(dmabuf_fd, _IOW(DMA_BUF_BASE, 1, uint64_t), name.c_str()));
 }
 
 bool IsCarveoutHeap(uint64_t usage) {
@@ -135,8 +133,7 @@ bool IsCarveoutHeap(uint64_t usage) {
   return false;
 }
 
-void GetHeapInfo(uint64_t usage, std::string *vm_name, std::string *dma_heap_name,
-                 uint32_t flags) {
+void GetHeapInfo(uint64_t usage, std::string *vm_name, std::string *dma_heap_name) {
   bool secure = false;
   bool secure_carveout = false;
 
@@ -145,8 +142,7 @@ void GetHeapInfo(uint64_t usage, std::string *vm_name, std::string *dma_heap_nam
     *vm_name = IsCarveoutHeap(usage) ? "qcom,cp_pixel" : "";
   }
 
-  std::string heap_name = secure ? "qcom,display" : "qcom,system";
-  std::string ion_heap_name = secure ? "secure_display" : "system";
+  std::string heap_name = secure ? "qcom,display" : "system";
 
   if (usage & GBM_BO_ALLOC_CARVEOUT_HEAP_LEFT_QTI) {
     heap_name = "qcom,lsr_lefteye";
@@ -157,37 +153,15 @@ void GetHeapInfo(uint64_t usage, std::string *vm_name, std::string *dma_heap_nam
   } else if (usage & GBM_BO_ALLOC_CARVEOUT_HEAP_MISC_QTI) {
     heap_name = "qcom,lsr_misc";
   } else if (usage & GBM_BO_USE_RENDERING) {
-    heap_name = "qcom,system";
+    heap_name = "system";
     *vm_name = secure ? "qcom,cp_pixel" : "";
   } else if (usage & GBM_BO_ALLOC_SECURE_HEAP_QTI) {
     heap_name = "qcom,secure-pixel";
-    ion_heap_name = "secure_heap";
-    buffer_allocator_.MapNameToIonHeap(heap_name, ion_heap_name, flags,
-                                       ION_HEAP(ION_SECURE_HEAP_ID), flags);
   } else if ((usage & GBM_BO_ALLOC_SECURE_DISPLAY_HEAP_QTI) ||
              ((usage & GBM_BO_USAGE_PROTECTED_QTI) && (usage & GBM_BO_USAGE_CAMERA_WRITE_QTI))) {
     heap_name = "qcom,display";
-    ion_heap_name = "secure_display";
-    buffer_allocator_.MapNameToIonHeap(heap_name, ion_heap_name, flags,
-                                       ION_HEAP(ION_SECURE_DISPLAY_HEAP_ID), flags);
-  } else if (usage & GBM_BO_ALLOC_CAMERA_HEAP_QTI) {
-    buffer_allocator_.MapNameToIonHeap(heap_name, ion_heap_name, flags,
-                                       ION_HEAP(ION_CAMERA_HEAP_ID), flags);
-  } else if (usage & GBM_BO_ALLOC_IOMMU_HEAP_QTI) {
-    /*IOMMU_HEAP is deprecated, use ION_SYSTEM_HEAP_ID*/
-    buffer_allocator_.MapNameToIonHeap(heap_name, ion_heap_name, flags,
-                                       ION_HEAP(ION_SYSTEM_HEAP_ID), flags);
-  } else if (usage & GBM_BO_ALLOC_MM_HEAP_QTI) {
-    buffer_allocator_.MapNameToIonHeap(heap_name, ion_heap_name, flags,
-                                       ION_HEAP(ION_CP_MM_HEAP_ID), flags);
   } else if (usage & GBM_BO_ALLOC_ADSP_HEAP_QTI) {
     heap_name = "qcom,adsp";
-    ion_heap_name = "adsp";
-    buffer_allocator_.MapNameToIonHeap(heap_name, ion_heap_name, flags,
-                                       ION_HEAP(ION_ADSP_HEAP_ID), flags);
-  } else {
-    buffer_allocator_.MapNameToIonHeap(heap_name, ion_heap_name, flags,
-                                       ION_HEAP(ION_SYSTEM_HEAP_ID), flags);
   }
 
   *dma_heap_name = heap_name;
@@ -198,20 +172,31 @@ void GetHeapInfo(uint64_t usage, std::string *vm_name, std::string *dma_heap_nam
 
 int AllocBuffer(uint64_t usage, uint32_t size, uint32_t align) {
   std::string dma_heap_name;
-  uint32_t ionflags = GetIonAllocFlags(usage);
   std::string vm_name = "";
   int64_t lenddma_handle = 0;
-  GetHeapInfo(usage, &vm_name, &dma_heap_name, ionflags);
+  GetHeapInfo(usage, &vm_name, &dma_heap_name);
 
-  int buffer_fd = buffer_allocator_.Alloc(dma_heap_name, size, ionflags, align);
-  if (vm_name.size() != 0) {
-    int ret = LendBufferToSecure(buffer_fd, vm_name, &lenddma_handle);
-    if (ret) {
-      LOG(LOG_ERR,"%s: LendBufferToSecure Failed error %d\n", __FUNCTION__, ret);
-      close(buffer_fd);
-      return -1;
-    }
+  int fd = OpenDmabufHeap(dma_heap_name);
+  if (fd < 0) {
+    LOG(LOG_ERR,"%s: failed to open dmabuffheap\n", __FUNCTION__);
+    return fd;
   }
 
-  return buffer_fd;
+  struct dma_heap_allocation_data heap_data{
+      .len = size,                      // length of data to be allocated in bytes
+      .fd_flags = O_RDWR | O_CLOEXEC,   // permissions for the memory to be allocated
+  };
+
+  auto ret = TEMP_FAILURE_RETRY(ioctl(fd, DMA_HEAP_IOCTL_ALLOC, &heap_data));
+  if (ret < 0) {
+      LOG(LOG_ERR,"%s: failed to allocate from heap %s\n", __FUNCTION__, dma_heap_name);
+      return ret;
+  }
+
+  if (heap_data.fd >= 0) {
+      if (DmabufSetName(heap_data.fd, dma_heap_name))
+          LOG(LOG_WARN,"%s: Unable to name DMA buffer for: %s\n", __FUNCTION__, dma_heap_name);
+  }
+
+  return heap_data.fd;
 }

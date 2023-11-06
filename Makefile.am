@@ -19,14 +19,11 @@ AM_CFLAGS += -DENABLE_FB
 AM_CPPFLAGS += -DENABLE_FB
 endif
 
-lib_LTLIBRARIES  = libgbm.la libgbmutils.la
+lib_LTLIBRARIES  = libgbm.la
 libgbm_la_CFLAGS = $(AM_CFLAGS)
 libgbm_la_CPPFLAGS = $(AM_CPPFLAGS)
-libgbm_la_CPPFLAGS +=  @LIBDMABUFHEAP_CFLAGS@
 libgbm_la_CXXFLAGS =  -std=c++17
-libgbm_la_CPPFLAGS +=  @LIBVMMEM_CFLAGS@
-libgbm_la_LDFLAGS = -shared -avoid-version -lm -ldl -ldmabufheap
-libgbm_la_LDFLAGS += @LIBVMMEM_LIBS@
+libgbm_la_LDFLAGS = -shared -avoid-version -lm -ldl
 libgbm_la_SOURCES = src/gbm.c \
                     src/msmgbm_camera.c \
                     src/msmgbm_video.c \
@@ -42,13 +39,6 @@ libgbm_la_SOURCES += src/msmgbm_dma.cpp
 else
 libgbm_la_SOURCES += src/msmgbm_fb.c
 endif
-
-libgbmutils_la_CFLAGS = $(AM_CFLAGS)
-libgbmutils_la_CPPFLAGS = $(AM_CFLAGS)
-libgbmutils_la_CPPFLAGS += -I$(srcdir)/inc/
-libgbmutils_la_LDFLAGS = -shared -avoid-version -lm -ldl -lcutils
-libgbmutils_la_LIBADD = libgbm.la
-libgbmutils_la_SOURCES = src/gbm_utils.cpp
 
 bin_PROGRAMS = gbmtest
 gbmtest_SOURCES = test/gbmtest.c

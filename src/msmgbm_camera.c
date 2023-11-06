@@ -30,10 +30,13 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
+
 #include <stdint.h>
 #include <stddef.h>
-#include <linux/msm_ion.h>
-#include <linux/ion.h>
 #include <gbm_priv.h>
 #include <msmgbm.h>
 #include <msmgbm_common.h>
@@ -68,39 +71,3 @@ uint32_t GetCameraImplDefinedFormat(uint32_t usage_flags, uint32_t format)
 
     return pixel_format;
 }
-
-/**
- * Get the ion allocation flags based on allocation flags.
- * @return - ion flags for BO allocation
- */
-uint32_t GetCameraIonAllocFlags(uint32_t alloc_flags)
-{
-    uint32_t ion_flags = 0;
-
-    if((alloc_flags & GBM_BO_USAGE_PROTECTED_QTI)
-                    && (alloc_flags & GBM_BO_USAGE_CAMERA_WRITE_QTI)){
-        if(alloc_flags & GBM_BO_USAGE_HW_COMPOSER_QTI)
-            ion_flags |= ION_FLAG_CP_CAMERA_PREVIEW;
-        else
-            ion_flags |= ION_FLAG_CP_CAMERA;
-    }
-
-    return ion_flags;
-}
-
-/**
- * Get the ion heap id based on allocation flags.
- * @return - ion heap id for BO allocation
- */
-uint32_t GetCameraIonHeapId(uint32_t alloc_flags)
-{
-    uint32_t ion_heap_id = 0;
-
-    if((alloc_flags & GBM_BO_USAGE_PROTECTED_QTI) &&
-                alloc_flags & GBM_BO_USAGE_CAMERA_WRITE_QTI){
-            ion_heap_id = ION_HEAP(ION_SECURE_DISPLAY_HEAP_ID);
-    }
-
-    return ion_heap_id;
-}
-
