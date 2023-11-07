@@ -490,9 +490,7 @@ bool platform_wrap:: is_valid_yuv_fmt(int format) {
         case GBM_FORMAT_YCrCb_420_SP:
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
-#ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
-#endif
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_NV21_ZSL:
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
@@ -606,13 +604,11 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
             LOG(LOG_DBG," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
-#ifdef MMM_COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
             size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_512, width, height);
             LOG(LOG_DBG," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
-#endif
         case GBM_FORMAT_YCrCb_420_SP_VENUS:
             size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV21, width, height);
             break;
@@ -851,12 +847,10 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedw = ALIGN(width, 64);
       *alignedh = ALIGN(height, 64);
       break;
-#ifdef MMM_COLOR_FMT_NV12_512
     case GBM_FORMAT_NV12_HEIF:
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_512, width));
       *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_512, height));
       break;
-#endif
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
       *alignedw = MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width);
       *alignedh = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);

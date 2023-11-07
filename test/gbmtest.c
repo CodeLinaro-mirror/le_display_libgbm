@@ -114,9 +114,7 @@ static const uint32_t format_list[] = {
     GBM_FORMAT_ABGR2101010,
     GBM_FORMAT_YCbCr_420_TP10_UBWC,
     GBM_FORMAT_P010,
-#ifdef COLOR_FMT_NV12_512
     GBM_FORMAT_NV12_HEIF,
-#endif
     GBM_FORMAT_YCbCr_422_I,
 };
 
@@ -170,10 +168,8 @@ static char *get_format_string(uint32_t format)
             return "GBM_FORMAT_IMPLEMENTATION_DEFINED";
         case GBM_FORMAT_RGBA8888:
             return "GBM_FORMAT_RGBA8888";
-#ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
             return "GBM_FORMAT_NV12_HEIF";
-#endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
             return "GBM_FORMAT_YCbCr_420_P010_VENUS";
         case GBM_FORMAT_YCbCr_420_P010_UBWC:

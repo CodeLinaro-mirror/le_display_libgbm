@@ -48,6 +48,11 @@ uint32_t GetVideoImplDefinedFormat(uint32_t usage_flags, uint32_t format)
         pixel_format = GBM_FORMAT_NV12_ENCODEABLE;
     }
 
+    if((usage_flags & GBM_BO_USAGE_PRIVATE_HEIF)
+                    && (format == GBM_FORMAT_IMPLEMENTATION_DEFINED)) {
+        pixel_format = GBM_FORMAT_NV12_HEIF;
+    }
+
     return pixel_format;
 }
 

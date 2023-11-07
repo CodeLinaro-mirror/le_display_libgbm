@@ -494,9 +494,7 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_BLOB:
         case GBM_FORMAT_C8_LINEAR:
         case GBM_FORMAT_C8:
-#ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
-#endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
         case GBM_FORMAT_YCbCr_422_I:
@@ -559,9 +557,7 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_BLOB:
         case GBM_FORMAT_C8_LINEAR:
         case GBM_FORMAT_C8:
-#ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
-#endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_422_I:
         case GBM_FORMAT_YCrCb_422_I:
@@ -693,9 +689,7 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_NV12_ENCODEABLE:
     case GBM_FORMAT_NV12:
-#ifdef COLOR_FMT_NV12_512
     case GBM_FORMAT_NV12_HEIF:
-#endif
     case GBM_FORMAT_YCrCb_420_SP:
     case GBM_FORMAT_YCrCb_422_SP:
     case GBM_FORMAT_YCrCb_420_SP_VENUS:
@@ -3182,9 +3176,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_YCrCb_420_SP:
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
-#ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
-#endif
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_NV21_ZSL:
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
