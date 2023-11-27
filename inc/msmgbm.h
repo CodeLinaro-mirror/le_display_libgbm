@@ -524,6 +524,14 @@ void incr_handle_refcnt(int device_fd, uint32_t handle);
   */
 int decr_handle_refcnt(int device_fd, uint32_t handle);
 
+/**
+  * C function to return format as string
+  * @input param: format in int
+  * @return     : string value of format
+  *
+  */
+char * get_msmgbm_format_name(int format);
+
 #ifdef __cplusplus
 }
 #endif

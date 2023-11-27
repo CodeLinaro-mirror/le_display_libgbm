@@ -691,7 +691,7 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
             size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC, width, height);
             break;
         default:
-            LOG(LOG_ERR," Unrecognized pixel format: 0x%x\n",format);
+            LOG(LOG_ERR," Unrecognized pixel format: %s\n", get_msmgbm_format_name(format));
             return 0;
     }
 
@@ -744,8 +744,8 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
   bool ubwc_enabled = false;
   int tile = 0;
 
-  LOG(LOG_DBG,"width=%d, height=%d,format=%d, usage=%d\n",width,height,
-                                                     format,prod_usage);
+  LOG(LOG_DBG,"width=%d, height=%d,format=%s, usage=%d\n", width, height,
+              get_msmgbm_format_name(format), prod_usage);
 
   // Currently surface padding is only computed for RGB* surfaces.
   ubwc_enabled = is_ubwc_enbld(format, prod_usage, cons_usage);
@@ -963,6 +963,7 @@ bool platform_wrap::is_ubwc_enbld(int format, int prod_usage,
 
     // Allow UBWC, if client is using an explicitly defined UBWC pixel format.
     if (is_valid_ubwc_fmt(format)) {
+        LOG(LOG_DBG,"format: %s is valid ubwc format\n", get_msmgbm_format_name(format));
         return true;
     }
 
