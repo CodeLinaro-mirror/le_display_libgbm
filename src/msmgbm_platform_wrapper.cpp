@@ -71,6 +71,7 @@
 #include <pthread.h>
 #include "msmgbm_adreno_utils.h"
 #include "msmgbm_platform_wrapper.h"
+#include "msmgbm_camera_utils.h"
 #include "gbm_priv.h"
 
 #define INT(exp) static_cast<int>(exp)
@@ -253,6 +254,14 @@ void platform_wrap_deinstnce(void) {
     pthread_mutex_unlock(&platform_wrap_mutex);
 }
 
+}
+
+bool IsCameraCustomFormat(uint32_t format, uint64_t usage) {
+  return CameraInfo::GetInstance()->IsCameraCustomFormat(format, usage);
+}
+
+int GetCameraPlaneInfo(struct msmgbm_bo *msm_gbm_bo, generic_buf_layout_t *buf_lyt) {
+  return CameraInfo::GetInstance()->GetCameraFormatPlaneInfo(msm_gbm_bo, buf_lyt);
 }
 
 bool cpu_can_accss(int prod_usage, int cons_usage) {
@@ -516,7 +525,17 @@ bool platform_wrap:: is_valid_yuv_fmt(int format) {
 // helper function
 unsigned int platform_wrap::get_size(int format, int width, int height, int usage,
                                         int alignedw, int alignedh) {
+  if (CameraInfo::GetInstance()->IsCameraCustomFormat(format, usage)) {
+    unsigned int cam_size = 0;
+    LOG(LOG_DBG,"Querying buffer size from camera utility\n");
+    int result = CameraInfo::GetInstance()->GetBufferSize(format, width, height, &cam_size);
+    if (result != 0) {
+      LOG(LOG_ERR,"Failed to get buffer size from camera\n");
+      return 0;
+    }
 
+    return cam_size;
+  }
 
    int prod_usage=usage;
    int cons_usage=usage;
@@ -746,6 +765,16 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
 
   LOG(LOG_DBG,"width=%d, height=%d,format=%s, usage=%d\n", width, height,
               get_msmgbm_format_name(format), prod_usage);
+
+  if (CameraInfo::GetInstance()->IsCameraCustomFormat(format, descriptor->Usage)) {
+    LOG(LOG_DBG,"Querying aligned width and height from camera utility\n");
+    CameraInfo::GetInstance()->GetStrideInBytes(format, (PlaneComponent)PLANE_COMPONENT_Y,
+                                                width, (int *)alignedw);
+
+    CameraInfo::GetInstance()->GetScanline(format, (PlaneComponent)PLANE_COMPONENT_Y,
+                                           height, (int *)alignedh);
+    return;
+  }
 
   // Currently surface padding is only computed for RGB* surfaces.
   ubwc_enabled = is_ubwc_enbld(format, prod_usage, cons_usage);

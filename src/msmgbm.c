@@ -3176,6 +3176,16 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
     if(!msm_gbm_bo || !buf_lyt)
         return GBM_ERROR_BAD_HANDLE;
 
+    if (IsCameraCustomFormat(gbo->format)) {
+        LOG(LOG_DBG,"Getting planeInfo for camera custom format %s\n",
+                     get_msmgbm_format_name(gbo->format));
+        res = GetCameraPlaneInfo(msm_gbm_bo, buf_lyt);
+        if (res != GBM_ERROR_NONE) {
+            LOG(LOG_ERR,"Failed to get Camera Plane info");
+        }
+        return res;
+    }
+
     switch(gbo->format) {
         //Semiplanar
         case GBM_FORMAT_YCbCr_420_SP:
