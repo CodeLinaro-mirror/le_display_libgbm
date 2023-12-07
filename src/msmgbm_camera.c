@@ -1,7 +1,4 @@
 /*
-* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
-* Not a Contribution.
-*
 * Copyright (c) 2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -33,11 +30,6 @@
 * Changes from Qualcomm Innovation Center are provided under the following license:
 * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
 * SPDX-License-Identifier: BSD-3-Clause-Clear
-*/
-
-/*
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 #include <stdint.h>
