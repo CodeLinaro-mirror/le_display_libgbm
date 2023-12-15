@@ -257,6 +257,14 @@ bool IsCameraCustomFormat(uint32_t format, uint64_t usage) {
   return CameraInfo::GetInstance()->IsCameraCustomFormat(format, usage);
 }
 
+int GetCameraCustomFormatBpp(uint32_t format) {
+  int bpp = 0;
+  CameraInfo::GetInstance()->GetBpp(format, &bpp);
+
+  // camera utility provides bpp in bits
+  return bpp / 8;
+}
+
 int GetCameraPlaneInfo(struct msmgbm_bo *msm_gbm_bo, generic_buf_layout_t *buf_lyt) {
   return CameraInfo::GetInstance()->GetCameraFormatPlaneInfo(msm_gbm_bo, buf_lyt);
 }

@@ -442,13 +442,17 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
 }
 
 /*************************
- * GetFormatBpp(uint_32 format)
+ * GetFormatBpp(uint_32 format, uint32_t usage)
  *
  * returns number of bytes for a supported format
  * returns 0 for unsupported format
  *************************/
-static int GetFormatBpp(uint32_t format)
+static int GetFormatBpp(uint32_t format, uint32_t usage)
 {
+   if (IsCameraCustomFormat(format, usage)) {
+      return GetCameraCustomFormatBpp(format);
+   }
+
    switch(format)
    {
         case GBM_FORMAT_R8:
@@ -807,7 +811,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         bufdesc.Format = format;
     }
     if(1 == IsFormatSupported(format))
-        Bpp = GetFormatBpp(format);
+        Bpp = GetFormatBpp(format, usage);
     else
     {
         LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(format));
@@ -1119,7 +1123,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     unlock();
 
     if(1 == IsFormatSupported(buffer_info->format))
-        Bpp = GetFormatBpp(buffer_info->format);
+        Bpp = GetFormatBpp(buffer_info->format, usage);
     else
     {
         LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(buffer_info->format));
@@ -1253,7 +1257,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     return NULL;
   }
   if(1 == IsFormatSupported(fd_data->format)) {
-      Bpp = GetFormatBpp(fd_data->format);
+      Bpp = GetFormatBpp(fd_data->format, usage);
   }
   else
   {
@@ -1472,7 +1476,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         buffer_info->width, buffer_info->height);
 
     if(1 == IsFormatSupported(buffer_info->format))
-        Bpp = GetFormatBpp(buffer_info->format);
+        Bpp = GetFormatBpp(buffer_info->format, usage);
     else
     {
         LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(buffer_info->format));
@@ -3176,7 +3180,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
     if(!msm_gbm_bo || !buf_lyt)
         return GBM_ERROR_BAD_HANDLE;
 
-    if (IsCameraCustomFormat(gbo->format)) {
+    if (IsCameraCustomFormat(gbo->format, gbo->usage_flags)) {
         LOG(LOG_DBG,"Getting planeInfo for camera custom format %s\n",
                      get_msmgbm_format_name(gbo->format));
         res = GetCameraPlaneInfo(msm_gbm_bo, buf_lyt);
@@ -3311,7 +3315,7 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
         return NULL;
     }
     if(1 == IsFormatSupported(gbo->format))
-        Bpp = GetFormatBpp(gbo->format);
+        Bpp = GetFormatBpp(gbo->format, gbo->usage_flags);
     else
     {
         LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(gbo->format));
