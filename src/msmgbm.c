@@ -881,7 +881,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
 
     }else
     {
-        LOG(LOG_ERR,"DRM open failed error = %d\n%s\n",strerror(errno));
+        LOG(LOG_ERR,"DRM open failed error = %d\n%s\n", msm_dev->fd, strerror(errno));
         return NULL;
     }
 
@@ -922,7 +922,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         drm_args.fd = mt_data_fd;
         if(ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
         {
-            LOG(LOG_ERR,"failed to import gem_handle for Metadata from prime_fd=%d\n%s\n",strerror(errno));
+            LOG(LOG_ERR,"failed to import gem_handle for Metadata from prime_fd=%d\n%s\n", msm_dev->fd, strerror(errno));
             drm_args.handle = 0;
         }
         else
