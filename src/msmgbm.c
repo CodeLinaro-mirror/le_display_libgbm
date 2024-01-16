@@ -30,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -875,7 +875,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
 
     }else
     {
-        LOG(LOG_ERR,"DRM open failed error = %d\n%s\n",strerror(errno));
+        LOG(LOG_ERR,"DRM open failed error = %d\n%s\n", msm_dev->fd, strerror(errno));
         return NULL;
     }
 
@@ -916,7 +916,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         drm_args.fd = mt_data_fd;
         if(ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
         {
-            LOG(LOG_ERR,"failed to import gem_handle for Metadata from prime_fd=%d\n%s\n",strerror(errno));
+            LOG(LOG_ERR,"failed to import gem_handle for Metadata from prime_fd=%d\n%s\n", msm_dev->fd, strerror(errno));
             drm_args.handle = 0;
         }
         else
@@ -1174,11 +1174,14 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                = &msm_gbmbo->base;
     gbmbo->ion_fd        = buffer_info->fd;
     gbmbo->ion_metadata_fd = gbo_info.metadata_fd;
     gbmbo->handle.u32    = gemimport_req.handle;
     gbmbo->usage_flags   = bufdesc.Usage;
+    gbmbo->plane_count   = plane_count;
     gbmbo->format        = buffer_info->format;
     gbmbo->width         = buffer_info->width;
     gbmbo->height        = buffer_info->height;
@@ -1386,11 +1389,14 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                  = &msm_gbmbo->base;
     gbmbo->ion_fd          = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32      = gemimport_req.handle;
     gbmbo->usage_flags     = bufdesc.Usage;
+    gbmbo->plane_count     = plane_count;
     gbmbo->format          = buffer_info->format;
     gbmbo->width           = buffer_info->width;
     gbmbo->height          = buffer_info->height;
@@ -1632,11 +1638,14 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                  = &msm_gbmbo->base;
     gbmbo->ion_fd          = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32      = gemimport_req.handle;
     gbmbo->usage_flags     = bufdesc.Usage;
+    gbmbo->plane_count     = plane_count;
     gbmbo->format          = buffer_info->format;
     gbmbo->width           = buffer_info->width;
     gbmbo->height          = buffer_info->height;
