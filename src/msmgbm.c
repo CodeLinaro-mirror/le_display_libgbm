@@ -30,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -442,13 +442,17 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
 }
 
 /*************************
- * GetFormatBpp(uint_32 format)
+ * GetFormatBpp(uint_32 format, uint32_t usage)
  *
  * returns number of bytes for a supported format
  * returns 0 for unsupported format
  *************************/
-static int GetFormatBpp(uint32_t format)
+static int GetFormatBpp(uint32_t format, uint32_t usage)
 {
+   if (IsCameraCustomFormat(format, usage)) {
+      return GetCameraCustomFormatBpp(format);
+   }
+
    switch(format)
    {
         case GBM_FORMAT_R8:
@@ -807,7 +811,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         bufdesc.Format = format;
     }
     if(1 == IsFormatSupported(format))
-        Bpp = GetFormatBpp(format);
+        Bpp = GetFormatBpp(format, usage);
     else
     {
         LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(format));
@@ -849,36 +853,26 @@ msmgbm_bo_create(struct gbm_device *gbm,
 
     //Use PRIME ioctl to convert to GEM handle
     memset(&drm_args, 0, sizeof(drm_args));
-    if(msm_dev->fd > 0)
+    if (msm_dev->fd >= 0)
     {
-        if(data_fd >0)
+        //Perform DRM IOCTL FD to Handle
+        drm_args.fd = data_fd;
+        if(ioctl(msm_dev->fd,DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
         {
-            //Perform DRM IOCTL FD to Handle
-            drm_args.fd = data_fd;
-            if(ioctl(msm_dev->fd,DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
-            {
-                LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed =%d\n%s\n",
-                                                          data_fd,strerror(errno));
-                drm_args.handle = 0;
-            }
-            else
-            {
-                LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", drm_args.handle, drm_args.fd);
-                lock();
-                incr_handle_refcnt(msm_dev->fd, drm_args.handle);
-                unlock();
-            }
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for data fd errono: %d (%s) "
+                "drm fd: %d data fd: %d\n", errno, strerror(errno), msm_dev->fd, data_fd);
+            drm_args.handle = 0;
         }
         else
         {
-            LOG(LOG_ERR,"Failed to get data gem handle on BO Err:\n%s\n",strerror(errno));
-            return NULL;
+            LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", drm_args.handle, drm_args.fd);
+            lock();
+            incr_handle_refcnt(msm_dev->fd, drm_args.handle);
+            unlock();
         }
-
-    }else
+    } else
     {
-        LOG(LOG_ERR,"DRM open failed error = %d\n%s\n",strerror(errno));
-        return NULL;
+        LOG(LOG_WARN,"data gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     gem_handle=drm_args.handle;
@@ -912,13 +906,14 @@ msmgbm_bo_create(struct gbm_device *gbm,
     //Use PRIME ioctl to convert to GEM handle
     memset(&drm_args, 0, sizeof(drm_args));
     //Use drm fd returned from previous drmOpen API
-    if(mt_data_fd >0)
+    if(msm_dev->fd >= 0)
     {
         //Perform DRM IOCTL FD to Handle
         drm_args.fd = mt_data_fd;
         if(ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
         {
-            LOG(LOG_ERR,"failed to import gem_handle for Metadata from prime_fd=%d\n%s\n",strerror(errno));
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for metadata fd errono: %d (%s) "
+                "drm fd: %d metadata fd: %d\n", errno, strerror(errno), msm_dev->fd, mt_data_fd);
             drm_args.handle = 0;
         }
         else
@@ -931,8 +926,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
     }
     else
     {
-        LOG(LOG_ERR,"Failed to get metadata gem handle Err:\n%s\n",strerror(errno));
-        return NULL;
+        LOG(LOG_WARN,"metadata data gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     mt_gem_handle=drm_args.handle;
@@ -1119,7 +1113,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     unlock();
 
     if(1 == IsFormatSupported(buffer_info->format))
-        Bpp = GetFormatBpp(buffer_info->format);
+        Bpp = GetFormatBpp(buffer_info->format, usage);
     else
     {
         LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(buffer_info->format));
@@ -1129,20 +1123,26 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
 
     /* Import the gem handle for image BO */
     memset(&gemimport_req, 0, sizeof(gemimport_req));
-    gemimport_req.fd = buffer_info->fd;
+    if (msm_dev->fd >= 0) {
+      gemimport_req.fd = buffer_info->fd;
 
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+      ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
 
-    if (ret != 0){
-        LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x), error = %d\n",msm_dev,ret);
-        gemimport_req.handle = 0;
-    }
-    else
+      if (ret != 0){
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for fd errono: %d (%s) "
+                "drm fd: %d fd: %d\n", errno, strerror(errno), msm_dev->fd, buffer_info->fd);
+          gemimport_req.handle = 0;
+      }
+      else
+      {
+          LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
+          lock();
+          incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
+          unlock();
+      }
+    } else
     {
-        LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
-        lock();
-        incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
-        unlock();
+        LOG(LOG_WARN,"data gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     memset(&mtdadta_gemimport_req, 0, sizeof(mtdadta_gemimport_req));
@@ -1253,7 +1253,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     return NULL;
   }
   if(1 == IsFormatSupported(fd_data->format)) {
-      Bpp = GetFormatBpp(fd_data->format);
+      Bpp = GetFormatBpp(fd_data->format, usage);
   }
   else
   {
@@ -1349,21 +1349,26 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
 
     /* Import the gem handle for image BO */
     memset(&gemimport_req, 0, sizeof(gemimport_req));
-    gemimport_req.fd = buffer_info->fd;
+    if (msm_dev->fd >= 0) {
+        gemimport_req.fd = buffer_info->fd;
 
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+        ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
 
-    if (ret != 0){
-        LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
-                                               msm_dev,strerror(errno));
-        gemimport_req.handle = 0;
-    }
-    else
+        if (ret != 0){
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for  fd errono: %d (%s) "
+                "drm fd: %d  fd: %d\n", errno, strerror(errno), msm_dev->fd, buffer_info->fd);
+            gemimport_req.handle = 0;
+        }
+        else
+        {
+            LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
+            lock();
+            incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
+            unlock();
+        }
+    } else
     {
-        LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
-        lock();
-        incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
-        unlock();
+        LOG(LOG_WARN,"gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     lock();
@@ -1472,7 +1477,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         buffer_info->width, buffer_info->height);
 
     if(1 == IsFormatSupported(buffer_info->format))
-        Bpp = GetFormatBpp(buffer_info->format);
+        Bpp = GetFormatBpp(buffer_info->format, usage);
     else
     {
         LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(buffer_info->format));
@@ -1584,29 +1589,32 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
 
     /* Import the gem handle for image BO */
     memset(&gemimport_req, 0, sizeof(gemimport_req));
-    gemimport_req.fd = buffer_info->fd;
+    if (msm_dev->fd >= 0) {
+        gemimport_req.fd = buffer_info->fd;
 
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
-
-    if (ret != 0){
-        LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
-                                               msm_dev,strerror(errno));
-        gemimport_req.handle = 0;
-    }
-    else
-    {
-        LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
-        lock();
-        incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
-        unlock();
+        ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+        if (ret != 0){
+          LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for fd errono: %d (%s) "
+              "drm fd: %d fd: %d\n", errno, strerror(errno), msm_dev->fd, buffer_info->fd);
+            gemimport_req.handle = 0;
+        }
+        else
+        {
+            LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
+            lock();
+            incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
+            unlock();
+        }
+    } else {
+        LOG(LOG_WARN,"gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     memset(&mtdadta_gemimport_req, 0, sizeof(mtdadta_gemimport_req));
 
-    if(buffer_info->metadata_fd < 0)
-        LOG(LOG_DBG,"INVALID Metadata File descriptor provided(%d)\n",
+    if(buffer_info->metadata_fd < 0) {
+        LOG(LOG_WARN,"INVALID Metadata File descriptor provided(%d)\n",
                                              buffer_info->metadata_fd);
-    else
+    } else if (msm_dev->fd >= 0)
     {
         /* Import the gem handle for metadata BO */
         mtdadta_gemimport_req.fd = buffer_info->metadata_fd;
@@ -1614,8 +1622,9 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &mtdadta_gemimport_req);
 
         if (ret != 0){
-            LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
-                                                   msm_dev,strerror(errno));
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for metadatadata fd errono: %d (%s) "
+                "drm fd: %d metadata fd: %d\n", errno, strerror(errno), msm_dev->fd,
+                buffer_info->metadata_fd);
             mtdadta_gemimport_req.handle = 0;
         }
         else
@@ -1626,6 +1635,8 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
             incr_handle_refcnt(msm_dev->fd, mtdadta_gemimport_req.handle);
             unlock();
         }
+    } else {
+        LOG(LOG_WARN,"data gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     msm_gbmbo = (struct msmgbm_bo *)calloc(1, sizeof(struct msmgbm_bo));
@@ -2336,21 +2347,25 @@ struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int 
     }
 
     memset(&gemimport_req, 0, sizeof(gemimport_req));
-    gemimport_req.fd = fd;
+    if (msm_dev->fd >= 0) {
+      gemimport_req.fd = fd;
 
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+      ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
 
-    if (ret != 0){
-        LOG(LOG_DBG," PRIME FD to Handle failed on device(%x), error = %d\n",
-                                                        msm_dev,ret);
-        gemimport_req.handle = 0;
-    }
-    else
-    {
-        LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
-        lock();
-        incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
-        unlock();
+      if (ret != 0){
+          LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for fd errono: %d (%s) "
+              "drm fd: %d data fd: %d\n", errno, strerror(errno), msm_dev->fd, name);
+          gemimport_req.handle = 0;
+      }
+      else
+      {
+          LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
+          lock();
+          incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
+          unlock();
+      }
+    } else {
+        LOG(LOG_WARN,"gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     msm_gbmbo = (struct msmgbm_bo *)calloc(1, sizeof(struct msmgbm_bo));
@@ -3176,7 +3191,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
     if(!msm_gbm_bo || !buf_lyt)
         return GBM_ERROR_BAD_HANDLE;
 
-    if (IsCameraCustomFormat(gbo->format)) {
+    if (IsCameraCustomFormat(gbo->format, gbo->usage_flags)) {
         LOG(LOG_DBG,"Getting planeInfo for camera custom format %s\n",
                      get_msmgbm_format_name(gbo->format));
         res = GetCameraPlaneInfo(msm_gbm_bo, buf_lyt);
@@ -3311,7 +3326,7 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
         return NULL;
     }
     if(1 == IsFormatSupported(gbo->format))
-        Bpp = GetFormatBpp(gbo->format);
+        Bpp = GetFormatBpp(gbo->format, gbo->usage_flags);
     else
     {
         LOG(LOG_ERR,"Format %s not supported\n", get_msmgbm_format_name(gbo->format));

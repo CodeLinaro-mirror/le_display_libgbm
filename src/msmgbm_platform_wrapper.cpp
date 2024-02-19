@@ -30,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -255,6 +255,14 @@ void platform_wrap_deinstnce(void) {
 
 bool IsCameraCustomFormat(uint32_t format, uint64_t usage) {
   return CameraInfo::GetInstance()->IsCameraCustomFormat(format, usage);
+}
+
+int GetCameraCustomFormatBpp(uint32_t format) {
+  int bpp = 0;
+  CameraInfo::GetInstance()->GetBpp(format, &bpp);
+
+  // camera utility provides bpp in bits
+  return bpp / 8;
 }
 
 int GetCameraPlaneInfo(struct msmgbm_bo *msm_gbm_bo, generic_buf_layout_t *buf_lyt) {
@@ -536,7 +544,7 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
 
    int prod_usage=usage;
    int cons_usage=usage;
-
+   unsigned int mmm_color_format = 0;
 
     if (is_ubwc_enbld(format, prod_usage,cons_usage)) {
         return get_ubwc_size(width, height, format, alignedw, alignedh);
@@ -618,7 +626,9 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE:
         case GBM_FORMAT_NV12:
-            size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12, width, height);
+            mmm_color_format = (usage & GBM_BO_USAGE_PRIVATE_HEIF) ?
+                                MMM_COLOR_FMT_NV12_512 : MMM_COLOR_FMT_NV12;
+            size = MMM_COLOR_FMT_BUFFER_SIZE(mmm_color_format, width, height);
             LOG(LOG_DBG," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
@@ -757,6 +767,7 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
   unsigned int prod_usage = descriptor->Usage;
   unsigned int cons_usage = descriptor->Usage;
   unsigned int alignment = 32;
+  unsigned int mmm_color_format = 0;
   bool ubwc_enabled = false;
   int tile = 0;
 
@@ -841,8 +852,10 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_NV12_ENCODEABLE:
       LOG(LOG_DBG,"@ YUV Format\n");
-      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12, width));
-      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12, height));
+      mmm_color_format = (prod_usage & GBM_BO_USAGE_PRIVATE_HEIF) ?
+                          MMM_COLOR_FMT_NV12_512 : MMM_COLOR_FMT_NV12;
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(mmm_color_format, width));
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(mmm_color_format, height));
       break;
     case GBM_FORMAT_NV12:
       if (ubwc_enabled) {

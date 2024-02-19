@@ -73,7 +73,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -162,6 +162,9 @@ extern "C" {
 #define GBM_BO_USAGE_HW_RENDERING_QTI    	0x02000000 /*BO allocation for GPU based rendering operation */
 #define GBM_BO_USAGE_10BIT_QTI    	      0x04000000 /*BO allocation for 10 bit */
 #define GBM_BO_USAGE_10BIT_TP_QTI    	      0x08000000 /*BO allocation for 10 bit TP */
+
+/* First 6 bits for flags are used by gbm.h */
+#define GBM_BO_USAGE_PRIVATE_HEIF    	      0x00000040 /*BO allocation for heif format */
 
 /**
  *  These are the parameter types to be used by the clients to query metadata info from gbm backend

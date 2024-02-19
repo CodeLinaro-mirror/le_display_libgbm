@@ -333,6 +333,12 @@ extern "C" {
     bool IsCameraCustomFormat(uint32_t format, uint64_t usage);
 
     /**
+     * C wrapper function to get the custom camera format bpp
+     * @return bpp of the format
+     */
+    int GetCameraCustomFormatBpp(uint32_t format);
+
+    /**
      * C wrapper function to Get camera planeInfo
      * @return generic_buf_layout_t plane info
      */

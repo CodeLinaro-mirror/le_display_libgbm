@@ -82,7 +82,7 @@ int CameraInfo::GetStrideInBytes(int format, int plane_type, int width, int *str
       *stride_bytes = stride * bpp / 8;
       break;
     default:
-      LOG(LOG_ERR, "Unhandled format %d for GetStrideInBytes\n", format);
+      LOG(LOG_ERR, "Unhandled format %s for GetStrideInBytes\n", get_msmgbm_format_name(format));
       break;
   }
 
@@ -112,7 +112,7 @@ int CameraInfo::GetPlaneTypes(int format, PlaneComponent *plane_component_array,
       break;
     default:
       *plane_count = 0;
-      LOG(LOG_ERR, "Unhandled format %d for GetPlaneTypes\n", format);
+      LOG(LOG_ERR, "Unhandled format %s for GetPlaneTypes\n", get_msmgbm_format_name(format));
       break;
   }
 
@@ -129,7 +129,7 @@ int CameraInfo::GetScanline(int format, int plane_type, int height, int *scanlin
     }
     break;
   default:
-    LOG(LOG_ERR, "Unhandled format %d for GetScanline\n", format);
+    LOG(LOG_ERR, "Unhandled format %s for GetScanline\n", get_msmgbm_format_name(format));
     break;
   }
 
@@ -161,7 +161,7 @@ int CameraInfo::GetPlaneAlignment(int format, int plane_type, unsigned int *alig
       break;
     default:
       *alignment = 1;
-      LOG(LOG_ERR, "Unhandled format %d for GetPlaneAlignment\n", format);
+      LOG(LOG_ERR, "Unhandled format %s for GetPlaneAlignment\n", get_msmgbm_format_name(format));
       return -1;
   }
 
@@ -172,8 +172,9 @@ int CameraInfo::GetBpp(int format, int *bpp) {
   switch (format) {
     case GBM_FORMAT_NV21_ZSL:
       *bpp = 12;
+      break;
     default:
-      LOG(LOG_ERR, "Unhandled format %d for GetBpp\n", format);
+      LOG(LOG_ERR, "Unhandled format %s for GetBpp\n", get_msmgbm_format_name(format));
       *bpp = 0;
       return -1;
   }
@@ -191,7 +192,7 @@ int CameraInfo::GetPerPlaneBpp(int format, int plane_type, int *bpp) {
       }
       break;
     default:
-      LOG(LOG_ERR, "Unhandled format %d for GetPerPlaneBpp\n", format);
+      LOG(LOG_ERR, "Unhandled format %s for GetPerPlaneBpp\n", get_msmgbm_format_name(format));
       *bpp = 0;
       return -1;
   }

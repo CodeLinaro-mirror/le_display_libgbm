@@ -265,6 +265,12 @@ ADRENOPIXELFORMAT adreno_mem_info::get_gpu_pxl_fmt(unsigned int gbm_format) {
       return ADRENO_PIXELFORMAT_R16G16B16A16_FLOAT;
     case GBM_FORMAT_RGBA32323232F:
       return ADRENO_PIXELFORMAT_R32G32B32A32_FLOAT;
+    case GBM_FORMAT_XRGB8888:
+      return ADRENO_PIXELFORMAT_B8G8R8X8_UNORM;
+    case GBM_FORMAT_ARGB8888:
+      return ADRENO_PIXELFORMAT_B8G8R8A8_UNORM;
+    case GBM_FORMAT_NV21:
+      return ADRENO_PIXELFORMAT_NV21;
     default:
       LOG(LOG_ERR,":No map for format: 0x%x",gbm_format);
       break;
