@@ -2145,8 +2145,9 @@ void* msmgbm_cpu_map_ionfd(int ion_fd, unsigned int size, struct meta_data_t *me
                 cpuaddr = NULL;
                 LOG(LOG_DBG, "cpu mapping failed for ion fd = %d, %s", ion_fd, strerror(errno));
             }
+        } else {
+            LOG(LOG_DBG, "Can't map secure buffer", __func__, __LINE__);
         }
-        LOG(LOG_DBG, "Can't map secure buffer", __func__, __LINE__);
     }
 
     return cpuaddr;
