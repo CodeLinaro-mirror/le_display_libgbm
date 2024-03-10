@@ -1612,7 +1612,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     memset(&mtdadta_gemimport_req, 0, sizeof(mtdadta_gemimport_req));
 
     if(buffer_info->metadata_fd < 0) {
-        LOG(LOG_WARN,"INVALID Metadata File descriptor provided(%d)\n",
+        LOG(LOG_DBG,"INVALID Metadata File descriptor provided(%d)\n",
                                              buffer_info->metadata_fd);
     } else if (msm_dev->fd >= 0)
     {
