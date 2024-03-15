@@ -35,7 +35,7 @@
  */
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -1797,6 +1797,7 @@ static int test_import_fd()
     uint32_t ret=GBM_ERROR_NONE;
 
     bo1 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo1));
 
     buf_data.fd=bo1->ion_fd;
     buf_data.height=1024;
@@ -1841,6 +1842,7 @@ static int test_import_gbm_buf()
     uint32_t ret=GBM_ERROR_NONE;
 
     bo1 = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo1));
 
     buf_info.fd=bo1->ion_fd;
     buf_info.metadata_fd=bo1->ion_metadata_fd;
