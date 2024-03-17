@@ -30,7 +30,7 @@
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -172,6 +172,12 @@ int CameraInfo::GetBpp(int format, int *bpp) {
   switch (format) {
     case GBM_FORMAT_NV21_ZSL:
       *bpp = 12;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      *bpp = 1;
       break;
     default:
       LOG(LOG_ERR, "Unhandled format %s for GetBpp\n", get_msmgbm_format_name(format));

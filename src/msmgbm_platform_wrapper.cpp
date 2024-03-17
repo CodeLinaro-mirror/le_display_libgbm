@@ -733,6 +733,10 @@ void platform_wrap::get_yuv_ubwc_wdth_hght(int width, int height, int format,
     case GBM_FORMAT_NV12_ENCODEABLE:
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
       *aligned_w = MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width);
       *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
       break;
@@ -1030,6 +1034,10 @@ bool platform_wrap::is_ubwc_enbld(int format, int prod_usage,
         }
     }
 
+    if (is_ubwc_flex_format(format)) {
+      return true;
+    }
+
     return false;
 }
 // TODO (user) : check for other formats with mcro-tile
@@ -1142,12 +1150,52 @@ unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, uns
       y_meta_scanlines = MMM_COLOR_FMT_Y_META_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
       size += MMM_COLOR_FMT_ALIGN(y_meta_stride * y_meta_scanlines, 4096);
       break;
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      size = get_batch_size(format) * MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC,
+                                                                width, height);
+      break;
     default:
       LOG(LOG_ERR," Unsupported pixel format: 0x%x\n",format);
       break;
   }
 
   return size;
+}
+
+bool platform_wrap::is_ubwc_flex_format(int format) {
+  switch(format) {
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      return true;
+  }
+
+  return false;
+}
+
+uint32_t platform_wrap::get_batch_size(int format) {
+  uint32_t batchsize = 1;
+  switch (format) {
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+      batchsize = 2;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+      batchsize = 4;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      batchsize = 8;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+      batchsize = 16;
+      break;
+    default:
+      break;
+  }
+  return batchsize;
 }
 
 }  // namespace msm_gbm

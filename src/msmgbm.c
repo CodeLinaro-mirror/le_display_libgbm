@@ -456,6 +456,10 @@ static int GetFormatBpp(uint32_t format, uint32_t usage)
    switch(format)
    {
         case GBM_FORMAT_R8:
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
             return 1;
         case GBM_FORMAT_UYVY:
         case GBM_FORMAT_YUYV:
@@ -569,6 +573,10 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_RGB323232F:
         case GBM_FORMAT_RGBA16161616F:
         case GBM_FORMAT_RGBA32323232F:
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
             is_supported = 1;
             LOG(LOG_DBG,"Valid format\n");
             break;
@@ -3594,6 +3602,9 @@ char * get_msmgbm_format_name(int format)
       return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR";
     case GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR:
       return "GBM_FORMAT_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR";
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH: return "GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH";
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH: return "GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH";
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH: return "GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH";
     default:
     {
       LOG(LOG_WARN, "Unknown format 0X%x\n", format);
