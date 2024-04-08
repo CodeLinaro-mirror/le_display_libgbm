@@ -411,7 +411,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
             if(bo->handle.u32) {
                 gem_close.handle=bo->handle.u32;
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
-                    LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%u\n%s\n",
+                    LOG(LOG_DBG,"Failed to Close GEM Handle for BO=%u\n%s\n",
                                              bo->handle.u32,strerror(errno));
             }
         }
@@ -423,7 +423,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
             if(bo->metadata_handle.u32) {
                 gem_close.handle=bo->metadata_handle.u32;
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
-                    LOG(LOG_ERR,"Failed to Close Metadata GEM Handle for BO=%u\n%s\n",
+                    LOG(LOG_DBG,"Failed to Close Metadata GEM Handle for BO=%u\n%s\n",
                                      bo->metadata_handle.u32,strerror(errno));
             }
         }
@@ -867,7 +867,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         drm_args.fd = data_fd;
         if(ioctl(msm_dev->fd,DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
         {
-            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for data fd errono: %d (%s) "
+            LOG(LOG_DBG,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for data fd errono: %d (%s) "
                 "drm fd: %d data fd: %d\n", errno, strerror(errno), msm_dev->fd, data_fd);
             drm_args.handle = 0;
         }
@@ -920,7 +920,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         drm_args.fd = mt_data_fd;
         if(ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
         {
-            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for metadata fd errono: %d (%s) "
+            LOG(LOG_DBG,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for metadata fd errono: %d (%s) "
                 "drm fd: %d metadata fd: %d\n", errno, strerror(errno), msm_dev->fd, mt_data_fd);
             drm_args.handle = 0;
         }
