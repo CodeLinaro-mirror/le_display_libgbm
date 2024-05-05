@@ -1827,6 +1827,7 @@ static int test_import_fd()
         return 0;
     }
 
+    gbm_bo_destroy(bo2);
     gbm_bo_destroy(bo1);
 
     return 1;
