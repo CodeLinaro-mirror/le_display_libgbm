@@ -548,6 +548,9 @@ static int test_metadata()
     gbm_device_destroy(gbm);
     close(fd);
 
+    if(buf)
+      free(buf);
+
     return 1;
 }
 
@@ -1874,6 +1877,7 @@ static int test_import_gbm_buf()
         return 0;
     }
 
+    gbm_bo_destroy(bo2);
     gbm_bo_destroy(bo1);
 
     return 1;
@@ -2123,7 +2127,9 @@ static int test_plane_info()
     printf("Num planes = %d \n",num_planes);
     uint32_t stride = gbm_bo_get_stride_for_plane(gb_bo, num_planes-1);
     printf("Stride for plane %d is  %d \n",num_planes-1,stride);
+    gbm_bo_destroy(gb_bo);
   }
+
   return 1;
 }
 
@@ -2223,6 +2229,8 @@ static int test_alloc_with_modifiers()
          } else {
            test_case_status &= true;
          }
+
+         gbm_bo_destroy(gb_bo);
    }
 
   return (test_case_status? 1:0);
