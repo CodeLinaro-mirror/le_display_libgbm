@@ -125,6 +125,22 @@ static inline void lock_destroy(void)
 
 }
 
+void __attribute__ ((constructor)) msmgbm_library_open(void)
+{
+    if(platform_wrap_instnce())
+        LOG(LOG_ERR,"Failed to init platform wrap\n %s\n",strerror(errno));
+    if(msmgbm_mapper_instnce())
+        LOG(LOG_ERR,"Failed to init mapper\n %s\n",strerror(errno));
+    lock_init();
+}
+
+void __attribute__ ((destructor)) msmgbm_library_close(void)
+{
+    platform_wrap_deinstnce();
+    msmgbm_mapper_deinstnce();
+    lock_destroy();
+}
+
 //ION Helper Functions
 int ion_open(void)
 {
@@ -295,7 +311,8 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
 
         LOG(LOG_DBG,"Destroy called for fd=%d",bo->ion_fd);
 
-         //Delete the Map entries if reference count is 0
+        //Delete the Map entries if reference count is 0
+        lock();
         if(decr_refcnt(bo->ion_fd))
         {
             /*
@@ -349,6 +366,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
 
             }
         }
+        unlock();
 
         /*
          * Free the msm_gbo object
@@ -1053,6 +1071,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     struct gbm_buf_info gbo_info;
     struct msmgbm_private_info gbo_private_info = {NULL, NULL};
 
+    lock();
     if(search_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info) == GBM_ERROR_NONE)
     {
         LOG(LOG_DBG,"Map retrieved buf info\n");
@@ -1063,10 +1082,8 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
                     gbo_info.fd, gbo_info.metadata_fd, gbo_info.width, gbo_info.height,
                     gbo_info.format, gbo_private_info.cpuaddr, gbo_private_info.mt_cpuaddr);
 
-        lock();
         //we have a valid entry within the map table so Increment ref count
         incr_refcnt(buffer_info->fd);
-        unlock();
     }
     else
     {
@@ -1080,12 +1097,11 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
 
         //we cannot map cpu address as we dont have a reliable way to find
         //whether ion fd is secure or not since metadata_fd is not present
-        lock();
         register_to_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info);
         incr_refcnt(buffer_info->fd);
-        unlock();
 
     }
+    unlock();
 
     LOG(LOG_DBG," format: 0x%x width: %d height: %d \n",buffer_info->format, buffer_info->width, buffer_info->height);
 
@@ -1249,7 +1265,9 @@ msmgbm_bo_import_wl_buffer(struct msmgbm_device *msm_dev,
     }
 
     //Search Map for a valid entry
+    lock();
     ret = search_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info);
+    unlock();
     if(ret != GBM_ERROR_NONE) {
         register_map = 1;
     }
@@ -2030,7 +2048,7 @@ msmgbm_surface_create(struct gbm_device *gbm, uint32_t width,
 #ifdef ALLOCATE_SURFACE_BO_AT_CREATION
     for(index =0; index < NUM_BACK_BUFFERS; index++) {
        msm_gbmsurf->bo[index] = to_msmgbm_bo(msmgbm_bo_create(gbm, width,
-	                                         height, format, flags, NULL, 0));
+                                             height, format, flags, NULL, 0));
        if(msm_gbmsurf->bo[index] == NULL){
            LOG(LOG_ERR," Unable to create Surface BO %d\n", index);
            free_surface_bo(msm_gbmsurf, index);
@@ -2063,27 +2081,16 @@ msmgbm_device_destroy(struct gbm_device *gbm)
 {
     struct msmgbm_device *msm_dev = to_msmgbm_device(gbm);
 
-    //Destroy the platform wrapper cpp object
-    platform_wrap_deinstnce();
-
-    //Destroy the  mapper cpp object
-    msmgbm_mapper_deinstnce();
-
-    lock_destroy();
-
-    if (!msm_dev) {
-        LOG(LOG_ERR,"NULL or Invalid device pointer\n");
-        return;
-    }
-
-    LOG(LOG_DBG, "iondev_fd:%d \n", msm_dev->iondev_fd);
-    //Close the ion device fd
-    if(msm_dev->iondev_fd > 0)
-        close(msm_dev->iondev_fd);
-
     if(msm_dev != NULL){
+        LOG(LOG_DBG, "iondev_fd:%d \n", msm_dev->iondev_fd);
+        //Close the ion device fd
+        if(msm_dev->iondev_fd > 0)
+            close(msm_dev->iondev_fd);
         free(msm_dev);
         msm_dev = NULL;
+    }
+    else {
+        LOG(LOG_ERR,"NULL or Invalid device pointer\n");
     }
 
     return;
@@ -2103,16 +2110,6 @@ msmgbm_device_create(int fd)
 
     //Update the debug level here
     config_dbg_lvl();
-
-   //Instantiate the platform wrapper cpp object
-   if(platform_wrap_instnce())
-     return NULL;
-
-    //Instantiate the mapper cpp object
-    if(msmgbm_mapper_instnce())
-      return NULL;
-
-    lock_init();
 
     //open the ion device
     msm_gbmdevice->iondev_fd = ion_open();
