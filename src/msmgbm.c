@@ -667,7 +667,7 @@ static inline uint32_t query_metadata_size(void)
 static uint32_t GetUsageFromModifier(const uint64_t *modifiers,
               const unsigned int count)
 {
-  uint32_t usage = 0;
+  uint32_t usage = GBM_BO_USE_RENDERING;
    for (unsigned int i = 0; i < count ; i++) {
      if (modifiers[i] == DRM_FORMAT_MOD_QCOM_COMPRESSED) {
        usage |= GBM_BO_USAGE_UBWC_ALIGNED_QTI;

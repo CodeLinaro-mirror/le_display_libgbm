@@ -77,7 +77,7 @@
 #define ALIGN_G(x, align) ((x % align == 0) ? (x) : (x - (x % align) + align))
 #define ASTC_BLOCK_SIZE 16
 
-bool g_ubwc_disable = false;
+bool g_ubwc_disable = true;
 
 namespace msm_gbm {
 
@@ -1000,7 +1000,7 @@ bool platform_wrap::is_ubwc_enbld(int format, int prod_usage,
                               int cons_usage) {
     // debug flag to disable UBWC (useful for troubleshooting)
     if (g_ubwc_disable) {
-        LOG(LOG_INFO,"UBWC feature is disabled\n");
+        LOG(LOG_DBG,"UBWC feature is disabled\n");
         return false;
     }
 
