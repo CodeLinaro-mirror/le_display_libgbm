@@ -1922,7 +1922,7 @@ msmgbm_surface_create(struct gbm_device *gbm, uint32_t width,
 #ifdef ALLOCATE_SURFACE_BO_AT_CREATION
     for(index =0; index < NUM_BACK_BUFFERS; index++) {
        msm_gbmsurf->bo[index] = to_msmgbm_bo(msmgbm_bo_create(gbm, width,
-	                                         height, format, flags, NULL, 0));
+	                                         height, format, flags, modifiers, count));
        if(msm_gbmsurf->bo[index] == NULL){
            LOG(LOG_ERR," Unable to create Surface BO %d\n", index);
            free_surface_bo(msm_gbmsurf, index);
