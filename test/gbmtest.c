@@ -2198,14 +2198,14 @@ static int test_alloc_with_modifiers()
          uint32_t flags = gb_bo->usage_flags;
          if (modifier == DRM_FORMAT_MOD_QCOM_DX || modifier == DRM_FORMAT_MOD_QCOM_TILE) {
 
-           if (flags == GBM_BO_USAGE_VIDEO_ENCODER_QTI) {
+           if (flags == (GBM_BO_USAGE_VIDEO_ENCODER_QTI | GBM_BO_USE_RENDERING)) {
              test_case_status &= true;
            } else {
               test_case_status = false;
               printf("Error: mismatch of expected flags with actual flags (TILE, DX) j = %d \n",j);
            }
          } else if (modifier == DRM_FORMAT_MOD_QCOM_TIGHT) {
-           if (flags == GBM_BO_USAGE_10BIT_TP_QTI) {
+           if (flags == (GBM_BO_USAGE_10BIT_TP_QTI | GBM_BO_USE_RENDERING)) {
              test_case_status &= true;
            } else
            {
@@ -2213,7 +2213,7 @@ static int test_alloc_with_modifiers()
               printf("Error: mismatch of expected flags with actual flags (TIGHT) j = %d \n",j);
            }
          } else if (modifier == DRM_FORMAT_MOD_QCOM_COMPRESSED) {
-           if (flags == GBM_BO_USAGE_UBWC_ALIGNED_QTI) {
+           if (flags == (GBM_BO_USAGE_UBWC_ALIGNED_QTI | GBM_BO_USE_RENDERING)) {
              test_case_status &= true;
            } else
            {
