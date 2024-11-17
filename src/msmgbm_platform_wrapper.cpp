@@ -1,7 +1,4 @@
 /*
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
-* Not a Contribution.
-*
 * Copyright (c) 2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -33,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -503,6 +500,10 @@ bool platform_wrap:: is_valid_yuv_fmt(int format) {
         case GBM_FORMAT_C8:
         case GBM_FORMAT_UYVY:
         case GBM_FORMAT_YUYV:
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
           return true;
         default:
           break;
@@ -686,6 +687,13 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
             size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC, width, height);
             break;
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+            size = get_batch_size(format) *
+                   MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC, width, height);
+            break;
         default:
             LOG(LOG_ERR," Unrecognized pixel format: 0x%x\n",format);
             return 0;
@@ -703,6 +711,10 @@ void platform_wrap::get_yuv_ubwc_wdth_hght(int width, int height, int format,
     case GBM_FORMAT_NV12_ENCODEABLE:
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
       *aligned_w = MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width);
       *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
       break;
@@ -984,6 +996,10 @@ bool platform_wrap::is_ubwc_enbld(int format, int prod_usage,
         }
     }
 
+    if (is_ubwc_flex_format(format)) {
+      return true;
+    }
+
     return false;
 }
 // TODO (user) : check for other formats with mcro-tile
@@ -1063,6 +1079,27 @@ unsigned int platform_wrap::get_rgb_ubwc_mb_size(int width, int height, uint32_t
   return size;
 }
 
+uint32_t platform_wrap::get_batch_size(int format) {
+  uint32_t batchsize = 1;
+  switch (format) {
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+      batchsize = 2;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+      batchsize = 4;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      batchsize = 8;
+      break;
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+      batchsize = 16;
+      break;
+    default:
+      break;
+  }
+  return batchsize;
+}
+
 unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, unsigned int alignedw,
                                                 unsigned int alignedh) {
   unsigned int y_meta_stride = 0;
@@ -1096,6 +1133,13 @@ unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, uns
       y_meta_scanlines = MMM_COLOR_FMT_Y_META_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
       size += MMM_COLOR_FMT_ALIGN(y_meta_stride * y_meta_scanlines, 4096);
       break;
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      size = get_batch_size(format) *
+             MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC, width, height);
+      break;
     default:
       LOG(LOG_ERR," Unsupported pixel format: 0x%x\n",format);
       break;
@@ -1104,4 +1148,15 @@ unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, uns
   return size;
 }
 
+bool platform_wrap::is_ubwc_flex_format(int format) {
+  switch(format) {
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+      return true;
+  }
+
+  return false;
+}
 }  // namespace msm_gbm

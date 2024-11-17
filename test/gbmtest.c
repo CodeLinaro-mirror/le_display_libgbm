@@ -35,7 +35,7 @@
  */
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -116,6 +116,10 @@ static const uint32_t format_list[] = {
     GBM_FORMAT_P010,
     GBM_FORMAT_NV12_HEIF,
     GBM_FORMAT_YCbCr_422_I,
+    GBM_FORMAT_NV12_UBWC_FLEX,
+    GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH,
+    GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH,
+    GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH,
 };
 
 struct gbm_format_list {

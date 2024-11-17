@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
@@ -509,6 +509,12 @@ extern "C" {
 #define GBM_FORMAT_RGBA32323232F                            fourcc_mod_code_qti(QTI, 56)
 
 #define GBM_FORMAT_RGB323232F                               fourcc_mod_code_qti(QTI, 57)
+
+#define GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH                   fourcc_mod_code_qti(QTI, 58)
+
+#define GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH                   fourcc_mod_code_qti(QTI, 59)
+
+#define GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH                   fourcc_mod_code_qti(QTI, 60)
 
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'A')
 

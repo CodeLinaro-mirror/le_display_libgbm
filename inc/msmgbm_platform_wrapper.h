@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2017, 2021 The Linux Foundation. All rights reserved.
@@ -210,6 +210,21 @@ class platform_wrap {
    */
     void get_yuv_ubwc_wdth_hght(int width, int height, int format,
                                           unsigned int *aligned_w, unsigned int *aligned_h);
+
+  /**
+   * Function to query UBWC FLEX format or not
+   * @return   true : success
+   *           false : fail
+   */
+    bool is_ubwc_flex_format(int format);
+
+  /**
+   * Function to get batch size for FLEX format
+   * @params    gbm format
+   * @return    batch size
+   *
+   */
+    uint32_t get_batch_size(int format);
 
  private:
   bool gpu_support_macrotile = false;
