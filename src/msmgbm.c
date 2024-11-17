@@ -501,6 +501,10 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
         case GBM_FORMAT_YCbCr_422_I:
         case GBM_FORMAT_YCrCb_422_I:
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
              LOG(LOG_DBG,"YUV format BPP\n");
             return 1;
         case GBM_FORMAT_RGB161616F:
@@ -567,6 +571,10 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_RGB323232F:
         case GBM_FORMAT_RGBA16161616F:
         case GBM_FORMAT_RGBA32323232F:
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
             is_supported = 1;
             LOG(LOG_DBG,"Valid format\n");
             break;
@@ -710,6 +718,10 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
     case GBM_FORMAT_YCbCr_420_TP10_UBWC:
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
     case GBM_FORMAT_YCbCr_420_P010_UBWC:
+    case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
       plane_count = 4;
     break;
     case GBM_FORMAT_BLOB:
@@ -3193,6 +3205,10 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_NV21_ZSL:
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+        case GBM_FORMAT_NV12_UBWC_FLEX:
+        case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
             if (is_ubwc_enabled(gbo->format, gbo->usage_flags, gbo->usage_flags))
                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                            MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
