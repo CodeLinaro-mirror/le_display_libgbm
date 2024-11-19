@@ -1021,8 +1021,10 @@ msmgbm_bo_create(struct gbm_device *gbm,
     msm_gbmbo->magic = QCMAGIC;
 
     bo_handles[0] = gbmbo->handle.u32;
-    pitches[0] = gbmbo->stride;
     msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
+    gbmbo->stride = gbm_bo_get_stride(gbmbo);
+    pitches[0] = gbmbo->stride;
+
     return gbmbo;
 }
 
