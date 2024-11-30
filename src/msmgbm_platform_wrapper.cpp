@@ -1000,13 +1000,6 @@ bool platform_wrap::is_ubwc_support_enbld(int format) {
 bool platform_wrap::is_ubwc_enbld(int format, int prod_usage,
                               int cons_usage) {
     // debug flag to disable UBWC (useful for troubleshooting)
-    std::string soc_id;
-    std::ifstream in("/sys/devices/soc0/soc_id");
-    std::getline(in, soc_id);
-
-    if (std::stoi(soc_id) == 534 || std::stoi(soc_id) == 667)
-        g_ubwc_disable = true;
-
     if (g_ubwc_disable) {
         LOG(LOG_DBG,"UBWC feature is disabled\n");
         return false;
