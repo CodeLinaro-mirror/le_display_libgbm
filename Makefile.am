@@ -4,12 +4,13 @@ gbm_includedir = $(includedir)
 gbm_include_HEADERS = $(gbm_h_sources)
 
 AM_CFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs
-AM_CFLAGS+= -I./inc
-AM_CFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DVENUS_COLOR_FORMAT
+AM_CFLAGS+= -I./inc -I$(WORKSPACE)/vendor/qcom/opensource/commonsys-intf/display/include
+AM_CFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DBUILD_HAS_WAYLAND_SUPPORT -DVENUS_COLOR_FORMAT -DGET_FD_WITH_NEW
 
 AM_CPPFLAGS = -Wundef -Wstrict-prototypes -Wno-trigraphs
-AM_CPPFLAGS+= -I./inc
-AM_CPPFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DVENUS_COLOR_FORMAT
+AM_CPPFLAGS+= -I./inc -I$(WORKSPACE)/vendor/qcom/opensource/commonsys-intf/display/include
+AM_CPPFLAGS+= -DGBM_DEBUG -DALLOCATE_SURFACE_BO_AT_CREATION -DBUILD_HAS_WAYLAND_SUPPORT -DVENUS_COLOR_FORMAT -DGET_FD_WITH_NEW
+
 
 lib_LTLIBRARIES  = libgbm.la libgbmutils.la
 libgbm_la_CFLAGS = $(AM_CFLAGS)

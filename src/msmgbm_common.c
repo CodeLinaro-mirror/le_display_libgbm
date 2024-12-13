@@ -29,7 +29,7 @@
 
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -132,18 +132,24 @@ static uint32_t GetDefaultIonHeapId(uint32_t alloc_flags)
 
     if(alloc_flags & GBM_BO_ALLOC_SECURE_HEAP_QTI){
         ion_heap_id = ION_HEAP(ION_SECURE_HEAP_ID);
-    }else if(alloc_flags & GBM_BO_ALLOC_SECURE_DISPLAY_HEAP_QTI){
-        ion_heap_id = ION_HEAP(ION_SECURE_DISPLAY_HEAP_ID);
-    }else if(alloc_flags & GBM_BO_ALLOC_ADSP_HEAP_QTI){
-        ion_heap_id = ION_HEAP(ION_ADSP_HEAP_ID);
-    }else if(alloc_flags & GBM_BO_ALLOC_CAMERA_HEAP_QTI){
-        ion_heap_id = ION_HEAP(ION_CAMERA_HEAP_ID);
-    }else if(alloc_flags & GBM_BO_ALLOC_IOMMU_HEAP_QTI){
-	/*IOMMU_HEAP is deprecated, use ION_SYSTEM_HEAP_ID*/
-        ion_heap_id = ION_HEAP(ION_SYSTEM_HEAP_ID);
-    }else if(alloc_flags & GBM_BO_ALLOC_MM_HEAP_QTI){
-        ion_heap_id = ION_HEAP(ION_CP_MM_HEAP_ID);
-    }else{
+    }
+    if(alloc_flags & GBM_BO_ALLOC_SECURE_DISPLAY_HEAP_QTI){
+        ion_heap_id |= ION_HEAP(ION_SECURE_DISPLAY_HEAP_ID);
+    }
+    if(alloc_flags & GBM_BO_ALLOC_ADSP_HEAP_QTI){
+        ion_heap_id |= ION_HEAP(ION_ADSP_HEAP_ID);
+    }
+    if(alloc_flags & GBM_BO_ALLOC_CAMERA_HEAP_QTI){
+        ion_heap_id |= ION_HEAP(ION_CAMERA_HEAP_ID);
+    }
+    if(alloc_flags & GBM_BO_ALLOC_IOMMU_HEAP_QTI){
+      /*IOMMU_HEAP is deprecated, use ION_SYSTEM_HEAP_ID*/
+      ion_heap_id |= ION_HEAP(ION_SYSTEM_HEAP_ID);
+    }
+    if(alloc_flags & GBM_BO_ALLOC_MM_HEAP_QTI){
+        ion_heap_id |= ION_HEAP(ION_CP_MM_HEAP_ID);
+    }
+    if (!ion_heap_id) {
         ion_heap_id = ION_HEAP(ION_SYSTEM_HEAP_ID);
     }
 

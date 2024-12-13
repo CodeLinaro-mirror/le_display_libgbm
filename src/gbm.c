@@ -56,7 +56,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -279,7 +279,11 @@ unsigned int
 gbm_bo_get_stride(struct gbm_bo *bo)
 {
     if(bo!=NULL){
-        return bo->stride;
+        if (bo->usage_flags & GBM_BO_USAGE_UBWC_ALIGNED_QTI){
+            return bo->stride_for_plane(1, bo);
+        } else {
+            return bo->stride_for_plane(0, bo);
+        }
     }
     else {
         fprintf(stderr,"%s(%d): NULL or Invalid bo pointer\n",__func__,__LINE__);
@@ -371,10 +375,14 @@ gbm_bo_get_handle(struct gbm_bo *bo)
         return bo->handle;
 }
 
-/** Returns the file description of the buffer object
+/** Get a file descriptor for the buffer object
+ *
+ * Each call to gbm_bo_get_fd() returns a new file descriptor and the caller 
+ * is responsible for closing the file descriptor.
  *
  * \param bo The buffer object
- * \return Returns a file descriptor referring	to the underlying buffer
+ * \return Returns a file descriptor referring to the underlying buffer or -1
+ * if an error occurs.
  */
 int
 gbm_bo_get_fd(struct gbm_bo *bo)
@@ -384,8 +392,28 @@ gbm_bo_get_fd(struct gbm_bo *bo)
     }
     else {
         fprintf(stderr,"%s(%d): NULL or Invalid bo pointer\n",__func__,__LINE__);
-        return 0;
+        return -1;
     }
+}
+
+ /** Get a DMA-BUF file descriptor for the specified plane of the buffer object
+ *
+ * This function creates a DMA-BUF (also known as PRIME) file descriptor
+ * handle for the specified plane of the buffer object.  Each call to
+ * gbm_bo_get_fd_for_plane() returns a new file descriptor and the caller is
+ * responsible for closing the file descriptor.
+ * \param bo The buffer object
+ * \param plane The plane to get a DMA-BUF for
+ * \return Returns a file descriptor referring to the underlying buffer or -1
+ * if an error occurs.
+ *
+ * \sa gbm_bo_get_fd()
+ */
+int
+gbm_bo_get_fd_for_plane(struct gbm_bo *bo, int plane)
+{
+    /*in our implementation, all the planes have the same handle*/
+    return gbm_bo_get_fd(bo);
 }
 
 uint64_t
@@ -415,17 +443,21 @@ gbm_bo_get_plane_count(struct gbm_bo *bo)
 union gbm_bo_handle
 gbm_bo_get_handle_for_plane(struct gbm_bo *bo, int plane)
 {
-  union gbm_bo_handle handle;
+  union gbm_bo_handle ret;
+  ret.s32 = -1;
+
   if(bo!=NULL){
         if (plane <= MAX_NUM_OF_PLANES) {
-          return handle;
+          return bo->handle;
         } else {
-          return (handle);
+          fprintf(stderr,"%s(%d): plane_id(%d) over max(%d)!\n",
+            __func__, __LINE__, plane, MAX_NUM_OF_PLANES);
+          return (ret);
         }
     }
     else {
         fprintf(stderr,"%s(%d): NULL or Invalid bo pointer\n",__func__,__LINE__);
-        return handle;
+        return (ret);
     }
 }
 

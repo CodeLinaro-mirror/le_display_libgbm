@@ -27,8 +27,10 @@
 
 AC_PREREQ(2.61)
 
+m4_define([mesa_version], [21.1.1])
+m4_define([gbm_version], [mesa_version])
 AC_INIT([libgbm],
-    20.1.0,
+    [gbm_version],
     [],
     libgbm)
 
@@ -123,6 +125,13 @@ if test $ALLOCATE_SURFACE_BO_AT_CREATION = yes; then
         AC_DEFINE(ALLOCATE_SURFACE_BO_AT_CREATION, 1, [Enable surface's BO creation at surface creation time])
 fi
 
+GET_FD_WITH_NEW=yes
+
+AM_CONDITIONAL(GET_FD_WITH_NEW, test "x${GET_FD_WITH_NEW}" = "xyes")
+
+if test "x${GET_FD_WITH_NEW}" = "xyes"; then
+    AC_DEFINE(GET_FD_WITH_NEW, 1, [each call returns a new file descriptor with get_fd])
+fi
 
 AC_CONFIG_FILES([ \
     Makefile \

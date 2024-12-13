@@ -30,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -75,6 +75,7 @@
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <sys/mman.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <fcntl.h>
@@ -114,11 +115,10 @@
 #define ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
 
 //Global variables
-int g_debug_level = LOG_INFO;
+int g_debug_level = LOG_WARN;
 
 //Global Variables
 static pthread_mutex_t mutex_obj = PTHREAD_MUTEX_INITIALIZER;
-static int mutex_ref_count = 0;
 static inline void lock_init(void)
 {
     if(pthread_mutex_init(&mutex_obj, NULL))
@@ -152,6 +152,16 @@ static inline void lock_destroy(void)
     if(pthread_mutex_destroy(&mutex_obj))
         LOG(LOG_ERR,"Failed to init Mutex\n %s\n",strerror(errno));
 
+}
+
+void __attribute__ ((constructor)) msmgbm_library_open(void)
+{
+    lock_init();
+}
+
+void __attribute__ ((destructor)) msmgbm_library_close(void)
+{
+    lock_destroy();
 }
 
 static inline
@@ -209,23 +219,18 @@ static uint32_t GetRawFormatStride(struct gbm_bo * bo) {
 
 static uint32_t
 msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
-  uint32_t stride = 0;
-  if (is_valid_uncmprsd_rgb_format(bo->format)) {
-    if(plane == 0) {
-      return bo->stride;
-    } else {
-     return 0;
-    }
-  }
   bool ubwc_enabled = is_ubwc_enbld(bo->format, bo->usage_flags, bo->usage_flags);
-  bool valid_rgb_format = is_valid_rgb_fmt(bo->format);
+  bool cmprsd_rgb_format = is_valid_cmprsd_rgb_format(bo->format);
+  bool is_yuv_format = is_valid_yuv_format(bo->format);
 
-  if (is_valid_raw_format(bo->format)) {
-    return GetRawFormatStride(bo);
-  } else if (!valid_rgb_format) {
+  LOG(LOG_DBG,"plane=%d bo->format=%d ubwc_enabled=%d is_yuv_format=%d cmprsd_rgb=%d\n",
+                plane, bo->format, ubwc_enabled, is_yuv_format, cmprsd_rgb_format);
+
+  if (is_yuv_format) {
     // yuv format
     return bo->buf_lyt.planes[plane].stride;
-  } else if (ubwc_enabled && valid_rgb_format) {
+  } else if (ubwc_enabled && cmprsd_rgb_format) {
+    uint32_t stride = 0;
     // UBWC RGB format
     // there are two planes.
     if (plane == 0) {
@@ -237,8 +242,9 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
         stride = MMM_COLOR_FMT_RGB_STRIDE(MMM_COLOR_FMT_RGBA8888_UBWC, bo->width);
       }
     }
+    return stride;
   }
-  return stride;
+  return bo->stride;
 }
 
 static void
@@ -250,13 +256,27 @@ msmgbm_bo_unmap(void *map_data)
 static int
 msmgbm_bo_get_fd(struct gbm_bo *bo)
 {
-
-    if(bo!=NULL){
-        return bo->ion_fd;
-    }
-    else {
+    if (bo != NULL) {
+        int new_fd = -1;
+#ifdef GET_FD_WITH_NEW
+        lock();
+        new_fd = dup(bo->ion_fd);
+#else
+        new_fd = bo->ion_fd;
+#endif
+        if (new_fd < 0) {
+            LOG(LOG_ERR, "Fail to dup ion_fd. Err:\n%s\n", strerror(errno));
+            return -1;
+        }
+#ifdef GET_FD_WITH_NEW
+        register_dup_fd_to_hashmap(bo->ion_fd, new_fd);
+        unlock();
+        LOG(LOG_DBG, "dup fd[%d] -> new fd[%d]\n", bo->ion_fd, new_fd);
+#endif
+        return new_fd;
+    } else {
         LOG(LOG_ERR, "NULL or Invalid bo pointer\n");
-    return 0;
+        return -1;
     }
 }
 
@@ -323,68 +343,110 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
     int ret = 0;
 
     if(NULL != msm_gbm_bo){
+        struct gbm_buf_info temp_buf_info = { 0 };
+        struct msmgbm_private_info gbo_private_info = { 0 };
 
+        if(bo->ion_fd <= 0){
+            LOG(LOG_ERR,"Destroy called for fd=%d ignore it",bo->ion_fd);
+            return;
+        }
+
+        lock();
+        ret = search_hashmap(bo->ion_fd, &temp_buf_info, &gbo_private_info);
+        unlock();
+
+        LOG(LOG_DBG,"Destroy called for fd=%d meta_fd=%d fd_flg=%d src_fd=%d import_flg=%x",
+                            bo->ion_fd,bo->ion_metadata_fd,temp_buf_info.fd_flg,
+                            temp_buf_info.src_fd,msm_gbm_bo->import_flg);
         LOG(LOG_DBG,"\nmsm_gbm_bo->cpuaddr=0x%x\n msm_gbm_bo->mt_cpuaddr=0x%x\n",
-                                msm_gbm_bo->cpuaddr, msm_gbm_bo->mt_cpuaddr);
+                            msm_gbm_bo->cpuaddr, msm_gbm_bo->mt_cpuaddr);
 
-        LOG(LOG_DBG,"Destroy called for fd=%d",bo->ion_fd);
+        if(ret != GBM_ERROR_NONE) {
+            LOG(LOG_DBG,"Search failed, only free bo\n");
+            free(msm_gbm_bo);
+            msm_gbm_bo = NULL;
+            return;
+        }
 
-         //Delete the Map entries if any
+        //Delete the Map entries if reference count is 0
+        lock();
         if(decr_refcnt(bo->ion_fd))
         {
+            LOG(LOG_DBG,"fd(%d) refcount comes to 0\n", bo->ion_fd);
             /*
-             * Perform unmap of both the BO buffer and Metadata
-             * when ion fd deleted from hashmap
-             * We are only handling CPU mapping here
+             * dup fd would use same mmap addr and metadata fd
+             * so we cannot unmap/close them here
+             * or else mem of mmap() access issue would happen
              */
-            if((msm_gbm_bo->cpuaddr != NULL)||(msm_gbm_bo->mt_cpuaddr != NULL))
-                ret = msmgbm_bo_cpu_unmap(bo);
-            LOG(LOG_DBG,"Currently closing fd=%d\n",bo->ion_fd);
+            if(!(temp_buf_info.fd_flg & IS_DUP_FD))
+            {
+                /*
+                * Perform unmap of both the BO buffer and Metadata
+                * when ion fd deleted from hashmap
+                * We are only handling CPU mapping here
+                */
+                if((msm_gbm_bo->cpuaddr != NULL)||(msm_gbm_bo->mt_cpuaddr != NULL)) {
+                    LOG(LOG_DBG,"\nunmapp msm_gbm_bo->cpuaddr=%p [%d]\n msm_gbm_bo->mt_cpuaddr=%p [%d]\n",
+                                msm_gbm_bo->cpuaddr, bo->ion_fd, msm_gbm_bo->mt_cpuaddr, bo->ion_metadata_fd);
+                    ret = msmgbm_bo_cpu_unmap(bo);
+                }
 
-            /*
-             * Close the fd's for both BO and Metadata
-             */
-            if(bo->ion_fd >= 0){
-                if(close(bo->ion_fd))
-                    LOG(LOG_ERR,"Failed to Close bo->ion_fd=%d\n%s\n",
-                                             bo->ion_fd,strerror(errno));
+                LOG(LOG_DBG,"Currently closing metadata_fd=%d\n", bo->ion_metadata_fd);
+                if(bo->ion_metadata_fd >= 0){
+                    if(close(bo->ion_metadata_fd))
+                        LOG(LOG_ERR,"Failed to Close bo->ion_metadata_fd=%d\n %s\n",
+                                            bo->ion_metadata_fd,strerror(errno));
+                }
             }
 
-            if(bo->ion_metadata_fd >= 0){
-                if(close(bo->ion_metadata_fd))
-                    LOG(LOG_ERR,"Failed to Close bo->ion_metadata_fd=%d\n %s\n",
-                                           bo->ion_metadata_fd,strerror(errno));
-            }
-
             /*
-             * Close the GEM handle for both the BO buffer and Metadata
+             *  Not close external fd here
+             *  lifecycle of external fd should not be controlled by GBM
+             *  it belongs to users themself
              */
+            if(temp_buf_info.fd_flg & INTERNAL_FD) {
+                LOG(LOG_DBG, "Currently closing fd=%d\n", bo->ion_fd);
+                if(bo->ion_fd >= 0 && close(bo->ion_fd))
+                    LOG(LOG_ERR, "Failed to Close bo->ion_fd=%d\n%s\n",
+                        bo->ion_fd, strerror(errno));
+            }
+        }
+
+        /*
+         * Close the GEM handle for both the BO buffer and Metadata
+         */
+        if(decr_handle_refcnt(msm_gbm_bo->device->fd, bo->handle.u32)){
+            LOG(LOG_DBG,"Currently closing GEM Handle=%u\n", bo->handle.u32);
+
             memset(&gem_close, 0, sizeof(gem_close));
             if(bo->handle.u32){
                 gem_close.handle=bo->handle.u32;
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
-                    LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%p\n%s\n",
+                    LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%u\n%s\n",
                                              bo->handle.u32,strerror(errno));
             }
+        }
+
+        if(decr_handle_refcnt(msm_gbm_bo->device->fd, bo->metadata_handle.u32)){
+            LOG(LOG_DBG,"Currently closing GEM Metadata Handle=%u\n", bo->metadata_handle.u32);
 
             memset(&gem_close, 0, sizeof(gem_close));
             if(bo->metadata_handle.u32){
                 gem_close.handle=bo->metadata_handle.u32;
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
-                    LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%p\n%s\n",
+                    LOG(LOG_ERR,"Failed to Close Metadata GEM Handle for BO=%u\n%s\n",
                                      bo->metadata_handle.u32,strerror(errno));
 
             }
         }
+        unlock();
 
         /*
          * Free the msm_gbo object
          */
-        if(msm_gbm_bo != NULL){
-            LOG(LOG_DBG,"msm_gbm_bo handle to be freed for BO=%p\n",msm_gbm_bo);
-            free(msm_gbm_bo);
-            msm_gbm_bo = NULL;
-        }
+        LOG(LOG_DBG,"msm_gbm_bo handle to be freed for BO=%p\n",msm_gbm_bo);
+        free(msm_gbm_bo);
+        msm_gbm_bo = NULL;
     }
     else
         LOG(LOG_ERR,"NULL or Invalid bo pointer\n");
@@ -403,6 +465,7 @@ static int GetFormatBpp(uint32_t format)
    {
         case GBM_FORMAT_R8:
             return 1;
+        case GBM_FORMAT_UYVY:
         case GBM_FORMAT_RG88:
         case GBM_FORMAT_R16:
         case GBM_FORMAT_Y16:
@@ -415,8 +478,10 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_P010:
             return 2;
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
             return 3;
         case GBM_FORMAT_RG1616:
+        case GBM_FORMAT_BGRA8888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -472,6 +537,8 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
+        case GBM_FORMAT_BGRA8888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -535,6 +602,8 @@ is_format_rgb(uint32_t format)
         case GBM_FORMAT_RGB565:
         case GBM_FORMAT_BGR565:
         case GBM_FORMAT_RGB888:
+        case GBM_FORMAT_BGR888:
+        case GBM_FORMAT_BGRA8888:
         case GBM_FORMAT_RGBA8888:
         case GBM_FORMAT_RGBX8888:
         case GBM_FORMAT_XRGB8888:
@@ -670,6 +739,28 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
 return plane_count;
 }
 
+static bool is_dup_fd(int src_fd, int dup_fd)
+{
+    struct stat src_stat, dup_stat;
+
+    if (src_fd < 0)
+        return false;
+
+    if (fstat(src_fd, &src_stat) < 0) {
+        LOG(LOG_DBG," src_fd get file state failed!, maybe already closed\n");
+        return false;
+    }
+    if(fstat(dup_fd, &dup_stat) < 0) {
+        LOG(LOG_DBG," dup_stat get file state failed!\n");
+        return false;
+    }
+
+    LOG(LOG_DBG," src_fd[%d] dup_fd[%d]\n",src_fd,dup_fd);
+    LOG(LOG_DBG," src_fd st_dev src[%lu] dup[%lu]\n", src_stat.st_dev, dup_stat.st_dev);
+    LOG(LOG_DBG," src_fd st_ino src[%lu] dup[%lu]\n", src_stat.st_ino, dup_stat.st_ino);
+    return (src_stat.st_dev == dup_stat.st_dev) && (src_stat.st_ino == dup_stat.st_ino);
+}
+
 static struct gbm_bo *
 msmgbm_bo_create(struct gbm_device *gbm,
               uint32_t width, uint32_t height,
@@ -696,12 +787,18 @@ msmgbm_bo_create(struct gbm_device *gbm,
     struct msmgbm_bo *msm_gbmbo = NULL;
     int data_fd = 0;
     int mt_data_fd = 0;
+    struct drm_prime_handle drm_args;
     /* Callers of this may specify a modifier, or a dri usage, but not both. The
      * newer modifier interface deprecates the older usage flags.
      */
    if(usage && count) {
      LOG(LOG_ERR," Usage and modifier both cannot be supplied \n");
      return NULL;
+   }
+
+   /* Currently these two flags are equivalent */
+   if (usage & GBM_BO_USE_PROTECTED) {
+        usage |= GBM_BO_USAGE_PROTECTED_QTI;
    }
 
    if(count > 0 && count <= MAX_NUM_MODIFIERS) {
@@ -747,12 +844,12 @@ msmgbm_bo_create(struct gbm_device *gbm,
      * ION Memory is from, the System heap
      * We get the gem handle from the ion fd using PRIME ioctls
      */
-     data_fd = AllocBuffer(usage, size, PAGE_SIZE);
-     if (data_fd < 0) {
+    data_fd = AllocBuffer(usage, size, PAGE_SIZE);
+    if (data_fd < 0) {
         LOG(LOG_ERR,"Failed to allocate buffer\n");
         return NULL;
-     }
-     LOG(LOG_DBG,"allocated data fd := %p\n",data_fd);
+    }
+    LOG(LOG_DBG,"allocated data fd := %d\n",data_fd);
 
     //Do not mmap if it is secure operation.
     if(!(GetIonAllocFlags(usage) & ION_FLAG_SECURE)) {
@@ -763,6 +860,34 @@ msmgbm_bo_create(struct gbm_device *gbm,
         }
         LOG(LOG_DBG,"BO Mapped Addr:= %p\n",base);
     }
+
+    //Use PRIME ioctl to convert to GEM handle
+    memset(&drm_args, 0, sizeof(drm_args));
+    if (msm_dev->fd >= 0)
+    {
+        //Perform DRM IOCTL FD to Handle
+        drm_args.fd = data_fd;
+        if(ioctl(msm_dev->fd,DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
+        {
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for data fd errono: %d (%s) "
+                "drm fd: %d data fd: %d\n", errno, strerror(errno), msm_dev->fd, data_fd);
+            drm_args.handle = 0;
+        }
+        else
+        {
+            LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", drm_args.handle, drm_args.fd);
+            lock();
+            incr_handle_refcnt(msm_dev->fd, drm_args.handle);
+            unlock();
+        }
+    } else
+    {
+        LOG(LOG_WARN,"data gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
+    }
+
+    gem_handle=drm_args.handle;
+    LOG(LOG_DBG," Gem Handle for BO =:%p\n",gem_handle);
+
 
     /* To get ion_fd and gem handle for the metadata structure
      * Alignment of the buffer is fixed to Page size
@@ -788,6 +913,35 @@ msmgbm_bo_create(struct gbm_device *gbm,
     // Initiliaze the meta_data structure
     memset(mt_base, 0 , mt_size);
 
+    //Use PRIME ioctl to convert to GEM handle
+    memset(&drm_args, 0, sizeof(drm_args));
+    //Use drm fd returned from previous drmOpen API
+    if(msm_dev->fd >= 0)
+    {
+        //Perform DRM IOCTL FD to Handle
+        drm_args.fd = mt_data_fd;
+        if(ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &drm_args))
+        {
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for metadata fd errono: %d (%s) "
+                "drm fd: %d metadata fd: %d\n", errno, strerror(errno), msm_dev->fd, mt_data_fd);
+            drm_args.handle = 0;
+        }
+        else
+        {
+            LOG(LOG_DBG,"Get Metadata Gem Handle[%u] from fd[%d]\n", drm_args.handle, drm_args.fd);
+            lock();
+            incr_handle_refcnt(msm_dev->fd, drm_args.handle);
+            unlock();
+        }
+    }
+    else
+    {
+        LOG(LOG_WARN,"metadata data gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
+    }
+
+    mt_gem_handle=drm_args.handle;
+    LOG(LOG_DBG,"Gem Handle for Metadata =:%p\n",mt_gem_handle);
+
     //Update the secure buffer flag info
     if(usage & GBM_BO_USAGE_PROTECTED_QTI)
     {
@@ -811,6 +965,8 @@ msmgbm_bo_create(struct gbm_device *gbm,
     gbo_info.format = format;
     gbo_info.height = height;
     gbo_info.width  = width;
+    gbo_info.fd_flg = INTERNAL_FD;
+    gbo_info.src_fd = -1;
     //add cpu address and metadata address of bo to hashmap
     gbo_private_info.cpuaddr = base;
     gbo_private_info.mt_cpuaddr = mt_base;
@@ -893,6 +1049,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     unsigned int size = 0, mt_size = 0;
     unsigned int aligned_width;
     unsigned int aligned_height;
+    bool register_map = 0;
 
     if (buffer_info == NULL){
         LOG(LOG_ERR,"INVALID buffer_info\n");
@@ -913,42 +1070,57 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     //Query Map
     struct gbm_buf_info gbo_info;
     struct msmgbm_private_info gbo_private_info = {NULL, NULL};
-
+    lock();
     if(search_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info) == GBM_ERROR_NONE)
     {
-        LOG(LOG_DBG,"Map retrieved buf info\n gbm_buf_info.width=%d\n",
-                                                        gbo_info.width);
-        LOG(LOG_DBG,"gbm_buf_info.fd,gbm_buf_info.metadata_fd,"
-                    "gbm_buf_info.height=%d\n gbm_buf_info.format = %d\n",
-                    gbo_info.fd,gbo_info.metadata_fd,gbo_info.height,gbo_info.format);
+        LOG(LOG_DBG,"Map retrieved buf info\n");
+        LOG(LOG_DBG,"gbm_buf_info.fd=%d,gbm_buf_info.metadata_fd=%d\n"
+                    "gbm_buf_info.width=%d gbm_buf_info.height=%d\n"
+                    "gbm_buf_info.format=%d gbm_buf_info.fd_flg=%d src_fd=%d\n"
+                    "gbo_private_info.cpuaddr=%p gbo_private_info.mt_cpuaddr=%p\n",
+                    gbo_info.fd, gbo_info.metadata_fd, gbo_info.width, gbo_info.height,
+                    gbo_info.format, gbo_info.fd_flg, gbo_info.src_fd, gbo_private_info.cpuaddr, gbo_private_info.mt_cpuaddr);
 
-        lock();
-        //we have a valid entry within the map table so Increment ref count
-        incr_refcnt(buffer_info->fd);
-        unlock();
+        /* we need check it's dup fd or new external fd
+         * if dup fd, use the metadata and mmap info from map
+         * if new external fd, metadata=-1 and mmap=NULL
+         */
+        if ((gbo_info.fd_flg & IS_DUP_FD) && (false == is_dup_fd(gbo_info.src_fd, gbo_info.fd))) {
+            register_map = 1;
+            gbo_private_info.cpuaddr = NULL;
+            gbo_private_info.mt_cpuaddr = NULL;
+            LOG(LOG_DBG,"It's dup fd cache, overwrite it\n");
+        } else {
+            //we have a valid entry within the map table so Increment ref count
+            incr_refcnt(buffer_info->fd);
+            LOG(LOG_DBG,"It's existing fd\n");
+        }
     }
     else
     {
-        LOG(LOG_INFO,"Search failed so register_to_map\n",
-                                                    __func__,__LINE__);
+        LOG(LOG_DBG,"Search failed, it's external fd\n");
+        register_map = 1;
+    }
+
+    if(register_map)
+    {
+        LOG(LOG_DBG,"Register new external fd=%d to map\n", buffer_info->fd);
         //Copy the buffer info credentials
         gbo_info.fd=buffer_info->fd;
         gbo_info.metadata_fd = -1; //since we do not have meta fd info here
         gbo_info.format=buffer_info->format;
         gbo_info.width=buffer_info->width;
         gbo_info.height=buffer_info->height;
-
+        gbo_info.fd_flg=EXTERNAL_FD;
+        gbo_info.src_fd=-1;
         //we cannot map cpu address as we dont have a reliable way to find
         //whether fd is secure or not since metadata_fd is not present
-        lock();
         register_to_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info);
         incr_refcnt(buffer_info->fd);
-        unlock();
 
     }
-
-    LOG(LOG_DBG," format: %s width: %d height: %d \n", get_msmgbm_format_name(buffer_info->format),
-                buffer_info->width, buffer_info->height);
+    LOG(LOG_DBG," format: 0x%x width: %d height: %d \n",buffer_info->format, buffer_info->width, buffer_info->height);
+    unlock();
 
     if(1 == IsFormatSupported(buffer_info->format))
         Bpp = GetFormatBpp(buffer_info->format);
@@ -961,12 +1133,26 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
 
     /* Import the gem handle for image BO */
     memset(&gemimport_req, 0, sizeof(gemimport_req));
-    gemimport_req.fd = buffer_info->fd;
+    if (msm_dev->fd >= 0) {
+      gemimport_req.fd = buffer_info->fd;
 
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+      ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
 
-    if (ret != 0){
-        LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x), error = %d\n",msm_dev,ret);
+      if (ret != 0){
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for fd errono: %d (%s) "
+                "drm fd: %d fd: %d\n", errno, strerror(errno), msm_dev->fd, buffer_info->fd);
+          gemimport_req.handle = 0;
+      }
+      else
+      {
+          LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
+          lock();
+          incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
+          unlock();
+      }
+    } else
+    {
+        LOG(LOG_WARN,"data gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     memset(&mtdadta_gemimport_req, 0, sizeof(mtdadta_gemimport_req));
@@ -1001,11 +1187,14 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                = &msm_gbmbo->base;
     gbmbo->ion_fd        = buffer_info->fd;
     gbmbo->ion_metadata_fd = gbo_info.metadata_fd;
     gbmbo->handle.u32    = gemimport_req.handle;
     gbmbo->usage_flags   = bufdesc.Usage;
+    gbmbo->plane_count   = plane_count;
     gbmbo->format        = buffer_info->format;
     gbmbo->width         = buffer_info->width;
     gbmbo->height        = buffer_info->height;
@@ -1015,6 +1204,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     gbmbo->aligned_height = aligned_height;
     gbmbo->bo_destroy    = msmgbm_bo_destroy;
     gbmbo->bo_get_fd     = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device = msmgbm_bo_get_device;
     gbmbo->bo_write      = msmgbm_bo_write;
     msm_gbmbo->device    = msm_dev;
@@ -1025,13 +1215,17 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     msm_gbmbo->size      = size;
     msm_gbmbo->mt_size   = mt_size;
     msm_gbmbo->magic     = QCMAGIC;
-    msm_gbmbo->import_flg = 1;
+    msm_gbmbo->import_flg = GBM_BO_IMPORT_FD;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
         "gbmbo->width=%d,gbmbo->height=%d,gbmbo->format=%s\n",
         gbmbo->ion_fd,gbmbo->ion_metadata_fd,gbmbo->width,
         gbmbo->height, get_msmgbm_format_name(gbmbo->format));
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     return gbmbo;
 
@@ -1091,19 +1285,42 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     {
         LOG(LOG_DBG,"MAP retrieved buf info\n");
         LOG(LOG_DBG,"temp_buf_info.width=%d\n",
-                              temp_buf_info.width);
+                            temp_buf_info.width);
         LOG(LOG_DBG,"temp_buf_info.height=%d\n",
-                             temp_buf_info.height);
+                            temp_buf_info.height);
         LOG(LOG_DBG,"temp_buf_info.format=%d\n",
-                                    temp_buf_info.format);
+                            temp_buf_info.format);
         LOG(LOG_DBG,"temp_buf_info.meta_fd=%d\n",
-                                    temp_buf_info.metadata_fd);
-    }else
-    {
-        LOG(LOG_INFO," MAP table is empty\n");
-        register_map = 1;
-        LOG(LOG_INFO,"Registered fd=%d to table\n",fd_data->fds[0]);
+                            temp_buf_info.metadata_fd);
+        LOG(LOG_DBG,"temp_buf_info.fd_flg=%d src_fd=%d\n",
+                            temp_buf_info.fd_flg, temp_buf_info.src_fd);
+
+        /* we need check it's dup fd or new external fd
+         * if dup fd, use the metadata and mmap info from map
+         * if new external fd, metadata=-1 and mmap=NULL
+         */
+        if ((temp_buf_info.fd_flg & IS_DUP_FD) && (false == is_dup_fd(temp_buf_info.src_fd, temp_buf_info.fd))) {
+            register_map = 1;
+            gbo_private_info.cpuaddr = NULL;
+            gbo_private_info.mt_cpuaddr = NULL;
+            temp_buf_info.metadata_fd = -1;
+            temp_buf_info.fd_flg = EXTERNAL_FD;
+            temp_buf_info.src_fd = -1;
+            LOG(LOG_DBG,"It's dup fd cache, overwrite it\n");
+        } else {
+            //we have a valid entry within the map table so Increment ref count
+            LOG(LOG_DBG,"It's existing fd\n");
+        }
     }
+    else
+    {
+        LOG(LOG_DBG,"Register new external fd=%d to map\n", fd_data->fds[0]);
+        register_map = 1;
+        temp_buf_info.metadata_fd = -1;
+        temp_buf_info.fd_flg = EXTERNAL_FD;
+        temp_buf_info.src_fd = -1;
+    }
+
     //Initialize the helper structure
     bufdesc.Width  = fd_data->width;
     bufdesc.Height = fd_data->height;
@@ -1112,7 +1329,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
 
     mt_size = query_metadata_size();
 
-     meta_data = (struct meta_data_t *)gbo_private_info.mt_cpuaddr;
+    meta_data = (struct meta_data_t *)gbo_private_info.mt_cpuaddr;
     // Check whether imported gbm bo was UBWC allocated
     if(meta_data != NULL) {
         if (meta_data->is_buffer_ubwc) {
@@ -1142,6 +1359,33 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     buffer_info->height = fd_data->height;
     buffer_info->format = fd_data->format;
     buffer_info->metadata_fd = -1;
+    buffer_info->fd_flg = temp_buf_info.fd_flg;
+    buffer_info->src_fd = temp_buf_info.src_fd;
+
+    /* Import the gem handle for image BO */
+    memset(&gemimport_req, 0, sizeof(gemimport_req));
+    if (msm_dev->fd >= 0) {
+        gemimport_req.fd = buffer_info->fd;
+
+        ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+
+        if (ret != 0){
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for  fd errono: %d (%s) "
+                "drm fd: %d  fd: %d\n", errno, strerror(errno), msm_dev->fd, buffer_info->fd);
+            gemimport_req.handle = 0;
+        }
+        else
+        {
+            LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
+            lock();
+            incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
+            unlock();
+        }
+    } else
+    {
+        LOG(LOG_WARN,"gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
+    }
+
     lock();
     if(register_map) {
         //register fd to hashmap if entry not found
@@ -1155,16 +1399,6 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     }
     incr_refcnt(buffer_info->fd);
     unlock();
-    /* Import the gem handle for image BO */
-    memset(&gemimport_req, 0, sizeof(gemimport_req));
-    gemimport_req.fd = buffer_info->fd;
-
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
-
-    if (ret != 0){
-        LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
-                                               msm_dev,strerror(errno));
-    }
 
     memset(&mtdadta_gemimport_req, 0, sizeof(mtdadta_gemimport_req));
 
@@ -1175,11 +1409,14 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                  = &msm_gbmbo->base;
     gbmbo->ion_fd          = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32      = gemimport_req.handle;
     gbmbo->usage_flags     = bufdesc.Usage;
+    gbmbo->plane_count     = plane_count;
     gbmbo->format          = buffer_info->format;
     gbmbo->width           = buffer_info->width;
     gbmbo->height          = buffer_info->height;
@@ -1189,6 +1426,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     gbmbo->size            = size;
     gbmbo->bo_destroy      = msmgbm_bo_destroy;
     gbmbo->bo_get_fd       = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device   = msmgbm_bo_get_device;
     gbmbo->bo_write        = msmgbm_bo_write;
     msm_gbmbo->device      = msm_dev;
@@ -1199,7 +1437,9 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     msm_gbmbo->size            = size;
     msm_gbmbo->mt_size         = mt_size;
     msm_gbmbo->magic           = QCMAGIC;
-    msm_gbmbo->import_flg      = 1;
+    msm_gbmbo->import_flg      = GBM_BO_IMPORT_FD_MODIFIER;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
@@ -1250,8 +1490,9 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
-    LOG(LOG_DBG,"fd=%d format: %s width: %d height: %d\n", buffer_info->fd,
-        get_msmgbm_format_name(buffer_info->format), buffer_info->width, buffer_info->height);
+    LOG(LOG_DBG," fd=%d meta_fd=%d format: 0x%x width: %d height: %d \n",
+        buffer_info->fd, buffer_info->metadata_fd, buffer_info->format,
+        buffer_info->width, buffer_info->height);
 
     if(1 == IsFormatSupported(buffer_info->format))
         Bpp = GetFormatBpp(buffer_info->format);
@@ -1271,20 +1512,40 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     {
         LOG(LOG_DBG,"MAP retrieved buf info\n");
         LOG(LOG_DBG,"temp_buf_info.width=%d\n",
-                              temp_buf_info.width);
+                            temp_buf_info.width);
         LOG(LOG_DBG,"temp_buf_info.height=%d\n",
-                             temp_buf_info.height);
-        LOG(LOG_DBG,"temp_buf_info.format=%s\n",
-                     get_msmgbm_format_name(temp_buf_info.format));
+                            temp_buf_info.height);
+        LOG(LOG_DBG,"temp_buf_info.format=%d\n",
+                            temp_buf_info.format);
         LOG(LOG_DBG,"temp_buf_info.meta_fd=%d\n",
-                                    temp_buf_info.metadata_fd);
+                            temp_buf_info.metadata_fd);
+        LOG(LOG_DBG,"temp_buf_info.fd_flg=%d src_fd=%d\n",
+                            temp_buf_info.fd_flg, temp_buf_info.src_fd);
+
+        /* we need check it's dup fd or new external fd
+         * if dup fd, use the metadata and mmap info from map
+         * if new external fd, metadata=-1 and mmap=NULL
+         */
+        if ((temp_buf_info.fd_flg & IS_DUP_FD) && (false == is_dup_fd(temp_buf_info.src_fd, temp_buf_info.fd))) {
+            register_map = 1;
+            gbo_private_info.cpuaddr = NULL;
+            gbo_private_info.mt_cpuaddr = NULL;
+            temp_buf_info.metadata_fd = -1;
+            temp_buf_info.fd_flg = EXTERNAL_FD;
+            temp_buf_info.src_fd = -1;
+            LOG(LOG_DBG,"It's dup fd cache, overwrite it\n");
+        } else {
+            LOG(LOG_DBG,"It's existing fd\n");
+        }
     }
     else
     {
         LOG(LOG_INFO," MAP table is empty\n");
 
         register_map = 1;
-        LOG(LOG_INFO,"Registered fd=%d to table\n",buffer_info->fd);
+        temp_buf_info.fd_flg = EXTERNAL_FD;
+        temp_buf_info.src_fd = -1;
+        LOG(LOG_DBG,"Registered fd=%d to table\n",buffer_info->fd);
     }
 
     //Initialize the helper structure
@@ -1299,7 +1560,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         if(buffer_info->metadata_fd > 0) {
             gbo_private_info.mt_cpuaddr = msmgbm_cpu_map_metafd(buffer_info->metadata_fd,mt_size);
             LOG(LOG_DBG, "Meta cpu addr = %p created for ion_fd = %d, meta_ion_fd=%d \n",
-             gbo_private_info.mt_cpuaddr, buffer_info->fd, buffer_info->metadata_fd);
+                            gbo_private_info.mt_cpuaddr, buffer_info->fd, buffer_info->metadata_fd);
         }
     } else {
         LOG(LOG_DBG, "Found metadata cpu addr from hashmap for ion fd = %d, ionmetafd=%d, meta_addr=%p\n",
@@ -1324,8 +1585,11 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     if((gbo_private_info.cpuaddr == NULL) && (meta_data != NULL)) {
         gbo_private_info.cpuaddr = msmgbm_cpu_map_ionfd(buffer_info->fd, size, meta_data);
         LOG(LOG_DBG, "ION fd cpu addr = %p created for ion_fd = %d \n",
-            gbo_private_info.cpuaddr, buffer_info->fd);
+                            gbo_private_info.cpuaddr, buffer_info->fd);
     }
+
+    buffer_info->fd_flg = temp_buf_info.fd_flg;
+    buffer_info->src_fd = temp_buf_info.src_fd;
 
     lock();
     if(register_map) {
@@ -1343,34 +1607,55 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
 
     /* Import the gem handle for image BO */
     memset(&gemimport_req, 0, sizeof(gemimport_req));
-    gemimport_req.fd = buffer_info->fd;
+    if (msm_dev->fd >= 0) {
+        gemimport_req.fd = buffer_info->fd;
 
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
-
-    if (ret != 0){
-        LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
-                                               msm_dev,strerror(errno));
+        ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+        if (ret != 0){
+          LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for fd errono: %d (%s) "
+              "drm fd: %d fd: %d\n", errno, strerror(errno), msm_dev->fd, buffer_info->fd);
+            gemimport_req.handle = 0;
+        }
+        else
+        {
+            LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
+            lock();
+            incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
+            unlock();
+        }
+    } else {
+        LOG(LOG_WARN,"gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     memset(&mtdadta_gemimport_req, 0, sizeof(mtdadta_gemimport_req));
 
-    if(buffer_info->metadata_fd < 0)
-        LOG(LOG_DBG,"INVALID Metadata File descriptor provided(%d)\n",
+    if(buffer_info->metadata_fd < 0) {
+        LOG(LOG_WARN,"INVALID Metadata File descriptor provided(%d)\n",
                                              buffer_info->metadata_fd);
-    else
+    } else if (msm_dev->fd >= 0)
     {
-
         /* Import the gem handle for metadata BO */
         mtdadta_gemimport_req.fd = buffer_info->metadata_fd;
 
         ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &mtdadta_gemimport_req);
 
         if (ret != 0){
-            LOG(LOG_DBG,"PRIME FD to Handle failed on device(%x)\n %s\n",
-                                                   msm_dev,strerror(errno));
+            LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for metadatadata fd errono: %d (%s) "
+                "drm fd: %d metadata fd: %d\n", errno, strerror(errno), msm_dev->fd,
+                buffer_info->metadata_fd);
+            mtdadta_gemimport_req.handle = 0;
         }
+        else
+        {
+            LOG(LOG_DBG,"Get Metadata Gem Handle[%u] from fd[%d]\n",
+                            mtdadta_gemimport_req.handle, mtdadta_gemimport_req.fd);
+            lock();
+            incr_handle_refcnt(msm_dev->fd, mtdadta_gemimport_req.handle);
+            unlock();
+        }
+    } else {
+        LOG(LOG_WARN,"data gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
-
 
     msm_gbmbo = (struct msmgbm_bo *)calloc(1, sizeof(struct msmgbm_bo));
 
@@ -1379,11 +1664,14 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         return NULL;
     }
 
+    int plane_count = msmgbm_get_format_modifier_plane_count(buffer_info->format, 0);
+
     gbmbo                  = &msm_gbmbo->base;
     gbmbo->ion_fd          = buffer_info->fd;
     gbmbo->ion_metadata_fd = buffer_info->metadata_fd;
     gbmbo->handle.u32      = gemimport_req.handle;
     gbmbo->usage_flags     = bufdesc.Usage;
+    gbmbo->plane_count     = plane_count;
     gbmbo->format          = buffer_info->format;
     gbmbo->width           = buffer_info->width;
     gbmbo->height          = buffer_info->height;
@@ -1393,6 +1681,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     gbmbo->size            = size;
     gbmbo->bo_destroy      = msmgbm_bo_destroy;
     gbmbo->bo_get_fd       = msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device   = msmgbm_bo_get_device;
     gbmbo->bo_write        = msmgbm_bo_write;
     msm_gbmbo->device      = msm_dev;
@@ -1403,7 +1692,9 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
     msm_gbmbo->size            = size;
     msm_gbmbo->mt_size         = mt_size;
     msm_gbmbo->magic           = QCMAGIC;
-    msm_gbmbo->import_flg      = 1;
+    msm_gbmbo->import_flg      = GBM_BO_IMPORT_GBM_BUF_TYPE;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
     LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
@@ -1426,6 +1717,10 @@ msmgbm_bo_import(struct gbm_device *gbm,
         return NULL;
     }
 
+    if (usage & GBM_BO_USE_PROTECTED) {
+        usage |= GBM_BO_USAGE_PROTECTED_QTI;
+    }
+
     LOG(LOG_DBG,"msmgbm_bo_import invoked\n");
 
      switch(type){
@@ -1442,7 +1737,7 @@ msmgbm_bo_import(struct gbm_device *gbm,
         return msmgbm_bo_import_gbm_buf(msm_dev,buffer, usage);
         break;
      case GBM_BO_IMPORT_FD_MODIFIER:
-        LOG(LOG_DBG,"msmgbm_bo_import_  \n");
+        LOG(LOG_DBG,"msmgbm_bo_import_fd_modifier invoked\n");
         return msmgbm_bo_import_fd_modifier(msm_dev,buffer, usage);
         break;
      default:
@@ -1635,6 +1930,7 @@ msmgbm_surface_create(struct gbm_device *gbm, uint32_t width,
 
     msm_gbmsurf->device = msm_dev;
     msm_gbmsurf->magic = QCMAGIC;
+    msm_gbmsurf->inuse_index = -1;
 
 #ifdef ALLOCATE_SURFACE_BO_AT_CREATION
     for(index =0; index < NUM_BACK_BUFFERS; index++) {
@@ -1678,17 +1974,11 @@ msmgbm_device_destroy(struct gbm_device *gbm)
     //Destroy the  mapper cpp object
     msmgbm_mapper_deinstnce();
 
-    mutex_ref_count--;
-    if (mutex_ref_count == 0) {
-      lock_destroy();
-    }
-
     if(msm_dev != NULL){
         free(msm_dev);
         msm_dev = NULL;
     }
     else {
-
          LOG(LOG_ERR,"NULL or Invalid device pointer\n");
     }
     return;
@@ -1716,11 +2006,6 @@ msmgbm_device_create(int fd)
     //Instantiate the mapper cpp object
     if(msmgbm_mapper_instnce())
       return NULL;
-
-    if (mutex_ref_count == 0) {
-      lock_init();
-    }
-    mutex_ref_count++;
 
     gbmdevice =  &msm_gbmdevice->base;
     gbmdevice->fd = fd;
@@ -1826,16 +2111,18 @@ struct gbm_bo* msmgbm_surface_get_free_bo(struct gbm_surface *surf)
 
     if(msm_gbm_surface != NULL)
     {
-            for(index =0; index < NUM_BACK_BUFFERS; index++)
+        for(index = 0; index < NUM_BACK_BUFFERS; index++)
+        {
+            int cur_index = (msm_gbm_surface->inuse_index + index + 1) % NUM_BACK_BUFFERS;
+            if((msm_gbm_surface->bo[cur_index]!= NULL) && \
+                (msm_gbm_surface->bo[cur_index]->current_state == GBM_BO_STATE_FREE))
             {
-                if((msm_gbm_surface->bo[index]!= NULL) && \
-                    (msm_gbm_surface->bo[index]->current_state == GBM_BO_STATE_FREE))
-                {
-                    msm_gbm_surface->bo[index]->current_state = GBM_BO_STATE_INUSE_BY_GPU;
-                    return &msm_gbm_surface->bo[index]->base;
-                }
+                msm_gbm_surface->bo[cur_index]->current_state = GBM_BO_STATE_INUSE_BY_GPU;
+                msm_gbm_surface->inuse_index = cur_index;
+                return &msm_gbm_surface->bo[cur_index]->base;
             }
-            LOG(LOG_ERR," NO Free BO found!!\n");
+        }
+        LOG(LOG_ERR," NO Free BO found!!\n");
     }
     else
     {
@@ -1946,8 +2233,8 @@ int msmgbm_bo_cpu_unmap(struct gbm_bo *bo)
         if (msm_gbm_bo->cpuaddr != NULL)
         {
 
-            LOG(LOG_DBG," unmapping msm_gbm_bo->cpuaddr=0x%x\n",
-                                           msm_gbm_bo->cpuaddr);
+            LOG(LOG_DBG," unmapping msm_gbm_bo->cpuaddr=0x%x fd=%d\n",
+                                           msm_gbm_bo->cpuaddr, msm_gbm_bo->base.ion_fd);
             if(munmap((void *)msm_gbm_bo->cpuaddr, bo->size))
                 LOG(LOG_ERR," munmap failed for msm_gbm_bo->cpuaddr=0x%x ERR: %s\n",
                                                 msm_gbm_bo->cpuaddr, strerror(errno));
@@ -1957,8 +2244,8 @@ int msmgbm_bo_cpu_unmap(struct gbm_bo *bo)
         //Metadata buffer
         if (msm_gbm_bo->mt_cpuaddr != NULL)
         {
-            LOG(LOG_DBG," unmapping msm_gbm_bo->mt_cpuaddr=0x%x\n",
-                                           msm_gbm_bo->mt_cpuaddr);
+            LOG(LOG_DBG," unmapping msm_gbm_bo->mt_cpuaddr=0x%x mt_fd=%d\n",
+                                           msm_gbm_bo->mt_cpuaddr, msm_gbm_bo->base.ion_metadata_fd);
             if(munmap(msm_gbm_bo->mt_cpuaddr, msm_gbm_bo->mt_size))
                 LOG(LOG_ERR," munmap failed for msm_gbm_bo->mt_cpuaddr=0x%x, ERR: %s\n",
                                                 msm_gbm_bo->mt_cpuaddr, strerror(errno));
@@ -2080,13 +2367,25 @@ struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int 
     }
 
     memset(&gemimport_req, 0, sizeof(gemimport_req));
-    gemimport_req.fd = fd;
+    if (msm_dev->fd >= 0) {
+      gemimport_req.fd = fd;
 
-    ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
+      ret = ioctl(msm_dev->fd, DRM_IOCTL_PRIME_FD_TO_HANDLE, &gemimport_req);
 
-    if (ret != 0){
-        LOG(LOG_DBG," PRIME FD to Handle failed on device(%x), error = %d\n",
-                                                        msm_dev,ret);
+      if (ret != 0){
+          LOG(LOG_ERR,"DRM_IOCTL_PRIME_FD_TO_HANDLE failed for fd errono: %d (%s) "
+              "drm fd: %d data fd: %d\n", errno, strerror(errno), msm_dev->fd, name);
+          gemimport_req.handle = 0;
+      }
+      else
+      {
+          LOG(LOG_DBG,"Get Gem Handle[%u] from fd[%d]\n", gemimport_req.handle, gemimport_req.fd);
+          lock();
+          incr_handle_refcnt(msm_dev->fd, gemimport_req.handle);
+          unlock();
+      }
+    } else {
+        LOG(LOG_WARN,"gem handle not created as invalid DRM FD %d\n", msm_dev->fd);
     }
 
     msm_gbmbo = (struct msmgbm_bo *)calloc(1, sizeof(struct msmgbm_bo));
@@ -2101,6 +2400,7 @@ struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int 
     gbmbo->handle.u32 = gemimport_req.handle;
     gbmbo->bo_destroy = msmgbm_bo_destroy;
     gbmbo->bo_get_fd= msmgbm_bo_get_fd;
+    gbmbo->stride_for_plane = msmgbm_stride_for_plane;
     gbmbo->bo_get_device = msmgbm_bo_get_device;
     gbmbo->bo_write = msmgbm_bo_write;
     msm_gbmbo->device = msm_dev;
@@ -2108,6 +2408,8 @@ struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int 
     msm_gbmbo->magic = QCMAGIC;
     msm_gbmbo->name = name;
     //msm_gbmbo->size = gem_open.size;
+
+    msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     return gbmbo;
 }
@@ -2402,39 +2704,42 @@ int msmgbm_perform(int operation, ... )
                 int *metadata_fd = va_arg(args,int *);
 
                 if((gbo == NULL) || (metadata_fd == NULL))
-                    return GBM_ERROR_BAD_HANDLE;
-
-                if((gbo->ion_metadata_fd) < 0)
                 {
-                    //Let us try looking through the map table in case if we have
-                    //an update, since last import call?
-                    struct gbm_buf_info temp_buf_info;
-                    struct msmgbm_private_info gbo_private_info = {NULL, NULL};
-                    res = search_hashmap(gbo->ion_fd, &temp_buf_info, &gbo_private_info);
-
-                    if((res == GBM_ERROR_NONE) && (temp_buf_info.metadata_fd > 0))
+                    res = GBM_ERROR_BAD_HANDLE;
+                }
+                else
+                {
+                    if((gbo->ion_metadata_fd) < 0)
                     {
-                        LOG(LOG_DBG,"MAP retrieved buf info\n");
-                        LOG(LOG_DBG,"temp_buf_info.metadata_fd=%d\n",
-                                          temp_buf_info.metadata_fd);
-                        LOG(LOG_DBG,"temp_buf_info.width=%d\n",
-                                              temp_buf_info.width);
-                        LOG(LOG_DBG,"temp_buf_info.height=%d\n",
-                                             temp_buf_info.height);
-                        LOG(LOG_DBG,"temp_buf_info.format=%s\n",
-                                     get_msmgbm_format_name(temp_buf_info.format));
+                        //Let us try looking through the map table in case if we have
+                        //an update, since last import call?
+                        struct gbm_buf_info temp_buf_info;
+                        struct msmgbm_private_info gbo_private_info = {NULL, NULL};
+                        lock();
+                        res = search_hashmap(gbo->ion_fd, &temp_buf_info, &gbo_private_info);
+                        unlock();
 
-                        //save the same in the gbo handle as well
-                        gbo->ion_metadata_fd = temp_buf_info.metadata_fd;
-
-
+                        if((res == GBM_ERROR_NONE) && (temp_buf_info.metadata_fd > 0))
+                        {
+                            LOG(LOG_DBG,"MAP retrieved buf info\n");
+                            LOG(LOG_DBG,"temp_buf_info.metadata_fd=%d\n",
+                                            temp_buf_info.metadata_fd);
+                            LOG(LOG_DBG,"temp_buf_info.width=%d\n",
+                                                temp_buf_info.width);
+                            LOG(LOG_DBG,"temp_buf_info.height=%d\n",
+                                                temp_buf_info.height);
+                            LOG(LOG_DBG,"temp_buf_info.format=%d\n",
+                                                temp_buf_info.format);
+                            LOG(LOG_DBG,"temp_buf_info.fd_flg=%d src_fd=%d\n",
+                                                temp_buf_info.fd_flg, temp_buf_info.src_fd);
+                            //save the same in the gbo handle as well
+                            gbo->ion_metadata_fd = temp_buf_info.metadata_fd;
+                        }
                     }
 
+                    *metadata_fd = gbo->ion_metadata_fd;
+                    res = GBM_ERROR_NONE;
                 }
-
-                *metadata_fd = gbo->ion_metadata_fd;
-
-                return GBM_ERROR_NONE;
             }
             break;
         case GBM_PERFORM_GET_BO_ALIGNED_WIDTH:
@@ -2540,9 +2845,46 @@ int msmgbm_perform(int operation, ... )
                 void **rgb_data = va_arg(args, void **);
                 res = msmgbm_get_rgb_data_address(gbo, rgb_data);
             }
-			break;
-         default:
-                LOG(LOG_INFO,"PERFORM Operation not supported\n");
+            break;
+        case GBM_PERFORM_GET_FD_WITH_NEW:
+            {
+                uint32_t *with_new  = va_arg(args, uint32_t *);
+#ifdef GET_FD_WITH_NEW
+                *with_new = true;
+#else
+                *with_new = false;
+#endif
+                res = GBM_ERROR_NONE;
+            }
+            break;
+        case GBM_PERFORM_GET_REGISTERED_DUP_FD:
+            {
+#ifdef GET_FD_WITH_NEW
+                int fd  = va_arg(args, int);
+                int *dup_fd  = va_arg(args, int *);
+                *dup_fd = -1;
+                struct gbm_buf_info gbo_info = {};
+                struct msmgbm_private_info gbo_private_info = {NULL, NULL};
+                lock();
+                if(search_hashmap(fd, &gbo_info, &gbo_private_info) == GBM_ERROR_NONE) {
+                    *dup_fd = dup(fd);
+                    if (*dup_fd > -1) {
+                        LOG(LOG_DBG, "Dup fd[%d] (src fd[%d]), registering to map\n", *dup_fd, fd);
+                        register_dup_fd_to_hashmap(fd, *dup_fd);
+                    } else {
+                        LOG(LOG_ERR, "Failed to dup ion_fd. Err:\n%s\n", strerror(errno));
+                    }
+                } else {
+                    LOG(LOG_ERR, "Failed to find entry of fd [%d] in hashmap.\n", fd);
+                }
+                unlock();
+#else
+                LOG(LOG_WARN, "GBM_PERFORM_GET_REGISTERED_DUP_FD is not supported\n");
+#endif
+            }
+            break;
+        default:
+            LOG(LOG_INFO,"PERFORM Operation not supported\n");
             break;
     }
     va_end(args);
@@ -2672,7 +3014,6 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
     size_t size = 0;
     void *base;
     int res = GBM_ERROR_NONE;
-    int map_flg = 0;
 
     if(!msm_gbm_bo)
         return GBM_ERROR_BAD_HANDLE;
@@ -2683,7 +3024,9 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
         //an update, since last import call?
         struct gbm_buf_info temp_buf_info;
         struct msmgbm_private_info bo_private_info;
+        lock();
         res = search_hashmap(gbo->ion_fd, &temp_buf_info, &bo_private_info);
+        unlock();
 
         if((res==GBM_ERROR_NONE) && (temp_buf_info.metadata_fd > 0))
         {
@@ -2694,9 +3037,10 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
                                   temp_buf_info.width);
             LOG(LOG_DBG,"temp_buf_info.height=%d\n",
                                  temp_buf_info.height);
-            LOG(LOG_DBG,"temp_buf_info.format=%s\n",
-                         get_msmgbm_format_name(temp_buf_info.format));
-
+            LOG(LOG_DBG,"temp_buf_info.format=%d\n",
+                                  temp_buf_info.format);
+            LOG(LOG_DBG,"temp_buf_info.fd_flg=%d src_fd=%d\n",
+                                  temp_buf_info.fd_flg, temp_buf_info.src_fd);
             //save the same in the gbo handle as well
             gbo->ion_metadata_fd = temp_buf_info.metadata_fd;
         }
@@ -2722,8 +3066,8 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
         return GBM_ERROR_BAD_HANDLE;
     }
 
-    LOG(LOG_DBG,"gbo->ion_fd=%d\n",gbo->ion_fd);
-    LOG(LOG_DBG,"gbo->ion_metadata_fd=%d\n",gbo->ion_metadata_fd);
+    LOG(LOG_DBG,"gbo->ion_fd=%d gbo->ion_metadata_fd=%d\n",gbo->ion_fd,gbo->ion_metadata_fd);
+    LOG(LOG_DBG,"paramType:%d\n",paramType);
 
     switch (paramType) {
         case GBM_METADATA_GET_INTERLACED:

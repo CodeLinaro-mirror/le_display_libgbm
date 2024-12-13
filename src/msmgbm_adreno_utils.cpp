@@ -1,5 +1,5 @@
 /*
-* Copyright (c) 2022 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 * Not a Contribution.
 *
 * Copyright (c) 2017-2018, 2021 The Linux Foundation. All rights reserved.
@@ -209,6 +209,10 @@ ADRENOPIXELFORMAT adreno_mem_info::get_gpu_pxl_fmt(unsigned int gbm_format) {
      return ADRENO_PIXELFORMAT_R16_UNORM;
     case GBM_FORMAT_RG1616:
       return ADRENO_PIXELFORMAT_R16G16_UNORM;
+    case GBM_FORMAT_BGR888:
+      return ADRENO_PIXELFORMAT_R8G8B8;
+    case GBM_FORMAT_BGRA8888:
+      return ADRENO_PIXELFORMAT_B8G8R8A8;
     case GBM_FORMAT_RGBA8888:
       return ADRENO_PIXELFORMAT_R8G8B8A8;
     case GBM_FORMAT_XBGR8888:

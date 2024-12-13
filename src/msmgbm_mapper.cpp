@@ -1,4 +1,7 @@
 /*
+* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Not a Contribution.
+*
 * Copyright (c) 2017, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -27,6 +30,13 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+* Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
+
+#include <cstring>
 #include "msmgbm_mapper.h"
 
 namespace msm_gbm {
@@ -64,7 +74,11 @@ bool msmgbm_mapper_instnce(void) {
  */
 void register_to_hashmap(int fd, struct gbm_buf_info * gbm_buf,
                                        struct msmgbm_private_info * gbo_private_info) {
-    msmgbm_mapper_->register_to_map(fd, gbm_buf, gbo_private_info);
+      if (!msmgbm_mapper_) {
+        LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+        return;
+      }
+      msmgbm_mapper_->register_to_map(fd, gbm_buf, gbo_private_info);
 }
 
 /**
@@ -75,6 +89,10 @@ void register_to_hashmap(int fd, struct gbm_buf_info * gbm_buf,
  */
 int  search_hashmap(int fd, struct gbm_buf_info *buf_info,
                                 struct msmgbm_private_info * gbo_private_info) {
+      if (!msmgbm_mapper_) {
+        LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+        return GBM_ERROR_UNDEFINED;
+      }
       if(msmgbm_mapper_->search_map(fd,buf_info, gbo_private_info))
         return GBM_ERROR_NONE;
       else
@@ -89,10 +107,66 @@ int  search_hashmap(int fd, struct gbm_buf_info *buf_info,
  */
 int  update_hashmap(int fd, struct gbm_buf_info *buf_info,
                                 struct msmgbm_private_info * gbo_private_info) {
+      if (!msmgbm_mapper_) {
+        LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+        return GBM_ERROR_UNDEFINED;
+      }
       if(msmgbm_mapper_->update_map(fd,buf_info, gbo_private_info))
         return GBM_ERROR_NONE;
       else
         return GBM_ERROR_BAD_HANDLE;
+}
+
+static int get_root_src_fd(int src_fd)
+{
+  struct gbm_buf_info buf_info = {};
+  struct msmgbm_private_info gbo_private_info = {};
+
+  if (msmgbm_mapper_ &&
+      msmgbm_mapper_->search_map(src_fd, &buf_info, &gbo_private_info)) {
+    if (buf_info.src_fd != -1) {
+      return get_root_src_fd(buf_info.src_fd);
+    }
+    else {
+      LOG(LOG_DBG,"src_fd[%d] is the root source fd!\n", src_fd);
+    }
+  }
+
+  return src_fd;
+}
+
+/**
+ * C wrapper function to register dup fd to hash map using ion_fd and retrieve the gbm_buf_info
+ * @input param: ion_fd , dup_ion_fd
+ * @return     : GBM error status
+ *
+ */
+void  register_dup_fd_to_hashmap(int fd, int dup_fd) {
+      struct gbm_buf_info buf_info;
+      struct msmgbm_private_info gbo_private_info;
+
+      if (!msmgbm_mapper_) {
+          LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+          return;
+      }
+
+      memset((void*)&buf_info, 0x0, sizeof(buf_info));
+      memset((void*)&gbo_private_info, 0x0, sizeof(gbo_private_info));
+      if (msmgbm_mapper_->search_map(fd, &buf_info, &gbo_private_info))
+      {
+        buf_info.fd = dup_fd;
+        buf_info.fd_flg = (IS_DUP_FD | EXTERNAL_FD);
+        buf_info.src_fd = get_root_src_fd(fd);
+        msmgbm_mapper_->register_to_map(dup_fd, &buf_info, &gbo_private_info);
+        LOG(LOG_DBG,"register src_fd[%d] -> dup fd[%d]\n", buf_info.src_fd, buf_info.fd);
+        LOG(LOG_DBG,"\t  meta_fd[%d]\n", buf_info.metadata_fd);
+        LOG(LOG_DBG,"\t  width[%u] height[%u] format[%u]\n", buf_info.width, buf_info.height, buf_info.format);
+        LOG(LOG_DBG,"\t  cpuaddr[%p] mt_cpuaddr[%p]\n", gbo_private_info.cpuaddr, gbo_private_info.mt_cpuaddr);
+        return;
+      }
+
+      LOG(LOG_ERR,"error! cannot find the fd[%d] in hashmap\n", fd);
+      return;
 }
 
 /**
@@ -102,9 +176,12 @@ int  update_hashmap(int fd, struct gbm_buf_info *buf_info,
  *
  */
 void  dump_hashmap(void) {
-      msmgbm_mapper_->map_dump();
+    if (!msmgbm_mapper_) {
+      LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+      return;
+    }
+    msmgbm_mapper_->map_dump();
 }
-
 
 
 /**
@@ -114,7 +191,11 @@ void  dump_hashmap(void) {
  *
  */
 void  incr_refcnt(int fd) {
-     msmgbm_mapper_->add_map_entry(fd);
+    if (!msmgbm_mapper_) {
+      LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+      return;
+    }
+    msmgbm_mapper_->add_map_entry(fd);
 }
 
 /**
@@ -130,6 +211,51 @@ int  decr_refcnt(int fd){
         LOG(LOG_INFO,"gbm mapper had been de-instantiated\n");
         return 1;
     }
+}
+
+void  incr_handle_refcnt(int device_fd, uint32_t handle) {
+    if (!msmgbm_mapper_) {
+      LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+      return;
+    }
+    msmgbm_mapper_->incr_handle_refcnt(device_fd, handle);
+}
+
+int  decr_handle_refcnt(int device_fd, uint32_t handle){
+    if (msmgbm_mapper_)
+        return msmgbm_mapper_->decr_handle_refcnt(device_fd, handle);
+    else {
+        LOG(LOG_INFO,"gbm mapper had been de-instantiated\n");
+        return 1;
+    }
+}
+
+void msmgbm_mapper::incr_handle_refcnt(int device_fd, uint32_t gem_handle) {
+    struct gem_handle_key key(device_fd, gem_handle);
+    auto it = gem_object_map_.find(key);
+
+    if (it != gem_object_map_.end()) {
+        it->second++;
+    } else {
+        gem_object_map_.emplace(std::make_pair(key, 1));
+    }
+}
+
+int msmgbm_mapper::decr_handle_refcnt(int device_fd, uint32_t gem_handle) {
+
+    struct gem_handle_key key(device_fd, gem_handle);
+    auto it = gem_object_map_.find(key);
+    if (it != gem_object_map_.end()) {
+        it->second--;
+        if (it->second == 0) {
+            gem_object_map_.erase(key);
+            return 1;
+        } else
+            return 0;
+    } else {
+        return 0;
+    }
+
 }
 
 /**
@@ -169,6 +295,7 @@ msmgbm_mapper::~msmgbm_mapper() {
 
 bool msmgbm_mapper::init() {
   gbm_buf_map_.clear();
+  gem_object_map_.clear();
   return true;
 }
 
@@ -179,10 +306,21 @@ bool msmgbm_mapper::init() {
  */
 void msmgbm_mapper::register_to_map(int fd,      struct gbm_buf_info * gbm_buf,
                                                  struct msmgbm_private_info *gbo_private_info) {
-  auto buffer = std::make_shared<msmgbm_buffer>(fd,gbm_buf->metadata_fd,
-                                  gbm_buf->width,gbm_buf->height,gbm_buf->format,
-                                  gbo_private_info->cpuaddr, gbo_private_info->mt_cpuaddr);
-  gbm_buf_map_.emplace(std::make_pair(fd, buffer));
+  struct gbm_buf_info temp_buf_info;
+  struct msmgbm_private_info temp_private_info;
+  if (!msmgbm_mapper_) {
+    LOG(LOG_ERR,"gbm mapper had been de-instantiated\n");
+    return;
+  }
+
+  if (msmgbm_mapper_->search_map(fd, &temp_buf_info, &temp_private_info)) {
+    msmgbm_mapper_->update_map(fd,gbm_buf, gbo_private_info);
+  } else {
+    auto buffer = std::make_shared<msmgbm_buffer>(fd,gbm_buf->metadata_fd,
+                                    gbm_buf->width,gbm_buf->height,gbm_buf->format,gbm_buf->fd_flg,gbm_buf->src_fd,
+                                    gbo_private_info->cpuaddr, gbo_private_info->mt_cpuaddr);
+    gbm_buf_map_.emplace(std::make_pair(fd, buffer));
+  }
 }
 
 /**
@@ -200,6 +338,8 @@ int msmgbm_mapper::search_map(int fd, struct gbm_buf_info *buf_info,
     buf_info->width=it->second->width;
     buf_info->height=it->second->height;
     buf_info->format=it->second->format;
+    buf_info->fd_flg=it->second->fd_flg;
+    buf_info->src_fd=it->second->src_fd;
     gbo_private_info->cpuaddr = it->second->cpuaddr;
     gbo_private_info->mt_cpuaddr = it->second->mt_cpuaddr;
     return 1;
@@ -223,6 +363,8 @@ int msmgbm_mapper::update_map(int fd, struct gbm_buf_info *buf_info,
     it->second->width=buf_info->width;
     it->second->height=buf_info->height;
     it->second->format=buf_info->format;
+    it->second->fd_flg=buf_info->fd_flg;
+    it->second->src_fd=buf_info->src_fd;
     it->second->cpuaddr=gbo_private_info->cpuaddr;
     it->second->mt_cpuaddr=gbo_private_info->mt_cpuaddr;
     return 1;
@@ -250,6 +392,8 @@ void msmgbm_mapper::map_dump(void) {
     printf("----width           = %u\n",buf->width);
     printf("----height          = %u\n",buf->height);
     printf("----format          = %u\n",buf->format);
+    printf("----fd_flg          = %u\n",buf->fd_flg);
+    printf("----src_fd          = %u\n",buf->src_fd);
     printf("----cpuaddr         = %p\n",buf->cpuaddr);
     printf("----mt_cpuaddr      = %p\n",buf->mt_cpuaddr);
     printf("---------------------------------\n");
@@ -279,13 +423,31 @@ void msmgbm_mapper::add_map_entry(int fd) {
  *
  */
 int msmgbm_mapper::del_map_entry(int fd) {
-    auto it = gbm_buf_map_.find(fd);
-    if (it!= gbm_buf_map_.end())
-       if(it->second->DecRef()){
-           gbm_buf_map_.erase(fd);
-           return 1;
-       }else
-           return 0;
-    return 1;
+  bool is_src_fd = false;
+  auto it = gbm_buf_map_.find(fd);
+  if (it != gbm_buf_map_.end()) {
+    if (it->second->src_fd == -1) {
+      is_src_fd = true;
+    }
+    if(it->second->DecRef()) {
+      gbm_buf_map_.erase(fd);
+      if (is_src_fd) {
+        // iterate and remove all dups of the src fd which is removed,
+        // since cpu addresses will be unmapped for the source buffer
+        auto it2 = gbm_buf_map_.begin();
+        for (;it2 != gbm_buf_map_.end();) {
+          if (it2->second->src_fd == fd) {
+            it2 = gbm_buf_map_.erase(it2);
+          } else {
+            ++it2;
+          }
+        }
+      }
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+  return 1;
 }
 }  // namespace msm_gbm

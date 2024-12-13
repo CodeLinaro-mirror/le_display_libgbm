@@ -73,7 +73,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -337,6 +337,11 @@ extern "C" {
 
 #define GBM_PERFORM_GET_BUFFER_STRIDE_SCANLINE_SIZE      0x37 /* Query Buffer stride, scanline and size
                                                                  (stride, scanline and size)*/
+
+#define GBM_PERFORM_GET_FD_WITH_NEW                      0x38 /* Query whether get fd with new */
+
+#define GBM_PERFORM_GET_REGISTERED_DUP_FD           0x39 /* Get a duped fd for passed fd,
+                                                            and get it registered to the map. */
 
 /**
  * Error representation for GBM  API's
@@ -800,6 +805,10 @@ struct gbm_surface {
 };
 
 
+#define INTERNAL_FD 0x000000001  /* fd flag - internal fd, created by gbm_bo_create() */
+#define EXTERNAL_FD 0x000000002  /* fd flag - external fd, imported foreign fd */
+#define IS_DUP_FD  0x000000004  /* fd flag - dup fd, get from gbm_bo_get_fd() */
+
 /**
  * The gbm buffer data object used by the import fd API.
  *
@@ -810,6 +819,8 @@ struct gbm_buf_info {
    uint32_t width;         /* width of surface in pixels */
    uint32_t height;        /* height of surface in pixels */
    uint32_t format;        /* pixel format*/
+   uint32_t fd_flg;        /* fd flag */
+   int src_fd;             /* source fd for dup */
 };
 
 
