@@ -161,7 +161,7 @@ extern "C" {
 #define GBM_BO_USAGE_HW_RENDERING_QTI    	0x02000000 /*BO allocation for GPU based rendering operation */
 #define GBM_BO_USAGE_10BIT_QTI    	      0x04000000 /*BO allocation for 10 bit */
 #define GBM_BO_USAGE_10BIT_TP_QTI    	      0x08000000 /*BO allocation for 10 bit TP */
-#define GBM_BO_USAGE_NO_ALLIGNMENT          0x00000020 /*BO allocation without any allignment*/
+#define GBM_BO_USAGE_NO_ALLIGNMENT    	      0x00000040 /*BO allocation without any allignment*/
 
 /**
  *  These are the parameter types to be used by the clients to query metadata info from gbm backend
