@@ -24,10 +24,13 @@ gbm = dependency('gbm', version : ['>=21.2'])
 dep_libxml2 = dependency('libxml-2.0')
 threads = dependency('threads')
 
+arch = run_command('dpkg-architecture', '-qDEB_HOST_MULTIARCH').stdout().strip()
+libdir = '/usr/lib' + (arch != '' ? '/' + arch : '')
+
 pkgconf = configuration_data()
 pkgconf.set('prefix',      get_option('prefix'))
 pkgconf.set('exec_prefix', '${prefix}')
-pkgconf.set('libdir',      '${exec_prefix}/@0@'.format(get_option('libdir')))
+pkgconf.set('libdir',      '${exec_prefix}/@0@'.format(libdir))
 pkgconf.set('includedir',  '${prefix}/@0@'.format(get_option('includedir')))
 pkgconf.set('datadir',     '${datarootdir}')
 pkgconf.set('datarootdir', '${prefix}/@0@'.format(get_option('datadir')))
@@ -36,4 +39,5 @@ pkgconf.set('MSM_GBM_EXTERNAL_VERSION',          meson.project_version())
 pkgconf.set('MSM_EXTERNAL_PLATFORM_MIN_VERSION', '@0@.@1@'.format(msm_gbm_major_version, msm_gbm_minor_version))
 pkgconf.set('MSM_EXTERNAL_PLATFORM_MAX_VERSION', msm_gbm_major_version.to_int() + 1)
 
+c_args = ['-DLIBDIR="' + libdir + '"']
 subdir('src')

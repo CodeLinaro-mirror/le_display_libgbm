@@ -8,6 +8,7 @@ add_project_arguments('-Wall', language : 'c')
 add_project_arguments('-Werror', language : 'c')
 add_project_arguments('-fvisibility=hidden', language : 'c')
 add_project_arguments('-D_GNU_SOURCE', language : 'c')
+c_args = meson.get_compiler('c').get_supported_arguments(c_args)
 
 src = [
     'buffer_alloc.c',
@@ -34,4 +35,5 @@ msm_gbm = library('msm_gbm',
     version : meson.project_version(),
     install : true,
     name_prefix: '',
+    c_args: c_args,
 )

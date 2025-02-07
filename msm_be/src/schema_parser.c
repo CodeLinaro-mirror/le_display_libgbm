@@ -11,6 +11,10 @@
 #include "schema_parser.h"
 #include "gbm_msm_int.h"
 
+#ifndef LIBDIR
+#define LIBDIR "/usr/lib"  // Default value if LIBDIR is not defined
+#endif
+
 int format_count = 0;
 struct format_info *formats = NULL;
 
@@ -204,8 +208,9 @@ struct format_info* parse_xml(const char *filename)
 
 void init_xml_schema(void)
 {
+   char filename[256];
    // @todo: decide the filename to be parsed based on the SoC variant
-   char *filename = "/usr/lib/gbm/default_fmt_alignment.xml";
+   snprintf(filename, sizeof(filename), "%s/gbm/default_fmt_alignment.xml", LIBDIR);
    formats = parse_xml(filename);
 }
 

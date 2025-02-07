@@ -79,6 +79,11 @@ int get_aligned_width_and_height(struct gbm_bufdesc *descriptor, int plane,
    uint32_t height_align_factor = info->planes[plane].height_align;
 
    if (ubwc_enabled(descriptor)) {
+      if (!info->planes[plane].meta_info) {
+	fprintf(stderr,"UBWC not supported for this format \n");
+	return -1;
+      }
+
       pitch_align_factor = info->planes[plane].meta_info->pitch_align;
       height_align_factor = info->planes[plane].meta_info->height_align;
    }
@@ -111,6 +116,10 @@ int get_stride(struct gbm_bufdesc *descriptor, int plane, uint32_t *stride)
 
    uint32_t alignment = info->planes[plane].pitch_align;
    if (ubwc_enabled(descriptor)) {
+      if (!info->planes[plane].meta_info) {
+        fprintf(stderr,"UBWC not supported for this format \n");
+        return -1;
+      }
       alignment = info->planes[plane].meta_info->pitch_align;
    }
 
@@ -141,6 +150,13 @@ int get_data_plane_size(struct gbm_bufdesc *descriptor, int plane, uint32_t *pla
    if (get_stride(descriptor, plane, &stride) != 0)
       return -1;
 
+   if (ubwc_enabled(descriptor)) {
+      if (!info->planes[plane].meta_info) {
+         fprintf(stderr,"UBWC not supported for this format \n");
+         return -1;
+      }
+   }
+
    uint32_t alignment = (ubwc_enabled(descriptor)) ? info->planes[plane].meta_info->size_align : info->size_align;
 
    *plane_size = ALIGN(stride * alignedh, alignment);
@@ -167,6 +183,10 @@ int get_meta_buffer_size(struct gbm_bufdesc *descriptor, int plane, uint32_t *me
    if (!ubwc_enabled(descriptor)) {
       *metabuffer_size = 0;
       return 0;
+   }
+   if (!info->planes[plane].meta_info) {
+      fprintf(stderr,"UBWC not supported for this format \n");
+      return -1;
    }
 
    uint32_t block_width = info->planes[plane].meta_info->block_width;

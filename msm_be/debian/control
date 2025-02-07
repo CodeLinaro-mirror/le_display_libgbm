@@ -7,9 +7,8 @@ Uploaders:
 Build-Depends:
  debhelper-compat (= 13),
  libdrm-dev (>= 2.4.104),
- libegl-dev,
  libgbm-dev (>= 21.2),
- meson (>= 1.4.0),
+ meson (>= 1.3.0),
  pkgconf,
 Standards-Version: 4.7.0
 Rules-Requires-Root: no

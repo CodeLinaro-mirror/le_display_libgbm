@@ -1,7 +1,8 @@
-Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
-SPDX-License-Identifier: BSD-3-Clause-Clear
-
 <?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+     SPDX-License-Identifier: BSD-3-Clause-Clear
+-->
 <formats>
    <format>
      <format_name>ARGB_8888</format_name>
@@ -13,6 +14,13 @@ SPDX-License-Identifier: BSD-3-Clause-Clear
            <plane_name>ARGB</plane_name>
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
+           <meta_info>
+             <block_width>16</block_width>
+             <block_height>4</block_height>
+             <pitch_align>64</pitch_align>
+             <height_align>16</height_align>
+             <size_align>4096</size_align>
+           </meta_info>
          </plane>
        </planes>
      </constraints>
@@ -47,9 +55,16 @@ SPDX-License-Identifier: BSD-3-Clause-Clear
        <bpp>4</bpp>
        <planes>
          <plane>
-           <plane_name>ARGB</plane_name>
+           <plane_name>XRGB</plane_name>
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
+           <meta_info>
+             <block_width>16</block_width>
+             <block_height>4</block_height>
+             <pitch_align>64</pitch_align>
+             <height_align>16</height_align>
+             <size_align>4096</size_align>
+           </meta_info>
          </plane>
        </planes>
      </constraints>
