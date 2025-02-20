@@ -19,12 +19,12 @@ AM_CFLAGS += -DENABLE_FB
 AM_CPPFLAGS += -DENABLE_FB
 endif
 
-lib_LTLIBRARIES  = libgbm.la
-libgbm_la_CFLAGS = $(AM_CFLAGS)
-libgbm_la_CPPFLAGS = $(AM_CPPFLAGS)
-libgbm_la_CXXFLAGS =  -std=c++17
-libgbm_la_LDFLAGS = -shared -avoid-version -lm -ldl
-libgbm_la_SOURCES = src/gbm.c \
+lib_LTLIBRARIES  = libqbm.la
+libqbm_la_CFLAGS = $(AM_CFLAGS)
+libqbm_la_CPPFLAGS = $(AM_CPPFLAGS)
+libqbm_la_CXXFLAGS =  -std=c++17
+libqbm_la_LDFLAGS = -shared -avoid-version -lm -ldl
+libqbm_la_SOURCES = src/gbm.c \
                     src/msmgbm_camera.c \
                     src/msmgbm_video.c \
                     src/msmgbm_common.c \
@@ -34,16 +34,16 @@ libgbm_la_SOURCES = src/gbm.c \
                     src/msmgbm_mapper.cpp
 
 if ENABLE_COMPILEWITHDRM
-libgbm_la_SOURCES += src/msmgbm.c
-libgbm_la_SOURCES += src/msmgbm_dma.cpp
+libqbm_la_SOURCES += src/msmgbm.c
+libqbm_la_SOURCES += src/msmgbm_dma.cpp
 else
-libgbm_la_SOURCES += src/msmgbm_fb.c
+libqbm_la_SOURCES += src/msmgbm_fb.c
 endif
 
-bin_PROGRAMS = gbmtest
-gbmtest_SOURCES = test/gbmtest.c
-gbmtest_LDADD = libgbm.la
+bin_PROGRAMS = qbmtest
+qbmtest_SOURCES = test/gbmtest.c
+qbmtest_LDADD = libqbm.la
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = gbm.pc
+pkgconfig_DATA = qbm.pc
 EXTRA_DIST = $(pkgconfig_DATA)
