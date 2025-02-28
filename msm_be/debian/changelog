@@ -1,0 +1,5 @@
+qcom-gbm-be (1.0.0) noble; urgency=low
+
+  * Initial release.
+
+ -- Abhijith Desai <quic_abdesai@quicinc.com>  Wed, 05 Feb 2025 10:32:03 +0000

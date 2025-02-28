@@ -1,0 +1,36 @@
+Source: qcom-gbm-be
+Section: contrib/libs
+Priority: optional
+Maintainer: ABHIJITH DESAI <quic_abdesai@quicinc.com>
+Uploaders:
+ ABHIJITH DESAI <quic_abdesai@quicinc.com>,
+Build-Depends:
+ debhelper-compat (= 13),
+ libdrm-dev (>= 2.4.104),
+ libgbm-dev (>= 21.2),
+ meson (>= 1.3.0),
+ pkgconf,
+Standards-Version: 4.7.0
+Rules-Requires-Root: no
+
+Package: qcom-gbm-be
+Section: libs
+Architecture: arm64
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Pre-Depends: ${misc:Pre-Depends}
+Description: generic buffer management API -- runtime
+ This package contains the GBM backend buffer management library.  It provides a
+ mechanism for allocating buffers for graphics rendering tied to Mesa.
+ .
+ GBM is intended to be used as a native platform for EGL on drm or openwfd.
+
+Package: qcom-gbm-be-dev
+Section: libdevel
+Architecture: arm64
+Depends:
+ ${misc:Depends},
+Description: generic buffer management API -- runtime
+ This package contains the GBM backend buffer management library headers.
+ GBM is intended to be used as a native platform for EGL on drm or openwfd.
