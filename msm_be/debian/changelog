@@ -1,4 +1,4 @@
-qcom-gbm-be (1.0.0) noble; urgency=low
+libgbm-msm1 (1.0.0) noble; urgency=low
 
   * Initial release.
 

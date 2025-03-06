@@ -5,12 +5,3 @@ export DEB_HOST_MULTIARCH = $(shell dpkg-architecture -qDEB_HOST_MULTIARCH)
 %:
 	dh $@
 
-override_dh_auto_configure:
-	meson setup builddir
-	dh_auto_configure
-
-override_dh_auto_install:
-	dh_auto_install
-
-override_dh_auto_build:
-	dh_auto_build
