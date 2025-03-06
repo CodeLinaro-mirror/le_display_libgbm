@@ -769,15 +769,15 @@
      <format_name>NV_12</format_name>
      <constraints>
        <size_align>1</size_align>
-       <bpp>1.5</bpp>
+       <bpp>1</bpp>
        <planes>
          <plane>
            <plane_name>Y</plane_name>
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
            <meta_info>
-             <block_width>16</block_width>
-             <block_height>4</block_height>
+             <block_width>32</block_width>
+             <block_height>8</block_height>
              <pitch_align>128</pitch_align>
              <height_align>32</height_align>
              <size_align>4096</size_align>
@@ -788,8 +788,8 @@
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
            <meta_info>
-             <block_width>16</block_width>
-             <block_height>4</block_height>
+             <block_width>32</block_width>
+             <block_height>8</block_height>
              <pitch_align>128</pitch_align>
              <height_align>32</height_align>
              <size_align>4096</size_align>
@@ -803,15 +803,15 @@
      <format_name>NV_21</format_name>
      <constraints>
        <size_align>1</size_align>
-       <bpp>1.5</bpp>
+       <bpp>1</bpp>
        <planes>
          <plane>
            <plane_name>Y</plane_name>
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
            <meta_info>
-             <block_width>16</block_width>
-             <block_height>4</block_height>
+             <block_width>32</block_width>
+             <block_height>8</block_height>
              <pitch_align>128</pitch_align>
              <height_align>32</height_align>
              <size_align>4096</size_align>
@@ -822,8 +822,8 @@
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
            <meta_info>
-             <block_width>16</block_width>
-             <block_height>4</block_height>
+             <block_width>32</block_width>
+             <block_height>8</block_height>
              <pitch_align>128</pitch_align>
              <height_align>32</height_align>
              <size_align>4096</size_align>
@@ -846,9 +846,9 @@
            <meta_info>
              <block_width>16</block_width>
              <block_height>4</block_height>
-	         <pitch_align>128</pitch_align>
-	         <height_align>16</height_align>
-	         <size_align>4096</size_align>
+             <pitch_align>128</pitch_align>
+             <height_align>16</height_align>
+             <size_align>4096</size_align>
            </meta_info>
          </plane>
        </planes>
@@ -933,7 +933,7 @@
            <pitch_align>256</pitch_align>
            <height_align>256</height_align>
          </plane>
-		 <plane>
+         <plane>
            <plane_name>UV</plane_name>
            <pitch_align>256</pitch_align>
            <height_align>256</height_align>
@@ -1016,7 +1016,7 @@
      <format_name>YUV_411</format_name>
      <constraints>
        <size_align>1</size_align>
-       <bpp>1.5</bpp>
+       <bpp>1</bpp>
        <planes>
          <plane>
            <plane_name>Y</plane_name>
@@ -1041,7 +1041,7 @@
      <format_name>YVU_411</format_name>
      <constraints>
        <size_align>1</size_align>
-       <bpp>1.5</bpp>
+       <bpp>1</bpp>
        <planes>
          <plane>
            <plane_name>Y</plane_name>
@@ -1066,7 +1066,7 @@
      <format_name>YUV_420</format_name>
      <constraints>
        <size_align>1</size_align>
-       <bpp>1.5</bpp>
+       <bpp>1</bpp>
        <planes>
          <plane>
            <plane_name>Y</plane_name>
@@ -1091,7 +1091,7 @@
      <format_name>YVU_420</format_name>
      <constraints>
        <size_align>1</size_align>
-       <bpp>1.5</bpp>
+       <bpp>1</bpp>
        <planes>
          <plane>
            <plane_name>Y</plane_name>

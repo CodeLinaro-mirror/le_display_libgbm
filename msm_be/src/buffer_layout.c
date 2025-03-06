@@ -37,24 +37,40 @@ bool ubwc_enabled(struct gbm_bufdesc *descriptor) {
    return false;
 }
 
-uint32_t get_plane_height(uint32_t buffer_height, uint32_t format, int plane) {
-   uint32_t plane_height = buffer_height;
-
+void get_plane_width_and_height(uint32_t format, int plane, uint32_t *plane_width, uint32_t *plane_height) {
    if (plane == 0)
-      return plane_height;
+      return;
 
    switch(format) {
    case GBM_FORMAT_NV12:
    case GBM_FORMAT_NV21:
    case GBM_FORMAT_NV16:
    case GBM_FORMAT_NV61:
-      plane_height = (plane_height+1)>>1;
+      *plane_height /= 2;
       break;
+   case GBM_FORMAT_YUV410:
+   case GBM_FORMAT_YVU410:
+   case GBM_FORMAT_YUV411:
+   case GBM_FORMAT_YVU411:
+      *plane_width /= 4;
+      *plane_height /= 4;
+      break;
+   case GBM_FORMAT_YUV420:
+   case GBM_FORMAT_YVU420:
+      *plane_width /= 2;
+      *plane_height /= 2;
+      break;
+   case GBM_FORMAT_YUV422:
+   case GBM_FORMAT_YVU422:
+      *plane_width /= 2;
+      break;
+   case GBM_FORMAT_YUV444:
+   case GBM_FORMAT_YVU444:
+      break;
+
    default:
       break;
    }
-
-   return plane_height;
 }
 
 int get_aligned_width_and_height(struct gbm_bufdesc *descriptor, int plane,
@@ -63,7 +79,9 @@ int get_aligned_width_and_height(struct gbm_bufdesc *descriptor, int plane,
    if (!descriptor || !alignedw || !alignedh)
       return -1;
 
-   uint32_t height = get_plane_height(descriptor->height, descriptor->format, plane);
+   uint32_t width = descriptor->width;
+   uint32_t height = descriptor->height;
+   get_plane_width_and_height(descriptor->format, plane, &width, &height);
 
    const char *format_name = find_format_name(descriptor->format);
    if (!format_name) {
@@ -88,7 +106,7 @@ int get_aligned_width_and_height(struct gbm_bufdesc *descriptor, int plane,
       height_align_factor = info->planes[plane].meta_info->height_align;
    }
 
-   *alignedw = ALIGN(descriptor->width, pitch_align_factor);
+   *alignedw = ALIGN(width, pitch_align_factor);
    *alignedh = ALIGN(height, height_align_factor);
 
    return 0;
@@ -168,7 +186,9 @@ int get_meta_buffer_size(struct gbm_bufdesc *descriptor, int plane, uint32_t *me
    if (!descriptor || !metabuffer_size)
       return -1;
 
-   uint32_t height = get_plane_height(descriptor->height, descriptor->format, plane);
+   uint32_t width = descriptor->width;
+   uint32_t height = descriptor->height;
+   get_plane_width_and_height(descriptor->format, plane, &width, &height);
 
    const char *format_name = find_format_name(descriptor->format);
    if (!format_name) {
@@ -193,7 +213,7 @@ int get_meta_buffer_size(struct gbm_bufdesc *descriptor, int plane, uint32_t *me
    uint32_t block_height = info->planes[plane].meta_info->block_height;
 
    int meta_height = ALIGN(((height + block_height - 1) / block_height), 16);
-   int meta_width = ALIGN(((descriptor->width + block_width - 1) / block_width), 64);
+   int meta_width = ALIGN(((width + block_width - 1) / block_width), 64);
    *metabuffer_size = (unsigned int)ALIGN((meta_width * meta_height), 4096);
 
    return 0;

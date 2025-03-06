@@ -17,4 +17,5 @@ int get_meta_buffer_size(struct gbm_bufdesc *descriptor, int plane,
 int get_size(struct gbm_bufdesc *descriptor, uint32_t *buffer_size);
 int get_plane_offset(struct gbm_bufdesc *descriptor, int plane, 
                      uint32_t *plane_offset);
-uint32_t get_plane_height(uint32_t buffer_height, uint32_t format, int plane);
+void get_plane_width_and_height(uint32_t format, int plane,
+                                uint32_t *buffer_width, uint32_t *buffer_height);
