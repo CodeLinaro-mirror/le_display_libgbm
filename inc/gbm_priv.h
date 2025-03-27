@@ -73,7 +73,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -516,12 +516,27 @@ extern "C" {
 
 #define GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH                   fourcc_mod_code_qti(QTI, 60)
 
+/* Required for OBM HAL Backend */
+#ifndef GBM_FORMAT_MOD_QTI_COMPRESSED
+#define GBM_FORMAT_MOD_QTI_COMPRESSED                       fourcc_mod_code_qti(QTI, 61)
+#endif
+#ifndef GBM_FORMAT_MOD_QTI_SECURE
+#define GBM_FORMAT_MOD_QTI_SECURE                           fourcc_mod_code_qti(QTI, 62)
+#endif
+#ifndef GBM_FORMAT_MOD_QTI_COMPRESSED_SECURE
+#define GBM_FORMAT_MOD_QTI_COMPRESSED_SECURE                fourcc_mod_code_qti(QTI, 63)
+#endif
+
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'A')
 
 #define GBM_FORMAT_YCbCr_420_P010_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'B')
 
 /* Y/CbCr 4:2:0 P10 format*/
 #define GBM_FORMAT_P010                                     __gbm_fourcc_code('P', '0', '1', '0')
+
+/* Required for OBM HAL Backend */
+/* 16 bpp GR */
+#define GBM_FORMAT_GR88	                                    __gbm_fourcc_code('G', 'R', '8', '8') /* [15:0] G:R 8:8 little endian */
 
 /**
  * Pixel component ID defines
@@ -972,7 +987,7 @@ struct gbm_bo {
 
    void (*bo_unmap)(void *map_data);
    uint32_t (*stride_for_plane)(int plane, struct gbm_bo *);
-
+   uint32_t (*bo_get_offset)(struct gbm_bo *bo, int plane);
 };
 
 
