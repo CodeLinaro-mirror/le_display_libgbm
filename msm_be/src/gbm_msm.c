@@ -179,14 +179,19 @@ gbm_msm_bo_dump(struct gbm_bo * gbo, char *func)
    FILE *fptr = NULL;
    static int count = 1;
    const char file_nme[100] = "/var/cache/display/";
+   if (!gbo)
+      return 0;
+
    struct gbm_msm_bo *msm_bo = (struct gbm_msm_bo*)gbo;
+   if (!msm_bo)
+      return 0;
+
    uint32_t size = msm_bo->size;
    int ret = 0;
    char tmp_str[50];
    uint32_t width = gbo->v0.width;
    uint32_t height = gbo->v0.height;
-   uint32_t format = gbo->v0.format;
-   int data_fd = msm_bo->fd;
+   uint32_t format = msm_bo->gbm_format;
 
    ret = mkdir(file_nme, 777);
    if ((ret != 0) && errno != EEXIST) {
@@ -195,8 +200,8 @@ gbm_msm_bo_dump(struct gbm_bo * gbo, char *func)
       return -1;
    }
 
-   snprintf(tmp_str, sizeof(tmp_str), "gbm_dump_c%d_%d_%d_%d_%d_%s.dat",
-                    count++,width,height,data_fd,getpid(), func);
+   snprintf(tmp_str, sizeof(tmp_str), "gbm_dump_c%d_%d_%d_%d_%s.dat",
+                    count++,width,height,getpid(), func);
 
    strlcat(file_nme, tmp_str, sizeof(file_nme));
    fptr=fopen(file_nme, "w+");
@@ -230,7 +235,7 @@ gbm_msm_bo_metabuffer_size(struct gbm_bo *bo, int plane)
    struct gbm_bufdesc bufdesc = {};
    bufdesc.width = msm_bo->base.v0.width;
    bufdesc.height = msm_bo->base.v0.height;
-   bufdesc.format = msm_bo->base.v0.format;
+   bufdesc.format = msm_bo->gbm_format;
    bufdesc.modifiers = msm_bo->modifier;
    if(get_meta_buffer_size(&bufdesc, plane, &size) != 0) {
       fprintf(stderr, "Error: failed to get metabuffer size \n");
@@ -248,7 +253,7 @@ gbm_msm_bo_get_aligned_width_height(struct gbm_bo *_bo, int plane,
    struct gbm_bufdesc bufdesc = {};
    bufdesc.width = msm_bo->base.v0.width;
    bufdesc.height = msm_bo->base.v0.height;
-   bufdesc.format = msm_bo->base.v0.format;
+   bufdesc.format = msm_bo->gbm_format;
    bufdesc.modifiers = msm_bo->modifier;
 
    if (get_aligned_width_and_height(&bufdesc, plane, aligned_width, aligned_height) != 0) {
@@ -275,6 +280,7 @@ gbm_msm_bo_create(struct gbm_device *gbm,
    bo->base.v0.width = width;
    bo->base.v0.height = height;
    bo->base.v0.format = format;
+   bo->gbm_format = format;
    for (int m = 0; m < count; m++) {
       modifiers_mask |= modifiers[m];
    }
@@ -292,9 +298,6 @@ gbm_msm_bo_create(struct gbm_device *gbm,
       return NULL;
 
    if (allocate_buffer(msm_dev, size, &(bo->base.v0.handle.u32)) != 0)
-      return NULL;
-
-   if (get_fd(msm_dev, bo->base.v0.handle.u32, &(bo->fd)) != 0)
       return NULL;
 
    add_gem_handle(bo->base.v0.handle.u32);
@@ -339,10 +342,11 @@ gbm_msm_bo_import(struct gbm_device *gbm,
       bo->base.v0.width = fd_data->width;
       bo->base.v0.height = fd_data->height;
       bo->base.v0.format = fd_data->format;
+      bo->gbm_format = bo->base.v0.format;
 
       bufdesc.width = bo->base.v0.width;
       bufdesc.height = bo->base.v0.height;
-      bufdesc.format = bo->base.v0.format;
+      bufdesc.format = bo->gbm_format;
       bufdesc.modifiers = 0;
 
       if (get_num_planes(&bufdesc, &(bo->num_planes)) != 0)
@@ -358,7 +362,6 @@ gbm_msm_bo_import(struct gbm_device *gbm,
          return NULL;
 
       bo->modifier = 0;
-      bo->fd = fd_data->fd;
       break;
 
    case GBM_BO_IMPORT_FD_MODIFIER:
@@ -380,10 +383,15 @@ gbm_msm_bo_import(struct gbm_device *gbm,
       bo->base.v0.width = fd_modifer_data->width;
       bo->base.v0.height = fd_modifer_data->height;
       bo->base.v0.format = fd_modifer_data->format;
-
+      if ((bo->base.v0.format == GBM_FORMAT_XBGR16161616F) &&
+          (fd_modifer_data->modifier & DRM_FORMAT_MOD_QCOM_32F)) {
+         bo->gbm_format = GBM_FORMAT_RGBA32323232F;
+      } else {
+         bo->gbm_format = bo->base.v0.format;
+      }
       bufdesc.width = bo->base.v0.width;
       bufdesc.height = bo->base.v0.height;
-      bufdesc.format = bo->base.v0.format;
+      bufdesc.format = bo->gbm_format;
       bufdesc.modifiers = fd_modifer_data->modifier;
 
       if (get_num_planes(&bufdesc, &(bo->num_planes)) != 0)
@@ -399,7 +407,6 @@ gbm_msm_bo_import(struct gbm_device *gbm,
          return NULL;
 
       bo->modifier = fd_modifer_data->modifier;
-      bo->fd = fd_modifer_data->fds[0];
       break;
 
    default:
@@ -422,8 +429,6 @@ gbm_msm_bo_destroy(struct gbm_bo *_bo)
       return;
 
    remove_gem_handle(msm_dev, bo->base.v0.handle.u32);
-   if (bo->fd > -1)
-      close(bo->fd);
 
    if (bo->map) {
      void *map_data = bo->map;
@@ -437,7 +442,14 @@ static int
 gbm_msm_bo_get_fd(struct gbm_bo *_bo)
 {
    struct gbm_msm_bo *msm_bo = (struct gbm_msm_bo*)_bo;
-   return msm_bo->fd;
+
+   int fd;
+   struct gbm_msm_device *msm_dev = gbm_msm_device(_bo->gbm);
+   if (get_fd(msm_dev, _bo->v0.handle.u32, &fd) != 0) {
+      return -1;
+   }
+
+   return fd;
 }
 
 static uint64_t
@@ -454,7 +466,7 @@ gbm_msm_bo_get_stride(struct gbm_bo *bo, int plane)
    struct gbm_bufdesc bufdesc = {};
    bufdesc.width = msm_bo->base.v0.width;
    bufdesc.height = msm_bo->base.v0.height;
-   bufdesc.format = msm_bo->base.v0.format;
+   bufdesc.format = msm_bo->gbm_format;
    bufdesc.modifiers = msm_bo->modifier;
 
    uint32_t stride = 0;
@@ -478,7 +490,7 @@ gbm_msm_bo_get_offset(struct gbm_bo *_bo, int plane)
    struct gbm_bufdesc bufdesc = {};
    bufdesc.width = msm_bo->base.v0.width;
    bufdesc.height = msm_bo->base.v0.height;
-   bufdesc.format = msm_bo->base.v0.format;
+   bufdesc.format = msm_bo->gbm_format;
    bufdesc.modifiers = msm_bo->modifier;
 
    uint32_t offset = 0;

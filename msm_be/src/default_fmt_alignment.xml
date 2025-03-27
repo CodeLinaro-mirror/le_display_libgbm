@@ -625,6 +625,13 @@
            <plane_name>XBGR</plane_name>
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
+           <meta_info>
+              <block_width>16</block_width>
+              <block_height>4</block_height>
+              <pitch_align>64</pitch_align>
+              <height_align>16</height_align>
+              <size_align>4096</size_align>
+           </meta_info>
          </plane>
        </planes>
      </constraints>
@@ -640,6 +647,13 @@
            <plane_name>ABGR</plane_name>
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
+           <meta_info>
+              <block_width>16</block_width>
+              <block_height>4</block_height>
+              <pitch_align>64</pitch_align>
+              <height_align>16</height_align>
+              <size_align>4096</size_align>
+           </meta_info>
          </plane>
        </planes>
      </constraints>
@@ -655,6 +669,13 @@
            <plane_name>R</plane_name>
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
+           <meta_info>
+             <block_width>32</block_width>
+             <block_height>8</block_height>
+             <pitch_align>128</pitch_align>
+             <height_align>32</height_align>
+             <size_align>4096</size_align>
+           </meta_info>
          </plane>
        </planes>
      </constraints>
@@ -679,12 +700,19 @@
      <format_name>GR_88</format_name>
      <constraints>
        <size_align>1</size_align>
-       <bpp>2</bpp>
+       <bpp>1</bpp>
        <planes>
          <plane>
            <plane_name>GR</plane_name>
            <pitch_align>64</pitch_align>
            <height_align>1</height_align>
+           <meta_info>
+             <block_width>32</block_width>
+             <block_height>8</block_height>
+             <pitch_align>128</pitch_align>
+             <height_align>32</height_align>
+             <size_align>4096</size_align>
+           </meta_info>
          </plane>
        </planes>
      </constraints>
@@ -1207,6 +1235,28 @@
            <plane_name>U</plane_name>
            <pitch_align>256</pitch_align>
            <height_align>256</height_align>
+         </plane>
+       </planes>
+     </constraints>
+   </format>
+
+   <format>
+     <format_name>RGBA_32323232F</format_name>
+     <constraints>
+       <size_align>1</size_align>
+       <bpp>8</bpp>
+       <planes>
+         <plane>
+           <plane_name>RGBA</plane_name>
+           <pitch_align>64</pitch_align>
+           <height_align>1</height_align>
+           <meta_info>
+              <block_width>16</block_width>
+              <block_height>4</block_height>
+              <pitch_align>64</pitch_align>
+              <height_align>16</height_align>
+              <size_align>4096</size_align>
+           </meta_info>
          </plane>
        </planes>
      </constraints>

@@ -9,8 +9,11 @@
 #include <stdbool.h>
 #include <gbm.h>
 #include <gbm_backend_abi.h>
+#include "drm_fourcc.h"
 
 #define NUM_BACK_BUFFERS 3
+
+#define DRM_FORMAT_MOD_QCOM_32F	fourcc_mod_code(QCOM, 32)
 
 struct gbm_msm_bo {
    struct gbm_bo base;
@@ -20,6 +23,7 @@ struct gbm_msm_bo {
    uint32_t aligned_height;
    uint64_t modifier;
    uint32_t num_planes;
+   uint64_t gbm_format;
    void *map;
    int (*bo_dump_buffers)(struct gbm_bo *gbo, char *func);
    uint32_t (*bo_get_metabuffer_size)(struct gbm_bo *gbo, int plane);
