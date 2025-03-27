@@ -30,7 +30,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -107,6 +107,7 @@
 #define CHROMA_STEP     2
 #define msmgbm_perform gbm_perform
 #define msmgbm_get_priv gbm_get_priv
+#define msmgbm_is_format_supported gbm_is_format_supported
 #define PAGE_SIZE (4096)
 #define ROUND_UP_PAGESIZE(x) (x + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1)
 #define ALIGN(x, align) (((x) + ((align)-1)) & ~((align)-1))
@@ -521,7 +522,7 @@ static int GetFormatBpp(uint32_t format, uint32_t usage)
    return 0;
 }
 
-static int IsFormatSupported(uint32_t format)
+int msmgbm_is_format_supported(uint32_t format)
 {
     int is_supported;
 
@@ -818,7 +819,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         format = GetImplDefinedFormat(usage, format);
         bufdesc.Format = format;
     }
-    if(1 == IsFormatSupported(format))
+    if(1 == msmgbm_is_format_supported(format))
         Bpp = GetFormatBpp(format, usage);
     else
     {
@@ -1120,7 +1121,7 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
                   buffer_info->width, buffer_info->height);
     unlock();
 
-    if(1 == IsFormatSupported(buffer_info->format))
+    if(1 == msmgbm_is_format_supported(buffer_info->format))
         Bpp = GetFormatBpp(buffer_info->format, usage);
     else
     {
@@ -1263,7 +1264,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
     LOG(LOG_ERR, "Zero widht or height\n");
     return NULL;
   }
-  if(1 == IsFormatSupported(fd_data->format)) {
+  if(1 == msmgbm_is_format_supported(fd_data->format)) {
       Bpp = GetFormatBpp(fd_data->format, usage);
   }
   else
@@ -1490,7 +1491,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         buffer_info->fd, buffer_info->metadata_fd, get_msmgbm_format_name(buffer_info->format),
         buffer_info->width, buffer_info->height);
 
-    if(1 == IsFormatSupported(buffer_info->format))
+    if(1 == msmgbm_is_format_supported(buffer_info->format))
         Bpp = GetFormatBpp(buffer_info->format, usage);
     else
     {
@@ -1950,7 +1951,7 @@ msmgbm_device_is_format_supported(struct gbm_device *gbm,
     struct msmgbm_device *msm_dev = to_msmgbm_device(gbm);
 
     if(msm_dev != NULL){
-        if(IsFormatSupported(format))
+        if(msmgbm_is_format_supported(format))
             return 1;
     }
     else {
@@ -3343,7 +3344,7 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
         LOG(LOG_ERR,"INVALID width or height\n");
         return NULL;
     }
-    if(1 == IsFormatSupported(gbo->format))
+    if(1 == msmgbm_is_format_supported(gbo->format))
         Bpp = GetFormatBpp(gbo->format, gbo->usage_flags);
     else
     {

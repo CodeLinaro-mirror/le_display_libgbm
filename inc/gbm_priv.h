@@ -73,7 +73,7 @@
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
 *
-* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
 * modification, are permitted (subject to the limitations in the
@@ -1037,6 +1037,14 @@ struct gbm_backendpriv *gbm_get_priv(void);
  *
  */
 int gbm_perform(int operation,...);
+
+/** Test if a format is supported.
+ *
+ * \param format The format to test
+ * \return 1 if the format is supported otherwise 0
+ *
+ */
+int gbm_is_format_supported(uint32_t format);
 
 #ifdef __cplusplus
 }
