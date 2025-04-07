@@ -1053,6 +1053,14 @@ struct gbm_backendpriv *gbm_get_priv(void);
  */
 int gbm_perform(int operation,...);
 
+/** Test if a format is supported.
+ *
+ * \param format The format to test
+ * \return 1 if the format is supported otherwise 0
+ *
+ */
+int gbm_is_format_supported(uint32_t format);
+
 #ifdef __cplusplus
 }
 #endif
