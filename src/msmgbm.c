@@ -666,8 +666,11 @@ static uint32_t GetUsageFromModifier(const uint64_t *modifiers,
 {
   uint32_t usage = 0;
    for (unsigned int i = 0; i < count ; i++) {
+     if (modifiers[i] == DRM_FORMAT_MOD_LINEAR) {
+       usage |= GBM_BO_USE_RENDERING | GBM_BO_USE_LINEAR;
+     }
      if (modifiers[i] == DRM_FORMAT_MOD_QCOM_COMPRESSED) {
-       usage |= GBM_BO_USAGE_UBWC_ALIGNED_QTI;
+       usage |= GBM_BO_USE_RENDERING | GBM_BO_USAGE_UBWC_ALIGNED_QTI;
      }
      if (modifiers[i] == DRM_FORMAT_MOD_QCOM_DX) {
        usage |= GBM_BO_USAGE_VIDEO_ENCODER_QTI;
