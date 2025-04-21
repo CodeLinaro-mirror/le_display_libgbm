@@ -85,7 +85,8 @@ struct format_string_enum format_map[] = {
    {"YUV_422", GBM_FORMAT_YUV422},
    {"YVU_422", GBM_FORMAT_YVU422},
    {"YUV_444", GBM_FORMAT_YUV444},
-   {"YVU_444", GBM_FORMAT_YVU444}
+   {"YVU_444", GBM_FORMAT_YVU444},
+   {"RGBA_32323232F", GBM_FORMAT_RGBA32323232F}
 };
 
 const char* find_format_name(uint32_t format_enum)
