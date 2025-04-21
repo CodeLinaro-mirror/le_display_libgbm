@@ -35,7 +35,7 @@
  */
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -52,8 +52,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <gbm.h>
-#include <gbm_priv.h>
+#include <qbm.h>
+#include <qbm_priv.h>
 #include <wayland-server.h>
 #include <drm/drm_fourcc.h>
 #include <display/drm/sde_drm.h>

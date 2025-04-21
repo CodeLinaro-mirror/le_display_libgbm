@@ -84,7 +84,7 @@
 #include <drm/msm_drm.h>
 #include <drm/drm_fourcc.h>
 #include <drm/drm.h>
-#include <gbm_priv.h>
+#include <qbm_priv.h>
 #include <msmgbm.h>
 #include <msmgbm_dma.h>
 #include <msmgbm_common.h>

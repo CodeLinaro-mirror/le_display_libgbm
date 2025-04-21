@@ -27,6 +27,12 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+* Changes from Qualcomm Innovation Center are provided under the following license:
+* Copyright (c) Qualcomm Innovation Center, Inc. All rights reserved.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
+
 #ifndef __MSMGBM_MAPPER_H__
 #define __MSMGBM_MAPPER_H__
 
@@ -36,7 +42,7 @@
 #include <memory>
 #include <cstdio>
 #include <pthread.h>
-#include "gbm_priv.h"
+#include "qbm_priv.h"
 #include "msmgbm.h"
 
 namespace msm_gbm {
