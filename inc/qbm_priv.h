@@ -124,7 +124,7 @@ extern "C" {
 #include <stdint.h>
 #include <stddef.h>
 #include <stdarg.h>
-#include <gbm.h>
+#include <qbm.h>
 /**
  * These are the flags used by the clients during allocation to
  * indicate the purpose of allocation to the gbm backend.
