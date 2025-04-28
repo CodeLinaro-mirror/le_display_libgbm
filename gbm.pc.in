@@ -3,8 +3,8 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: libqbm
+Name: libgbm
 Description: Userspace interface to kernel ION Memory services
 Version: @PACKAGE_VERSION@
-Libs: -L${libdir} -lqbm
+Libs: -L${libdir} -lgbm
 Cflags: -I${includedir}
