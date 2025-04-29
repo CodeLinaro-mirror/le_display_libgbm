@@ -1,5 +1,6 @@
 
 gbm_h_sources = ${srcdir}/inc/gbm*.h
+gbm_h_sources += ${srcdir}/inc/color_metadata.h
 gbm_includedir = $(includedir)
 gbm_include_HEADERS = $(gbm_h_sources)
 
