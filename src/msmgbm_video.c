@@ -29,12 +29,12 @@
 
 /*
 * Changes from Qualcomm Innovation Center are provided under the following license:
-* Copyright (c) 2023, 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
 * SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 #include <stdint.h>
-#include <qbm_priv.h>
+#include <gbm_priv.h>
 #include <msmgbm.h>
 #include <msmgbm_common.h>
 

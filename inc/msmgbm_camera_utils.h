@@ -30,7 +30,7 @@
 /*
  * Changes from Qualcomm Innovation Center are provided under the following license:
  *
- * Copyright (c) 2022-2023, 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -49,8 +49,8 @@
 #include <stdarg.h>
 #include <stdbool.h>
 #include <errno.h>
-#include "qbm_priv.h"
-#include "qbm.h"
+#include "gbm_priv.h"
+#include "gbm.h"
 #include "msmgbm.h"
 
 namespace msm_gbm {
