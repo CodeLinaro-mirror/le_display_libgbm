@@ -29,10 +29,10 @@ AC_PREREQ(2.61)
 
 m4_define([mesa_version], [21.1.1])
 m4_define([gbm_version], [mesa_version])
-AC_INIT([libqbm],
+AC_INIT([libgbm],
     [gbm_version],
     [],
-    libqbm)
+    libgbm)
 
 AM_INIT_AUTOMAKE([-Wall -Wno-error foreign subdir-objects])
 m4_ifdef([AM_PROG_AR], [AM_PROG_AR])
@@ -134,7 +134,7 @@ fi
 
 AC_CONFIG_FILES([ \
     Makefile \
-    qbm.pc
+    gbm.pc
     ])
 
 AC_SUBST([CFLAGS])
