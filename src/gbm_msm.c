@@ -59,6 +59,12 @@ gbm_msm_bo(struct gbm_bo *bo)
    return (struct gbm_msm_bo *) bo;
 }
 
+static inline struct gbm_msm_bo_ext *
+gbm_msm_bo_ext(struct gbm_msm_bo *msm_bo)
+{
+   return (struct gbm_msm_bo_ext *) msm_bo;
+}
+
 static inline struct gbm_msm_surface *
 gbm_msm_surface(struct gbm_surface *surf)
 {
@@ -191,7 +197,9 @@ gbm_msm_bo_dump(struct gbm_bo * gbo, char *func)
    char tmp_str[50];
    uint32_t width = gbo->v0.width;
    uint32_t height = gbo->v0.height;
-   uint32_t format = msm_bo->gbm_format;
+
+   struct gbm_msm_bo_ext *msm_bo_ext = gbm_msm_bo_ext(msm_bo);
+   uint32_t format = msm_bo_ext->gbm_format;
 
    ret = mkdir(file_nme, 777);
    if ((ret != 0) && errno != EEXIST) {
@@ -231,11 +239,15 @@ static uint32_t
 gbm_msm_bo_metabuffer_size(struct gbm_bo *bo, int plane)
 {
    struct gbm_msm_bo *msm_bo = gbm_msm_bo(bo);
+   if (!msm_bo)
+      return 0;
+
    uint32_t size = 0;
    struct gbm_bufdesc bufdesc = {};
    bufdesc.width = msm_bo->base.v0.width;
    bufdesc.height = msm_bo->base.v0.height;
-   bufdesc.format = msm_bo->gbm_format;
+   struct gbm_msm_bo_ext *msm_bo_ext = gbm_msm_bo_ext(msm_bo);
+   bufdesc.format = msm_bo_ext->gbm_format;
    bufdesc.modifiers = msm_bo->modifier;
    if(get_meta_buffer_size(&bufdesc, plane, &size) != 0) {
       fprintf(stderr, "Error: failed to get metabuffer size \n");
@@ -250,10 +262,14 @@ gbm_msm_bo_get_aligned_width_height(struct gbm_bo *_bo, int plane,
                                     uint32_t *aligned_height)
 {
    struct gbm_msm_bo *msm_bo = gbm_msm_bo(_bo);
+   if (!msm_bo)
+      return;
+
    struct gbm_bufdesc bufdesc = {};
    bufdesc.width = msm_bo->base.v0.width;
    bufdesc.height = msm_bo->base.v0.height;
-   bufdesc.format = msm_bo->gbm_format;
+   struct gbm_msm_bo_ext *msm_bo_ext = gbm_msm_bo_ext(msm_bo);
+   bufdesc.format = msm_bo_ext->gbm_format;
    bufdesc.modifiers = msm_bo->modifier;
 
    if (get_aligned_width_and_height(&bufdesc, plane, aligned_width, aligned_height) != 0) {
@@ -269,18 +285,18 @@ gbm_msm_bo_create(struct gbm_device *gbm,
               const unsigned int count)
 {
    struct gbm_msm_device *msm_dev = gbm_msm_device(gbm);
-   struct gbm_msm_bo *bo = NULL;
+   struct gbm_msm_bo_ext *msm_bo_ext = NULL;
    uint64_t modifiers_mask = 0;
    format = gbm_core_->v0.format_canonicalize(format);
-   bo = calloc(1, sizeof *bo);
-   if (bo == NULL)
+   msm_bo_ext = calloc(1, sizeof *msm_bo_ext);
+   if (msm_bo_ext == NULL)
       return NULL;
 
+   struct gbm_msm_bo *bo = &msm_bo_ext->msm_bo;
    bo->base.gbm = gbm;
    bo->base.v0.width = width;
    bo->base.v0.height = height;
    bo->base.v0.format = format;
-   bo->gbm_format = format;
    for (int m = 0; m < count; m++) {
       modifiers_mask |= modifiers[m];
    }
@@ -311,6 +327,8 @@ gbm_msm_bo_create(struct gbm_device *gbm,
    bo->bo_get_metabuffer_size = gbm_msm_bo_metabuffer_size;
    bo->bo_get_plane_aligned_width_height = gbm_msm_bo_get_aligned_width_height;
 
+   msm_bo_ext->gbm_format = format;
+
    return &bo->base;
 }
 
@@ -319,20 +337,20 @@ gbm_msm_bo_import(struct gbm_device *gbm,
                   uint32_t type, void *buffer, uint32_t usage)
 {
    struct gbm_msm_device *msm_dev = gbm_msm_device(gbm);
-   struct gbm_msm_bo *bo = NULL;
+   struct gbm_msm_bo_ext *msm_bo_ext = NULL;
    struct gbm_bufdesc bufdesc = {};
    uint32_t handle = 0;
+
+   msm_bo_ext = calloc(1, sizeof *msm_bo_ext);
+   if (msm_bo_ext == NULL)
+      return NULL;
+
+   struct gbm_msm_bo *bo = &msm_bo_ext->msm_bo;
 
    switch (type) {
    case GBM_BO_IMPORT_FD:
       struct gbm_import_fd_data *fd_data = buffer;
       if (import_gem_buffer(msm_dev, fd_data->fd, &handle)) {
-         return NULL;
-      }
-
-      bo = calloc(1, sizeof *bo);
-      if (bo == NULL) {
-         fprintf(stderr, "Unable to allocate BO\n");
          return NULL;
       }
 
@@ -342,11 +360,11 @@ gbm_msm_bo_import(struct gbm_device *gbm,
       bo->base.v0.width = fd_data->width;
       bo->base.v0.height = fd_data->height;
       bo->base.v0.format = fd_data->format;
-      bo->gbm_format = bo->base.v0.format;
+      msm_bo_ext->gbm_format = bo->base.v0.format;
 
       bufdesc.width = bo->base.v0.width;
       bufdesc.height = bo->base.v0.height;
-      bufdesc.format = bo->gbm_format;
+      bufdesc.format = msm_bo_ext->gbm_format;
       bufdesc.modifiers = 0;
 
       if (get_num_planes(&bufdesc, &(bo->num_planes)) != 0)
@@ -371,12 +389,6 @@ gbm_msm_bo_import(struct gbm_device *gbm,
          return NULL;
       }
 
-      bo = calloc(1, sizeof *bo);
-      if (bo == NULL) {
-         fprintf(stderr, "Unable to allocate BO\n");
-         return NULL;
-      }
-
       bo->base.v0.handle.u32 = handle;
       add_gem_handle(handle);
       bo->base.gbm = gbm;
@@ -385,13 +397,13 @@ gbm_msm_bo_import(struct gbm_device *gbm,
       bo->base.v0.format = fd_modifer_data->format;
       if ((bo->base.v0.format == GBM_FORMAT_XBGR16161616F) &&
           (fd_modifer_data->modifier & DRM_FORMAT_MOD_QCOM_32F)) {
-         bo->gbm_format = GBM_FORMAT_RGBA32323232F;
+         msm_bo_ext->gbm_format = GBM_FORMAT_RGBA32323232F;
       } else {
-         bo->gbm_format = bo->base.v0.format;
+         msm_bo_ext->gbm_format = bo->base.v0.format;
       }
       bufdesc.width = bo->base.v0.width;
       bufdesc.height = bo->base.v0.height;
-      bufdesc.format = bo->gbm_format;
+      bufdesc.format = msm_bo_ext->gbm_format;
       bufdesc.modifiers = fd_modifer_data->modifier;
 
       if (get_num_planes(&bufdesc, &(bo->num_planes)) != 0)
@@ -434,8 +446,10 @@ gbm_msm_bo_destroy(struct gbm_bo *_bo)
      void *map_data = bo->map;
      gbm_msm_bo_unmap(_bo, map_data);
    }
-   free(bo);
-   bo = NULL;
+
+   struct gbm_msm_bo_ext *msm_bo_ext = gbm_msm_bo_ext(bo);
+   free(msm_bo_ext);
+   msm_bo_ext = NULL;
 }
 
 static int
@@ -466,7 +480,8 @@ gbm_msm_bo_get_stride(struct gbm_bo *bo, int plane)
    struct gbm_bufdesc bufdesc = {};
    bufdesc.width = msm_bo->base.v0.width;
    bufdesc.height = msm_bo->base.v0.height;
-   bufdesc.format = msm_bo->gbm_format;
+   struct gbm_msm_bo_ext *msm_bo_ext = gbm_msm_bo_ext(msm_bo);
+   bufdesc.format = msm_bo_ext->gbm_format;
    bufdesc.modifiers = msm_bo->modifier;
 
    uint32_t stride = 0;
@@ -490,13 +505,14 @@ gbm_msm_bo_get_offset(struct gbm_bo *_bo, int plane)
    struct gbm_bufdesc bufdesc = {};
    bufdesc.width = msm_bo->base.v0.width;
    bufdesc.height = msm_bo->base.v0.height;
-   bufdesc.format = msm_bo->gbm_format;
+   struct gbm_msm_bo_ext *msm_bo_ext = gbm_msm_bo_ext(msm_bo);
+   bufdesc.format = msm_bo_ext->gbm_format;
    bufdesc.modifiers = msm_bo->modifier;
 
    uint32_t offset = 0;
    if (get_plane_offset(&bufdesc, plane, &offset) != 0)
       return 0;
-   
+
    return offset;
 }
 

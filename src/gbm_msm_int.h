@@ -34,4 +34,9 @@ struct gbm_bufdesc {
     uint64_t modifiers;
 };
 
+struct gbm_msm_bo_ext {
+    struct gbm_msm_bo msm_bo;
+    uint64_t gbm_format;
+};
+
 #endif
