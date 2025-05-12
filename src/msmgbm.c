@@ -26,43 +26,11 @@
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
-
 /*
-* Changes from Qualcomm Innovation Center are provided under the following license:
-*
-* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted (subject to the limitations in the
-* disclaimer below) provided that the following conditions are met:
-*
-*    * Redistributions of source code must retain the above copyright
-*      notice, this list of conditions and the following disclaimer.
-*
-*    * Redistributions in binary form must reproduce the above
-*      copyright notice, this list of conditions and the following
-*      disclaimer in the documentation and/or other materials provided
-*      with the distribution.
-*
-*    * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
-*      contributors may be used to endorse or promote products derived
-*      from this software without specific prior written permission.
-*
-* NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-* GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-* HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
-* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-* IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-* GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-* IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-* OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-* IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
-
 #include <stdio.h>
 #include <stdint.h>
 #include <stddef.h>
@@ -505,6 +473,18 @@ static int GetFormatBpp(uint32_t format)
         case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
         case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
         case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+        case GBM_FORMAT_NV12_FLEX:
+        case GBM_FORMAT_NV12_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_FLEX_8_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
              LOG(LOG_DBG,"YUV format BPP\n");
             return 1;
         case GBM_FORMAT_RGB161616F:
@@ -575,6 +555,18 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
         case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
         case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+        case GBM_FORMAT_NV12_FLEX:
+        case GBM_FORMAT_NV12_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_FLEX_8_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
             is_supported = 1;
             LOG(LOG_DBG,"Valid format\n");
             break;
@@ -710,6 +702,14 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
     case GBM_FORMAT_P010:
     case GBM_FORMAT_YCbCr_422_I:
     case GBM_FORMAT_YCrCb_422_I:
+    case GBM_FORMAT_NV12_FLEX:
+    case GBM_FORMAT_NV12_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_FLEX_8_BATCH:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH:
       plane_count = 2;
     break;
     case GBM_FORMAT_YV12:
@@ -722,6 +722,10 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
     case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
     case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
     case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
       plane_count = 4;
     break;
     case GBM_FORMAT_BLOB:
@@ -3209,6 +3213,10 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
         case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
         case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+        case GBM_FORMAT_NV12_FLEX:
+        case GBM_FORMAT_NV12_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_FLEX_8_BATCH:
             if (is_ubwc_enabled(gbo->format, gbo->usage_flags, gbo->usage_flags))
                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                            MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
@@ -3217,6 +3225,10 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
                                       YUV_420_SP_BPP, buf_lyt);
             break;
         case GBM_FORMAT_YCbCr_420_TP10_UBWC:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
             get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                        MMM_COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
             break;
@@ -3228,6 +3240,10 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_422_I:
         case GBM_FORMAT_YCrCb_422_I:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH:
             get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
                                   CHROMA_STEP, buf_lyt);
             break;

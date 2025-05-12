@@ -28,39 +28,9 @@
 */
 
 /*
-* Changes from Qualcomm Innovation Center are provided under the following license:
-*
-* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
-*
-* Redistribution and use in source and binary forms, with or without
-* modification, are permitted (subject to the limitations in the
-* disclaimer below) provided that the following conditions are met:
-*
-*    * Redistributions of source code must retain the above copyright
-*      notice, this list of conditions and the following disclaimer.
-*
-*    * Redistributions in binary form must reproduce the above
-*      copyright notice, this list of conditions and the following
-*      disclaimer in the documentation and/or other materials provided
-*      with the distribution.
-*
-*    * Neither the name of Qualcomm Innovation Center, Inc. nor the names of its
-*      contributors may be used to endorse or promote products derived
-*      from this software without specific prior written permission.
-*
-* NO EXPRESS OR IMPLIED LICENSES TO ANY PARTY'S PATENT RIGHTS ARE
-* GRANTED BY THIS LICENSE. THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT
-* HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED
-* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
-* MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
-* IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
-* GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-* INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
-* IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
-* OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
-* IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 #include <cstdio>
@@ -504,6 +474,18 @@ bool platform_wrap:: is_valid_yuv_fmt(int format) {
         case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
         case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
         case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+        case GBM_FORMAT_NV12_FLEX:
+        case GBM_FORMAT_NV12_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_FLEX_8_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
           return true;
         default:
           break;
@@ -694,6 +676,27 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
             size = get_batch_size(format) *
                    MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC, width, height);
             break;
+        case GBM_FORMAT_NV12_FLEX:
+        case GBM_FORMAT_NV12_FLEX_2_BATCH:
+        case GBM_FORMAT_NV12_FLEX_4_BATCH:
+        case GBM_FORMAT_NV12_FLEX_8_BATCH:
+            size = get_batch_size(format) *
+                   MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12, width, height);
+            break;
+        case GBM_FORMAT_YCbCr_420_P010_FLEX:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH:
+            size = get_batch_size(format) *
+                   MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_P010, width, height);
+            break;
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
+        case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
+            size = get_batch_size(format) *
+                   MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width, height);
+            break;
         default:
             LOG(LOG_ERR," Unrecognized pixel format: 0x%x\n",format);
             return 0;
@@ -719,6 +722,10 @@ void platform_wrap::get_yuv_ubwc_wdth_hght(int width, int height, int format,
       *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
       break;
     case GBM_FORMAT_YCbCr_420_TP10_UBWC:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
       // The macro returns the stride which is 4/3 times the width, hence * 3/4
       *aligned_w = (MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width) * 3) / 4;
       *aligned_h = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_BPP10_UBWC, height);
@@ -817,11 +824,19 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedw = ALIGN(width, 32);
       break;
     case GBM_FORMAT_YCbCr_420_P010_VENUS:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH:
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_P010, width) / 2);
       *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_P010, height));
       break;
     case GBM_FORMAT_YCbCr_420_SP_VENUS:
     case GBM_FORMAT_NV12_ENCODEABLE:
+    case GBM_FORMAT_NV12_FLEX:
+    case GBM_FORMAT_NV12_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_FLEX_8_BATCH:
       LOG(LOG_DBG,"@ YUV Format\n");
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12, width));
       *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12, height));
@@ -1083,15 +1098,27 @@ uint32_t platform_wrap::get_batch_size(int format) {
   uint32_t batchsize = 1;
   switch (format) {
     case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_NV12_FLEX_2_BATCH:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
       batchsize = 2;
       break;
     case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_NV12_FLEX_4_BATCH:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
       batchsize = 4;
       break;
     case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+    case GBM_FORMAT_NV12_FLEX_8_BATCH:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
       batchsize = 8;
       break;
     case GBM_FORMAT_NV12_UBWC_FLEX:
+    case GBM_FORMAT_NV12_FLEX:
+    case GBM_FORMAT_YCbCr_420_P010_FLEX:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
       batchsize = 16;
       break;
     default:
@@ -1140,6 +1167,13 @@ unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, uns
       size = get_batch_size(format) *
              MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_UBWC, width, height);
       break;
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
+      size = get_batch_size(format) *
+             MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_BPP10_UBWC, width, height);
+      break;
     default:
       LOG(LOG_ERR," Unsupported pixel format: 0x%x\n",format);
       break;
@@ -1154,6 +1188,10 @@ bool platform_wrap::is_ubwc_flex_format(int format) {
     case GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH:
     case GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH:
     case GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH:
+    case GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH:
       return true;
   }
 
