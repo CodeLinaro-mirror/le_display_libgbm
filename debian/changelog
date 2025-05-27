@@ -1,0 +1,11 @@
+libgbm-msm1 (1.1.0) noble; urgency=medium
+
+  * New release with bug fixes
+
+ -- Abhijith Desai <quic_abdesai@quicinc.com>  Wed, 07 May 2025 06:31:12 +0000
+
+libgbm-msm1 (1.0.0) noble; urgency=low
+
+  * Initial release.
+
+ -- Abhijith Desai <quic_abdesai@quicinc.com>  Wed, 05 Feb 2025 10:32:03 +0000
