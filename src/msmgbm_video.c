@@ -27,6 +27,12 @@
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
+/*
+ * ​​​​​Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries. 
+ * SPDX-License-Identifier: BSD-3-Clause-Clear
+ */
+
 #include <stdint.h>
 #include <gbm_priv.h>
 #include <msmgbm.h>
@@ -41,11 +47,15 @@ uint32_t GetVideoImplDefinedFormat(uint32_t usage_flags, uint32_t format)
 {
     uint32_t pixel_format = format;
 
-    if(!IsImplDefinedFormat(format))
+    if (!IsImplDefinedFormat(format))
         return pixel_format;
 
-    if(usage_flags & GBM_BO_USAGE_VIDEO_ENCODER_QTI){
-        pixel_format = GBM_FORMAT_NV12_ENCODEABLE;
+    if (usage_flags & GBM_BO_USAGE_VIDEO_ENCODER_QTI) {
+        if (format == GBM_FORMAT_YCbCr_420_888) {
+            pixel_format = GBM_FORMAT_YCbCr_420_SP_VENUS;
+        } else {
+            pixel_format = GBM_FORMAT_NV12_ENCODEABLE;
+        }
     }
 
     return pixel_format;

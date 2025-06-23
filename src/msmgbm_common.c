@@ -28,8 +28,8 @@
 */
 
 /*
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * ​​​​​Changes from Qualcomm Technologies, Inc. are provided under the following license:
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries. 
  * SPDX-License-Identifier: BSD-3-Clause-Clear
  */
 
@@ -75,8 +75,9 @@ uint32_t GetImplDefinedFormat(uint32_t usage_flags, uint32_t format)
 
 
     pixel_format = GetDefaultImplDefinedFormat(usage_flags, pixel_format);
-    pixel_format = GetCameraImplDefinedFormat(usage_flags, pixel_format);
     pixel_format = GetVideoImplDefinedFormat(usage_flags, pixel_format);
+    pixel_format = GetCameraImplDefinedFormat(usage_flags, pixel_format);
+
 
     /*default if no valid format is set by camera/video*/
     if(IsImplDefinedFormat(pixel_format))
