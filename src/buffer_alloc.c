@@ -12,14 +12,18 @@
 #include "buffer_alloc.h"
 #include <sys/stat.h>
 
-int allocate_buffer(const struct gbm_msm_device *msm_dev, uint32_t size, uint32_t *handle) {
+int allocate_buffer(const struct gbm_msm_device *msm_dev, uint32_t size, uint32_t usage, uint32_t *handle) {
    if (!msm_dev || !handle)
       return -1;
 
    struct drm_msm_gem_new args;
    memset(&args, 0, sizeof(args));
    args.size = size;
-   args.flags = MSM_BO_CACHED;
+   if (usage & GBM_BO_USE_CURSOR)
+     args.flags = MSM_BO_CACHED_COHERENT;
+   else
+     args.flags = MSM_BO_CACHED;
+
    if(drmIoctl(msm_dev->base.v0.fd, DRM_IOCTL_MSM_GEM_NEW, &args)) {
       fprintf(stderr, "MSM_GEM_NEW failed \n");
       return -1;

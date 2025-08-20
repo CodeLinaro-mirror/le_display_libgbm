@@ -1,3 +1,9 @@
+libgbm-msm1 (1.2.0) noble; urgency=medium
+
+  * New release with bug fixes and gpu dri3 support
+
+ -- Abhijith Desai <quic_abdesai@quicinc.com>  Wed, 20 Aug 2025 15:31:17 +0530
+
 libgbm-msm1 (1.1.0) noble; urgency=medium
 
   * New release with bug fixes

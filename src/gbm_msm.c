@@ -303,6 +303,9 @@ gbm_msm_bo_create(struct gbm_device *gbm,
 
    struct gbm_bufdesc bufdesc = {width, height, format, usage, modifiers_mask};
 
+   if (get_best_layout(count, modifiers, &bufdesc) != 0)
+      return NULL;
+
    if (get_num_planes(&bufdesc, &(bo->num_planes)) != 0)
       return NULL;
 
@@ -313,7 +316,7 @@ gbm_msm_bo_create(struct gbm_device *gbm,
    if (get_size(&bufdesc, &size) != 0)
       return NULL;
 
-   if (allocate_buffer(msm_dev, size, &(bo->base.v0.handle.u32)) != 0)
+   if (allocate_buffer(msm_dev, size, usage, &(bo->base.v0.handle.u32)) != 0)
       return NULL;
 
    add_gem_handle(bo->base.v0.handle.u32);
@@ -322,7 +325,7 @@ gbm_msm_bo_create(struct gbm_device *gbm,
       return NULL;
 
    bo->size = size;
-   bo->modifier = modifiers_mask;
+   bo->modifier = bufdesc.modifiers;
    bo->bo_dump_buffers = gbm_msm_bo_dump;
    bo->bo_get_metabuffer_size = gbm_msm_bo_metabuffer_size;
    bo->bo_get_plane_aligned_width_height = gbm_msm_bo_get_aligned_width_height;
@@ -418,7 +421,7 @@ gbm_msm_bo_import(struct gbm_device *gbm,
       if (get_stride(&bufdesc, 0, &(bo->base.v0.stride)) != 0)
          return NULL;
 
-      bo->modifier = fd_modifer_data->modifier;
+      bo->modifier = bufdesc.modifiers;
       break;
 
    default:
@@ -520,6 +523,12 @@ static union gbm_bo_handle
 gbm_msm_bo_get_handle(struct gbm_bo *_bo, int plane)
 {
    return _bo->v0.handle;
+}
+
+static int
+gbm_msm_bo_get_plane_fd(struct gbm_bo *_bo, int plane)
+{
+   return gbm_msm_bo_get_fd(_bo);
 }
 
 static int
@@ -750,6 +759,7 @@ msm_device_create(int fd, uint32_t gbm_backend_version)
    msm->base.v0.bo_get_offset = gbm_msm_bo_get_offset;
    msm->base.v0.bo_get_handle = gbm_msm_bo_get_handle;
    msm->base.v0.bo_write = gbm_msm_bo_write;
+   msm->base.v0.bo_get_plane_fd = gbm_msm_bo_get_plane_fd;
 
    msm->base.v0.name = "msm";
 
