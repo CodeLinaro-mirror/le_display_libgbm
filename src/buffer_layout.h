@@ -19,3 +19,6 @@ int get_plane_offset(struct gbm_bufdesc *descriptor, int plane,
                      uint32_t *plane_offset);
 void get_plane_width_and_height(uint32_t format, int plane,
                                 uint32_t *buffer_width, uint32_t *buffer_height);
+bool ubwc_supported(struct gbm_bufdesc *descriptor);
+int get_best_layout(const unsigned int count, const uint64_t *modifiers,
+                    struct gbm_bufdesc *descriptor);
