@@ -1,3 +1,9 @@
+libgbm-msm1 (1.2.1) noble; urgency=medium
+
+  * Fix: updated patch to handle bo create without modifier.
+
+ -- Yash Gupta <quic_ygupt@quicinc.com>  Mon, 25 Aug 2025 23:30:00 -0700
+
 libgbm-msm1 (1.2.0) noble; urgency=medium
 
   * New release with bug fixes and gpu dri3 support

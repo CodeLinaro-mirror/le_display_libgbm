@@ -58,6 +58,11 @@ bool ubwc_supported(struct gbm_bufdesc *descriptor) {
 }
 
 int get_best_layout(const unsigned int count, const uint64_t *modifiers, struct gbm_bufdesc *descriptor) {
+   if (count == 0) {
+      descriptor->modifiers = 0;
+      return 0;
+   }
+
    for (int m = 0; m < count; m++) {
       if (modifiers[m] == DRM_FORMAT_MOD_QCOM_COMPRESSED && ubwc_supported(descriptor)) {
          descriptor->modifiers = modifiers[m];
