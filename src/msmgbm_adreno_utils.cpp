@@ -212,6 +212,8 @@ ADRENOPIXELFORMAT adreno_mem_info::get_gpu_pxl_fmt(unsigned int gbm_format) {
       return ADRENO_PIXELFORMAT_R16G16_UNORM;
     case GBM_FORMAT_BGR888:
       return ADRENO_PIXELFORMAT_R8G8B8;
+    case GBM_FORMAT_ARGB8888:
+      return ADRENO_PIXELFORMAT_B8G8R8A8;
     case GBM_FORMAT_RGBA8888:
       return ADRENO_PIXELFORMAT_R8G8B8A8;
     case GBM_FORMAT_XBGR8888:
