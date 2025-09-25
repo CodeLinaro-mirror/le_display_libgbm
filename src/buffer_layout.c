@@ -37,6 +37,56 @@ bool ubwc_enabled(struct gbm_bufdesc *descriptor) {
    return false;
 }
 
+bool ubwc_supported(struct gbm_bufdesc *descriptor) {
+   if (!descriptor)
+      return false;
+
+   const char *format_name = find_format_name(descriptor->format);
+   if (!format_name) {
+      return false;
+   }
+
+   struct format_info *info = get_format_info(format_name);
+   if (!info)
+      return false;
+
+   if (!info->planes[0].meta_info) {
+      return false;
+   }
+
+   return true;
+}
+
+int get_best_layout(const unsigned int count, const uint64_t *modifiers, struct gbm_bufdesc *descriptor) {
+   if (count == 0) {
+      descriptor->modifiers = 0;
+      return 0;
+   }
+
+   for (int m = 0; m < count; m++) {
+      if (modifiers[m] == DRM_FORMAT_MOD_QCOM_COMPRESSED && ubwc_supported(descriptor)) {
+         descriptor->modifiers = modifiers[m];
+         return 0;
+      }
+   }
+
+   for (int m = 0; m < count; m++) {
+      if (modifiers[m] == DRM_FORMAT_MOD_LINEAR) {
+         descriptor->modifiers = modifiers[m];
+         return 0;
+      }
+   }
+
+   for (int m = 0; m < count; m++) {
+      if (modifiers[m] == DRM_FORMAT_MOD_INVALID) {
+         descriptor->modifiers = modifiers[m];
+         return 0;
+      }
+   }
+
+   return -1;
+}
+
 void get_plane_width_and_height(uint32_t format, int plane, uint32_t *plane_width, uint32_t *plane_height) {
    if (plane == 0)
       return;
