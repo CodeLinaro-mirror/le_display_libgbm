@@ -31,7 +31,7 @@ bool ubwc_enabled(struct gbm_bufdesc *descriptor) {
    if (!descriptor)
       return false;
 
-   if (descriptor->modifiers & DRM_FORMAT_MOD_QCOM_COMPRESSED)
+   if ((descriptor->modifiers & DRM_FORMAT_MOD_QCOM_COMPRESSED) == DRM_FORMAT_MOD_QCOM_COMPRESSED)
       return true;
 
    return false;
