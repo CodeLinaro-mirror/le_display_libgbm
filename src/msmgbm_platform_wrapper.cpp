@@ -1,6 +1,7 @@
 /*
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
-* Not a Contribution.
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 *
 * Copyright (c) 2018, 2021 The Linux Foundation. All rights reserved.
 *
@@ -447,6 +448,10 @@ bool platform_wrap:: is_valid_yuv_fmt(int format) {
         case GBM_FORMAT_YCrCb_422_I:
         case GBM_FORMAT_C8:
         case GBM_FORMAT_UYVY:
+        case GBM_FORMAT_YUV420:
+        case GBM_FORMAT_YVU420:
+        case GBM_FORMAT_YU12:
+        case GBM_FORMAT_YV12:
           return true;
         default:
           break;
@@ -517,9 +522,12 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
         case GBM_FORMAT_RAW16:
             size = ALIGN(alignedw * alignedh * 2, 4096);
             break;
+        case GBM_FORMAT_YUV420:
+        case GBM_FORMAT_YVU420:
+        case GBM_FORMAT_YU12:
         case GBM_FORMAT_YV12:
-            if ((format == GBM_FORMAT_YV12) && ((width&1) || (height&1))) {
-                LOG(LOG_ERR," w or h is odd for the YV12 format\n");
+            if (((width&1) || (height&1))) {
+                LOG(LOG_ERR," w or h is odd for the YUV formats\n");
                 return 0;
             }
             size = alignedw*alignedh + (ALIGN(alignedw/2, 16) * (alignedh/2))*2;
@@ -713,6 +721,9 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
     case GBM_FORMAT_RAW8:
       *alignedw = ALIGN(width, 16);
       break;
+    case GBM_FORMAT_YUV420:
+    case GBM_FORMAT_YVU420:
+    case GBM_FORMAT_YU12:
     case GBM_FORMAT_YV12:
     case GBM_FORMAT_YCbCr_422_SP:
     case GBM_FORMAT_YCrCb_422_SP:

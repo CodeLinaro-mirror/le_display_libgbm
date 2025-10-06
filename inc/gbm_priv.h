@@ -1,5 +1,6 @@
 /*
-* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 * SPDX-License-Identifier: BSD-3-Clause-Clear
 *
 * Copyright (c) 2017-2021 The Linux Foundation. All rights reserved.
@@ -463,6 +464,8 @@ extern "C" {
 #define GBM_FORMAT_NV12_UBWC_FLEX                           fourcc_mod_code_qti(QTI, 52)
 
 #define GBM_FORMAT_MULTIPLANAR_FLEX                         fourcc_mod_code_qti(QTI, 53)
+
+#define GBM_FORMAT_YU12                                     fourcc_mod_code_qti(QTI, 54)
 
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'A')
 

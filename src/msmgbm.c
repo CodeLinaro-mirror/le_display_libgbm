@@ -1,6 +1,7 @@
 /*
-* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
-* Not a Contribution.
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 *
 * Copyright (c) 2017 - 2021 The Linux Foundation. All rights reserved.
 *
@@ -430,6 +431,10 @@ static int GetFormatBpp(uint32_t format)
 #endif
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
+        case GBM_FORMAT_YUV420:
+        case GBM_FORMAT_YVU420:
+        case GBM_FORMAT_YU12:
+        case GBM_FORMAT_YV12:
              LOG(LOG_DBG,"YUV format BPP\n");
             return 1;
         default:
@@ -475,6 +480,10 @@ static int IsFormatSupported(uint32_t format)
         case GBM_FORMAT_RAW16:
         case GBM_FORMAT_RAW8:
         case GBM_FORMAT_BLOB:
+        case GBM_FORMAT_YUV420:
+        case GBM_FORMAT_YVU420:
+        case GBM_FORMAT_YU12:
+        case GBM_FORMAT_YV12:
 #ifdef COLOR_FMT_NV12_512
         case GBM_FORMAT_NV12_HEIF:
 #endif
@@ -613,6 +622,9 @@ msmgbm_get_format_modifier_plane_count(uint32_t format,
     case GBM_FORMAT_YCrCb_422_I:
       plane_count = 2;
     break;
+    case GBM_FORMAT_YUV420:
+    case GBM_FORMAT_YVU420:
+    case GBM_FORMAT_YU12:
     case GBM_FORMAT_YV12:
       plane_count = 3;
     break;
