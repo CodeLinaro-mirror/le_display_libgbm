@@ -1,3 +1,9 @@
+libgbm-msm1 (1.2.2) noble; urgency=medium
+
+  * Updated backend initialization logic: backend is now created only if an Adreno GPU is present
+
+ -- Devanshi Bansal <quic_devanshi@quicinc.com>  Tue, 09 Sep 2025 15:18:57 +0530
+
 libgbm-msm1 (1.2.1) noble; urgency=medium
 
   * Fix: updated patch to handle bo create without modifier.

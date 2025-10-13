@@ -728,6 +728,11 @@ gbm_msm_surface_create(struct gbm_device *gbm,
 static struct gbm_device *
 msm_device_create(int fd, uint32_t gbm_backend_version)
 {
+   const char *gpu_path = "/sys/class/kgsl/kgsl-3d0/";
+   if (access(gpu_path, F_OK) != 0) {
+      return NULL;
+   }
+
    struct gbm_msm_device *msm;
 
    assert(gbm_core_->v0.core_version == GBM_BACKEND_ABI_VERSION);
