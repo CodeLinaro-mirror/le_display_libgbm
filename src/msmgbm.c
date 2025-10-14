@@ -3364,7 +3364,35 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
     }
     else
     {
-        res = msmgbm_yuv_plane_info(gbo, buf_lyt);
+        switch(gbo->format){
+           //Semiplanar
+            case GBM_FORMAT_YCbCr_420_SP:
+            case GBM_FORMAT_YCrCb_420_SP:
+            case GBM_FORMAT_YCbCr_420_SP_VENUS:
+            case GBM_FORMAT_NV12:
+            case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
+#ifdef COLOR_FMT_NV12_512
+            case GBM_FORMAT_NV12_HEIF:
+#endif
+                 get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                       YUV_420_SP_BPP, buf_lyt);
+                 break;
+            case GBM_FORMAT_YCbCr_420_TP10_UBWC:
+                 get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                            MMM_COLOR_FMT_NV12_BPP10_UBWC, buf_lyt);
+                 break;
+            case GBM_FORMAT_P010:
+                get_yuv_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                      CHROMA_STEP, buf_lyt);
+                break;
+            case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
+                get_yuv_ubwc_sp_plane_info(gbo->aligned_width, gbo->aligned_height,
+                                           MMM_COLOR_FMT_NV12_UBWC, buf_lyt);
+                break;
+            default:
+                 res = GBM_ERROR_UNSUPPORTED;
+                 break;
+        }
     }
     return res;
 }
