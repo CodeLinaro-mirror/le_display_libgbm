@@ -1,3 +1,11 @@
+libgbm-msm (1.2.3) noble; urgency=medium
+
+  * Updated package rules and dependencies to conform with community
+    guidelines. Updated package name to libgbm-msm.
+  * Fix : Fix the modifier handling and bpp for float32 format.
+
+ -- Abhijith Desai <quic_abdesai@quicinc.com>  Thu, 06 Nov 2025 12:41:04 +0530
+
 libgbm-msm1 (1.2.2) noble; urgency=medium
 
   * Updated backend initialization logic: backend is now created only if an Adreno GPU is present
