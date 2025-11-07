@@ -52,6 +52,9 @@ extern "C" {
 #define LOG_INFO     (4)
 #define LOG_DBG      (5)
 
+#define FUNCTION_ENTRY() LOG(LOG_DBG, "FUNCTION_ENTRY")
+#define FUNCTION_EXIT() LOG(LOG_DBG, "FUNCTION_EXIT")
+
 extern int  g_debug_level;
 
 #define LOG(level, ...) do {  \

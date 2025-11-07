@@ -111,6 +111,7 @@ class msmgbm_mapper {
   int  del_map_entry(int ion_fd);
   void  incr_handle_refcnt(int device_fd, uint32_t handle);
   int  decr_handle_refcnt(int device_fd, uint32_t handle);
+  void print_ref_cnt(int ion_fd);
 
 };
 
