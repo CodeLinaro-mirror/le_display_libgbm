@@ -2556,6 +2556,57 @@ static int test_dup_mapping_bo_import() {
     return 1;
 }
 
+static int test_buffer_refcnt()
+{
+    int i, j;
+    struct gbm_bo *bo1[100], *bo2[100];
+    struct gbm_import_fd_data buf_data;
+    int created_count = 0;
+    int imported_count = 0;
+
+    for (i = 0; i < 100; i++) {
+        printf("test_buffer_refcnt run(%d)\n",i);
+        bo1[i] = gbm_bo_create(gbm, 1920, 1080, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+        if (!check_bo(bo1[i])) {
+            // Cleanup previously allocated buffers
+            for (j = 0; j < created_count; j++) {
+                gbm_bo_destroy(bo2[j]);
+                gbm_bo_destroy(bo1[j]);
+            }
+            return 0;
+        }
+        created_count++;
+        printf("Buffer allocated successfully\n");
+
+        buf_data.fd = bo1[i]->ion_fd;
+        buf_data.width = 1920;
+        buf_data.height = 1080;
+        buf_data.format = GBM_FORMAT_XRGB8888;
+        bo2[i] = gbm_bo_import(gbm, GBM_BO_IMPORT_FD,&buf_data,GBM_BO_USE_RENDERING);
+        printf("Buffer imported successfully\n");
+        if (!check_bo(bo2[i])) {
+            // Cleanup previously allocated buffers
+            gbm_bo_destroy(bo1[i]);
+            for (j = 0; j < imported_count; j++) {
+                gbm_bo_destroy(bo2[j]);
+                gbm_bo_destroy(bo1[j]);
+            }
+            return 0;
+        }
+        imported_count++;
+    }
+
+    for (i = 0; i < 100; i++) {
+        int fd = bo1[i]->ion_fd;
+        printf("Destroying the imported buffer object %d\n", i);
+        gbm_bo_destroy(bo2[i]);
+        printf("Destroying the created buffer object %d\n", i);
+        gbm_bo_destroy(bo1[i]);
+        printf("fd closed successfully..\n");
+    }
+    return 1;
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2579,12 +2630,13 @@ int gbm_test_help() {
   printf("19 Test GBM_FORMAT_P010 format operations on BO\n");
   printf("20 Test Device names returned by gbm_perform call\n");
   printf("21 Test GBM_FORMAT_IMPLEMENTATION_DEFINED format\n");
-  printf("22 Test  alloc with modifiers \n");
+  printf("22 Test alloc with modifiers \n");
   printf("23 Test plane info \n");
-  printf("24 for BO secure buffer Create/Destroy \n");
+  printf("24 Test for BO secure buffer Create/Destroy \n");
   printf("25 Test gbm_bo_get_fd \n");
   printf("26 Test preservation of metadata using gbm_bo_get_fd and bo_import\n");
   printf("27 Test src-dup fd mappings and cpu addr validity (if seg-fault, test FAILED)\n");
+  printf("28 Test refcnt of buffers \n");
   return 0;
 }
 int main(int argc, char *argv[])
@@ -2722,6 +2774,11 @@ int main(int argc, char *argv[])
             result &= test_dup_mapping_bo_import();
             result &= test_destroy();
         break;
+        case 28:
+            result &= test_init();
+            result &= test_buffer_refcnt();
+            result &= test_destroy();
+            break;
         default:
             gbm_test_help();
             return 0;

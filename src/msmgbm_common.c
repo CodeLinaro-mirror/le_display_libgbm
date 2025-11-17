@@ -1,7 +1,4 @@
 /*
-* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
-* Not a Contribution.
-*
 * Copyright (c) 2018, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -28,6 +25,11 @@
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+/*
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 #include <stdint.h>
@@ -93,8 +95,8 @@ static uint32_t GetDefaultIonAllocFlags(uint32_t alloc_flags)
             ion_flags |= ION_FLAG_CP_PIXEL;
     }else if((alloc_flags & GBM_BO_ALLOC_SECURE_DISPLAY_HEAP_QTI) &&
 		    !(alloc_flags & GBM_BO_USAGE_CAMERA_WRITE_QTI)){
-            /*check for secure display*/
-            ion_flags |= ION_FLAG_CP_SEC_DISPLAY;
+        /*check for secure display*/
+        ion_flags |= ION_FLAG_CP_SEC_DISPLAY;
     }
 
     /*check if it is secure allocation*/
@@ -112,6 +114,7 @@ static uint32_t GetDefaultIonAllocFlags(uint32_t alloc_flags)
 
 uint32_t GetIonAllocFlags(uint32_t alloc_flags)
 {
+    FUNCTION_ENTRY();
     uint32_t ion_flags = 0;
 
     ion_flags |= GetDefaultIonAllocFlags(alloc_flags);
@@ -120,6 +123,7 @@ uint32_t GetIonAllocFlags(uint32_t alloc_flags)
 
     LOG(LOG_DBG,"%s: ion_flags 0x%x\n", __func__, ion_flags);
 
+    FUNCTION_EXIT();
     return ion_flags;
 }
 
@@ -140,8 +144,8 @@ static uint32_t GetDefaultIonHeapId(uint32_t alloc_flags)
         ion_heap_id |= ION_HEAP(ION_CAMERA_HEAP_ID);
     }
     if(alloc_flags & GBM_BO_ALLOC_IOMMU_HEAP_QTI){
-      /*IOMMU_HEAP is deprecated, use ION_SYSTEM_HEAP_ID*/
-      ion_heap_id |= ION_HEAP(ION_SYSTEM_HEAP_ID);
+        /*IOMMU_HEAP is deprecated, use ION_SYSTEM_HEAP_ID*/
+        ion_heap_id |= ION_HEAP(ION_SYSTEM_HEAP_ID);
     }
     if(alloc_flags & GBM_BO_ALLOC_MM_HEAP_QTI){
         ion_heap_id |= ION_HEAP(ION_CP_MM_HEAP_ID);
@@ -155,6 +159,7 @@ static uint32_t GetDefaultIonHeapId(uint32_t alloc_flags)
 
 uint32_t GetIonHeapId(uint32_t alloc_flags)
 {
+    FUNCTION_ENTRY();
     uint32_t ion_heap_id = 0;
 
     ion_heap_id |= GetDefaultIonHeapId(alloc_flags);
@@ -163,5 +168,6 @@ uint32_t GetIonHeapId(uint32_t alloc_flags)
 
     LOG(LOG_DBG,"%s: ion_heap_id 0x%x\n", __func__, ion_heap_id);
 
+    FUNCTION_EXIT();
     return ion_heap_id;
 }

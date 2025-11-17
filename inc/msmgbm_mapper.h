@@ -26,6 +26,11 @@
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
+/*
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
 
 #ifndef __MSMGBM_MAPPER_H__
 #define __MSMGBM_MAPPER_H__
@@ -115,6 +120,7 @@ class msmgbm_mapper {
   int  del_map_entry(int ion_fd);
   void  incr_handle_refcnt(int device_fd, uint32_t handle);
   int  decr_handle_refcnt(int device_fd, uint32_t handle);
+  void print_ref_cnt(int ion_fd);
 
 };
 
