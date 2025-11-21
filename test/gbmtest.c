@@ -634,7 +634,7 @@ static int test_bo_write(int flag)
     unsigned int imp_bo_hdl=0;
     struct gbm_bo *bo[MAX_BUFFER]={NULL,};
     int tmp_ion_meta_fd[MAX_BUFFER]={0,};
-
+    int status=0;
     struct gbm_bo *imp_bo=NULL;
 
 
@@ -652,11 +652,10 @@ static int test_bo_write(int flag)
 
     CHECK(gbm_device_get_fd(gbm) == fd);
 
-    errno = 0;
-    system("mkdir -p /data/misc/display");
-    if (errno != 0) {
-       printf("Error creating /data/misc/display directory = %d\n", errno);
-       return 0;
+    status = mkdir("/data/misc/display", 0775);
+    if (status != 0 && errno != EEXIST) {
+        printf("Error creating /data/misc/display directory = %s\n", strerror(errno));
+        return 0;
     }
 
     printf("[ test_reinit(): gbm_create_device(),gbm_device_get_fd] success\n");
