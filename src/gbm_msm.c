@@ -399,7 +399,7 @@ gbm_msm_bo_import(struct gbm_device *gbm,
       bo->base.v0.height = fd_modifer_data->height;
       bo->base.v0.format = fd_modifer_data->format;
       if ((bo->base.v0.format == GBM_FORMAT_XBGR16161616F) &&
-          (fd_modifer_data->modifier & DRM_FORMAT_MOD_QCOM_32F)) {
+          ((fd_modifer_data->modifier & DRM_FORMAT_MOD_QCOM_32F) == DRM_FORMAT_MOD_QCOM_32F)) {
          msm_bo_ext->gbm_format = GBM_FORMAT_RGBA32323232F;
       } else {
          msm_bo_ext->gbm_format = bo->base.v0.format;

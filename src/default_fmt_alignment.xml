@@ -1244,7 +1244,7 @@
      <format_name>RGBA_32323232F</format_name>
      <constraints>
        <size_align>1</size_align>
-       <bpp>8</bpp>
+       <bpp>16</bpp>
        <planes>
          <plane>
            <plane_name>RGBA</plane_name>
