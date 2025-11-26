@@ -1,3 +1,10 @@
+libgbm-msm (1.2.4) noble; urgency=medium
+
+  * Updated control file to improve package update transitions and
+    maintain backward compatibility.
+
+ -- Abhijith Desai <abdesai@qti.qualcomm.com>  Fri, 19 Dec 2025 15:54:24 +0530
+
 libgbm-msm (1.2.3) noble; urgency=medium
 
   * Updated package rules and dependencies to conform with community
