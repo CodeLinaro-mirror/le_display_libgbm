@@ -104,6 +104,7 @@ static uint32_t GetDefaultIonAllocFlags(uint32_t alloc_flags)
     if(alloc_flags & GBM_BO_USAGE_PROTECTED_QTI){
         LOG(LOG_DBG, "ION_FLAG: Marking buffer as protected\n");
         ion_flags |= ION_FLAG_SECURE;
+        ion_flags |= ION_FLAG_CP_PIXEL;
     }
 
     /*check if uncached buffer is requested*/
@@ -134,6 +135,9 @@ static uint32_t GetDefaultIonHeapId(uint32_t alloc_flags)
 {
     uint32_t ion_heap_id = 0;
 
+    if(alloc_flags & GBM_BO_USAGE_PROTECTED_QTI){
+        ion_heap_id = ION_HEAP(ION_SECURE_DISPLAY_HEAP_ID);
+    }
     if(alloc_flags & GBM_BO_ALLOC_SECURE_HEAP_QTI){
         LOG(LOG_DBG, "ION_HEAP: Selecting secure heap\n");
         ion_heap_id = ION_HEAP(ION_SECURE_HEAP_ID);
