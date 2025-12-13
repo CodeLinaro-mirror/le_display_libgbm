@@ -34,11 +34,10 @@
  * found in the LICENSE file.
  */
 /*
- * Changes from Qualcomm Innovation Center are provided under the following license:
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
- * SPDX-License-Identifier: BSD-3-Clause-Clear
- */
-
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
+*/
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -120,6 +119,18 @@ static const uint32_t format_list[] = {
     GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH,
     GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH,
     GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH,
+    GBM_FORMAT_NV12_FLEX,
+    GBM_FORMAT_NV12_FLEX_2_BATCH,
+    GBM_FORMAT_NV12_FLEX_4_BATCH,
+    GBM_FORMAT_NV12_FLEX_8_BATCH,
+    GBM_FORMAT_YCbCr_420_P010_FLEX,
+    GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH,
+    GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH,
+    GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH,
+    GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX,
+    GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH,
+    GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH,
+    GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH,
 };
 
 struct gbm_format_list {

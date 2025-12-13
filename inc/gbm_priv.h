@@ -70,8 +70,8 @@
 *    Benjamin Franzke <benjaminfranzke@googlemail.com>
 */
 /*
-* Changes from Qualcomm Innovation Center, Inc. are provided under the following license:
-* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
 * SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
@@ -481,6 +481,30 @@ extern "C" {
 #define GBM_FORMAT_NV12_UBWC_FLEX_4_BATCH                   fourcc_mod_code_qti(QTI, 59)
 
 #define GBM_FORMAT_NV12_UBWC_FLEX_8_BATCH                   fourcc_mod_code_qti(QTI, 60)
+
+#define GBM_FORMAT_NV12_FLEX                                fourcc_mod_code_qti(QTI, 61)
+
+#define GBM_FORMAT_NV12_FLEX_2_BATCH                        fourcc_mod_code_qti(QTI, 62)
+
+#define GBM_FORMAT_NV12_FLEX_4_BATCH                        fourcc_mod_code_qti(QTI, 63)
+
+#define GBM_FORMAT_NV12_FLEX_8_BATCH                        fourcc_mod_code_qti(QTI, 64)
+
+#define GBM_FORMAT_YCbCr_420_P010_FLEX                      fourcc_mod_code_qti(QTI, 65)
+
+#define GBM_FORMAT_YCbCr_420_P010_FLEX_2_BATCH              fourcc_mod_code_qti(QTI, 66)
+
+#define GBM_FORMAT_YCbCr_420_P010_FLEX_4_BATCH              fourcc_mod_code_qti(QTI, 67)
+
+#define GBM_FORMAT_YCbCr_420_P010_FLEX_8_BATCH              fourcc_mod_code_qti(QTI, 68)
+
+#define GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX                 fourcc_mod_code_qti(QTI, 69)
+
+#define GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_2_BATCH         fourcc_mod_code_qti(QTI, 70)
+
+#define GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH         fourcc_mod_code_qti(QTI, 71)
+
+#define GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH         fourcc_mod_code_qti(QTI, 72)
 
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'A')
 
