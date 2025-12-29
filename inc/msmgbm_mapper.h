@@ -81,7 +81,6 @@ class msmgbm_mapper {
 
       void IncRef() {++ref_count;}
       int  DecRef() {return --ref_count == 0;}
-      void SetRef(int count) {ref_count = count;}
   };
 
   std::unordered_map<int, std::shared_ptr<msmgbm_buffer>>gbm_buf_map_;
@@ -119,7 +118,6 @@ class msmgbm_mapper {
   void map_dump(void);
   void add_map_entry(int ion_fd);
   int  del_map_entry(int ion_fd);
-  void set_refcnt(int ion_fd, int count);
   void  incr_handle_refcnt(int device_fd, uint32_t handle);
   int  decr_handle_refcnt(int device_fd, uint32_t handle);
   void print_ref_cnt(int ion_fd);
