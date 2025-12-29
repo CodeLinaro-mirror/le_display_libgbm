@@ -143,7 +143,6 @@ void  register_dup_fd_to_hashmap(int fd, int dup_fd) {
         buf_info.fd_flg = (IS_DUP_FD | EXTERNAL_FD);
         buf_info.src_fd = get_root_src_fd(fd);
         msmgbm_mapper_->register_to_map(dup_fd, &buf_info, &gbo_private_info);
-        msmgbm_mapper_->set_refcnt(dup_fd, 1);
         LOG(LOG_DBG,"register src_fd[%d] -> dup fd[%d]\n", buf_info.src_fd, buf_info.fd);
         LOG(LOG_DBG,"\t  meta_fd[%d]\n", buf_info.metadata_fd);
         LOG(LOG_DBG,"\t  width[%u] height[%u] format[%u]\n", buf_info.width, buf_info.height, buf_info.format);
@@ -372,18 +371,6 @@ void msmgbm_mapper::map_dump(void) {
   printf("***********************************************\n");
 }
 
-/**
- * Function to set the reference count for the valid map entry
- * @input param: ion_fd, ref count
- * @return     : none
- *
- */
-void msmgbm_mapper::set_refcnt(int fd, int count) {
-  auto it = gbm_buf_map_.find(fd);
-  if (it != gbm_buf_map_.end()){
-      it->second->SetRef(count);
-  }
-}
 
 /**
  * Function to increment the reference count for the valid map entry
