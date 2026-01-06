@@ -1,7 +1,4 @@
 /*
-* Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
-* Not a Contribution.
-*
 * Copyright (c) 2017, 2021 The Linux Foundation. All rights reserved.
 *
 * Redistribution and use in source and binary forms, with or without
@@ -28,6 +25,11 @@
 * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
 * IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+*/
+/*
+* Changes from Qualcomm Technologies, Inc. are provided under the following license:
+* Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+* SPDX-License-Identifier: BSD-3-Clause-Clear
 */
 
 #include <cstring>
@@ -174,6 +176,22 @@ void  dump_hashmap(void) {
  */
 void  incr_refcnt(int fd) {
      msmgbm_mapper_->add_map_entry(fd);
+}
+
+/**
+ * C wrapper function to print the reference count for the valid map entry
+ * @input param: ion_fd
+ * @return     : none
+ *
+ */
+
+void print_refcnt(int fd) {
+    if (msmgbm_mapper_) {
+        msmgbm_mapper_->print_ref_cnt(fd);
+    }
+    else {
+        LOG(LOG_DBG,"gbm mapper had been de-instantiated\n");
+    }
 }
 
 /**
@@ -431,5 +449,21 @@ int msmgbm_mapper::del_map_entry(int fd) {
     }
   }
   return 1;
+}
+
+/**
+ * Function to print the reference count for the valid map entry
+ * @input param: ion_fd
+ * @return    : none
+ *
+ */
+void msmgbm_mapper::print_ref_cnt(int fd) {
+    auto it = gbm_buf_map_.find(fd);
+    if (it!= gbm_buf_map_.end()) {
+        LOG(LOG_DBG,"Reference count of fd %d = %d\n", fd, it->second->ref_count);
+    }
+    else {
+        LOG(LOG_DBG,"fd %d is unavailable or closed \n", fd);
+    }
 }
 }  // namespace msm_gbm
