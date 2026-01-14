@@ -38,8 +38,8 @@ res=1
 if [ ! "$1" ]
 then
 	echo "usage: gbmtest_all <Max Test cases to execute>"
-	echo "Default Max Tests are 27"
-	MAX_TEST_CASE=27
+	echo "Default Max Tests are 29"
+	MAX_TEST_CASE=29
 else
 	MAX_TEST_CASE=$1
 fi
