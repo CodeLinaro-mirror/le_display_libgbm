@@ -416,7 +416,24 @@ int msmgbm_mapper::del_map_entry(int fd) {
     if (it->second->src_fd == -1) {
       is_src_fd = true;
     }
-    if(it->second->DecRef()) {
+
+    // Check current ref_count before DecRef to handle ref_count <= 0 case
+    int current_ref_count = it->second->ref_count;
+    bool should_delete = (current_ref_count <= 0) || it->second->DecRef();
+
+    if (should_delete) {
+      // Check if this is a dup_fd and src_fd still exists
+      if ((it->second->fd_flg & IS_DUP_FD) && it->second->src_fd != -1) {
+        auto src_it = gbm_buf_map_.find(it->second->src_fd);
+        if (src_it != gbm_buf_map_.end()) {
+          // src_fd still exists, don't delete dup_fd yet
+          // It will be cascade deleted when src_fd is deleted
+          LOG(LOG_DBG, "dup_fd[%d] ref_count=0 but src_fd[%d] exists,"
+                       "keeping entry\n", fd, it->second->src_fd);
+          return 0;
+        }
+      }
+
       gbm_buf_map_.erase(fd);
       if (is_src_fd) {
         // iterate and remove all dups of the src fd which is removed,

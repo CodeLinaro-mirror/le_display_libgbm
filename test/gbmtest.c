@@ -2607,6 +2607,135 @@ static int test_buffer_refcnt()
     return 1;
 }
 
+/*
+ * Validate multi time Set/Get Metdadta
+ */
+static int test_multi_import_metadata()
+{
+    int ret = GBM_ERROR_NONE;
+    struct gbm_bo *bo = NULL;
+    struct gbm_bo *imp_bo = NULL;
+    int bo_fd = -1;
+    void *prm;
+    unsigned int metadata_value_set = 0;
+    unsigned int metadata_value_get = 0;
+    int i = 0;
+
+    printf("\n[test_multi_import_metadata] Starting test...\n");
+
+    // Create the original BO
+    bo = gbm_bo_create(gbm, 1024, 1024, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+    CHECK(check_bo(bo));
+    printf("[test_multi_import_metadata] Created original BO\n");
+
+    metadata_value_set = 0x1111;
+    prm = (void *)&metadata_value_set;
+    printf("\n[Round 1] Setting metadata on original BO, value=0x%x\n", metadata_value_set);
+    ret = gbm_perform(GBM_PERFORM_SET_METADATA, bo, GBM_METADATA_SET_INTERLACED, prm);
+    if (ret == GBM_ERROR_NONE) {
+        printf("[Round 1] Set Metadata Success\n");
+    } else {
+        printf("[Round 1] Set Metadata FAILED\n");
+        gbm_bo_destroy(bo);
+        return 0;
+    }
+
+    // Verify the first set
+    metadata_value_get = 0;
+    prm = (void *)&metadata_value_get;
+    ret = gbm_perform(GBM_PERFORM_GET_METADATA, bo, GBM_METADATA_GET_INTERLACED, prm);
+    if (ret == GBM_ERROR_NONE) {
+        printf("[Round 1] Get Metadata Success, value=0x%x\n", metadata_value_get);
+        if (metadata_value_get != metadata_value_set) {
+            printf("[Round 1] Metadata mismatch! Set=0x%x, Get=0x%x\n",
+                   metadata_value_set, metadata_value_get);
+            gbm_bo_destroy(bo);
+            return 0;
+        }
+    } else {
+        printf("[Round 1] Get Metadata FAILED\n");
+        gbm_bo_destroy(bo);
+        return 0;
+    }
+
+    bo_fd = gbm_bo_get_fd(bo);
+    if (bo_fd < 0) {
+        printf("[Round %d] gbm_bo_get_fd FAILED, fd=%d\n", i, bo_fd);
+        gbm_bo_destroy(bo);
+        return 0;
+    }
+
+    for (i = 2; i <= 10; i++) {
+        printf("\n[Round %d] ========================================\n", i);
+
+        // Step 1: import
+        struct gbm_import_fd_data import_data;
+        import_data.fd = bo_fd;
+        import_data.width = 1024;
+        import_data.height = 1024;
+        import_data.format = GBM_FORMAT_XRGB8888;
+
+        imp_bo = gbm_bo_import(gbm, GBM_BO_IMPORT_FD, &import_data, GBM_BO_USE_RENDERING);
+        if (imp_bo == NULL) {
+            printf("[Round %d] gbm_bo_import FAILED\n", i);
+            close(bo_fd);
+            gbm_bo_destroy(bo);
+            return 0;
+        }
+        CHECK(check_bo(imp_bo));
+        printf("[Round %d] gbm_bo_import success\n", i);
+
+        // Step 2: set_metadata on imported BO
+        metadata_value_set = 0x1111 * i;
+        prm = (void *)&metadata_value_set;
+        printf("[Round %d] Setting metadata on imported BO, value=0x%x\n", i, metadata_value_set);
+        ret = gbm_perform(GBM_PERFORM_SET_METADATA, imp_bo, GBM_METADATA_SET_INTERLACED, prm);
+        if (ret == GBM_ERROR_NONE) {
+            printf("[Round %d] Set Metadata Success\n", i);
+        } else {
+            printf("[Round %d] Set Metadata FAILED (THIS IS THE BUG!)\n", i);
+            gbm_bo_destroy(imp_bo);
+            close(bo_fd);
+            gbm_bo_destroy(bo);
+            return 0;
+        }
+
+        // Step 3: get_metadata to verify
+        metadata_value_get = 0;
+        prm = (void *)&metadata_value_get;
+        ret = gbm_perform(GBM_PERFORM_GET_METADATA, imp_bo, GBM_METADATA_GET_INTERLACED, prm);
+        if (ret == GBM_ERROR_NONE) {
+            printf("[Round %d] Get Metadata Success, value=0x%x\n", i, metadata_value_get);
+            if (metadata_value_get != metadata_value_set) {
+                printf("[Round %d] Metadata mismatch! Set=0x%x, Get=0x%x\n",
+                       i, metadata_value_set, metadata_value_get);
+                gbm_bo_destroy(imp_bo);
+                close(bo_fd);
+                gbm_bo_destroy(bo);
+                return 0;
+            }
+            printf("[Round %d] Metadata validation PASSED\n", i);
+        } else {
+            printf("[Round %d] Get Metadata FAILED\n", i);
+            gbm_bo_destroy(imp_bo);
+            close(bo_fd);
+            gbm_bo_destroy(bo);
+            return 0;
+        }
+
+        // Step 4: bo_destroy
+        gbm_bo_destroy(imp_bo);
+        printf("[Round %d] Destroyed imported BO\n", i);
+    }
+
+    // Clean up the duplicated fd and original BO
+    close(bo_fd);
+    gbm_bo_destroy(bo);
+    printf("\n[test_multi_import_metadata] All rounds completed successfully!\n");
+
+    return 1;
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2637,8 +2766,10 @@ int gbm_test_help() {
   printf("26 Test preservation of metadata using gbm_bo_get_fd and bo_import\n");
   printf("27 Test src-dup fd mappings and cpu addr validity (if seg-fault, test FAILED)\n");
   printf("28 Test refcnt of buffers \n");
+  printf("29 Test multi time import with Metadata update\n");
   return 0;
 }
+
 int main(int argc, char *argv[])
 {
     int result=1;
@@ -2779,6 +2910,11 @@ int main(int argc, char *argv[])
             result &= test_buffer_refcnt();
             result &= test_destroy();
             break;
+        case 29:
+            result &= test_init();
+            result &= test_multi_import_metadata();
+            result &= test_destroy();
+        break;
         default:
             gbm_test_help();
             return 0;
@@ -2792,4 +2928,3 @@ int main(int argc, char *argv[])
         return EXIT_SUCCESS;
     }
 }
-
