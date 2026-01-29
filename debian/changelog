@@ -1,3 +1,9 @@
+libgbm-msm (1.2.5) noble; urgency=medium
+
+  * Fix: gbm: Updated FLOAT32 FORMAT to use standard FourCC
+
+ -- Yash Gupta <quic_ygupt@quicinc.com>  Thu, 29 Jan 2026 06:23:11 +0530
+
 libgbm-msm (1.2.4) noble; urgency=medium
 
   * Updated control file to improve package update transitions and
