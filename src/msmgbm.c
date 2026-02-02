@@ -167,6 +167,7 @@ msmgbm_bo_map(uint32_t x, uint32_t y, uint32_t width,
 
 static uint32_t
 msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
+  FUNCTION_ENTRY();
   bool ubwc_enabled = is_ubwc_enbld(bo->format, bo->usage_flags, bo->usage_flags);
   bool cmprsd_rgb_format = is_valid_cmprsd_rgb_format(bo->format);
   bool is_yuv_format = is_valid_yuv_format(bo->format);
@@ -203,6 +204,7 @@ msmgbm_stride_for_plane(int plane, struct gbm_bo * bo) {
     }
     return stride;
   }
+  FUNCTION_EXIT();
   return bo->stride;
 }
 
@@ -296,10 +298,12 @@ msmgbm_bo_write(struct gbm_bo *bo, const void *buf, size_t count)
 static void
 msmgbm_bo_destroy(struct gbm_bo *bo)
 {
+    FUNCTION_ENTRY();
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
     struct drm_gem_close gem_close;
 
     int ret = 0;
+    int fd = bo->ion_fd;
 
     if(NULL != msm_gbm_bo){
         struct gbm_buf_info temp_buf_info = { 0 };
@@ -319,6 +323,7 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
                             temp_buf_info.src_fd,msm_gbm_bo->import_flg);
         LOG(LOG_DBG,"\nmsm_gbm_bo->cpuaddr=0x%x\n msm_gbm_bo->mt_cpuaddr=0x%x\n",
                             msm_gbm_bo->cpuaddr, msm_gbm_bo->mt_cpuaddr);
+        msmgbm_get_bufinfo(bo);
 
         if(ret != GBM_ERROR_NONE) {
             LOG(LOG_DBG,"Search failed, only free bo\n");
@@ -354,8 +359,11 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
                     LOG(LOG_DBG,"Currently closing metadata_fd=%d\n", bo->ion_metadata_fd);
                     if(bo->ion_metadata_fd >= 0) {
                         if(close(bo->ion_metadata_fd))
-                            LOG(LOG_ERR,"Failed to Close bo->ion_metadata_fd=%d\n %s\n",
+                            LOG(LOG_ERR,"Failed to Close ion fd=%d\n %s\n",
                                                 bo->ion_metadata_fd,strerror(errno));
+                        else {
+                            LOG(LOG_DBG,"Successfully Closed ion metadata fd=%d\n", bo->ion_metadata_fd);
+                        }
                     }
                 }
             }
@@ -369,8 +377,11 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
                 LOG(LOG_DBG,"Currently closing fd=%d\n",bo->ion_fd);
                 if (bo->ion_fd >= 0) {
                     if(close(bo->ion_fd))
-                        LOG(LOG_ERR,"Failed to Close bo->ion_fd=%d\n%s\n",
+                        LOG(LOG_ERR,"Failed to Close ion fd=%d\n%s\n",
                                                 bo->ion_fd,strerror(errno));
+                    else {
+                        LOG(LOG_DBG,"Successfully Closed ion fd=%d\n", bo->ion_fd);
+                    }
                 }
             }
         }
@@ -387,6 +398,9 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
                     LOG(LOG_ERR,"Failed to Close GEM Handle for BO=%u\n%s\n",
                                              bo->handle.u32,strerror(errno));
+                else {
+                    LOG(LOG_DBG,"Successfully Closed GEM Handle for BO=%d\n", bo->handle.u32);
+                }
             }
         }
 
@@ -399,6 +413,10 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
                 if(ioctl(msm_gbm_bo->device->fd,DRM_IOCTL_GEM_CLOSE,&gem_close))
                     LOG(LOG_ERR,"Failed to Close Metadata GEM Handle for BO=%u\n%s\n",
                                      bo->metadata_handle.u32,strerror(errno));
+                else {
+                    LOG(LOG_DBG,"Successfully Closed Metadata GEM Handle for BO=%d\n",
+                                                             bo->metadata_handle.u32);
+                }
             }
         }
         unlock();
@@ -413,6 +431,8 @@ msmgbm_bo_destroy(struct gbm_bo *bo)
     else
         LOG(LOG_ERR,"NULL or Invalid bo pointer\n");
 
+    print_refcnt(fd);
+    FUNCTION_EXIT();
 }
 
 /*************************
@@ -770,6 +790,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
               const uint64_t *modifiers,
               const unsigned int count)
 {
+    FUNCTION_ENTRY();
     int ret = 0;
     int drm_fd = -1;    // Master fd for DRM
     void *base = NULL;
@@ -835,7 +856,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
 
     size = qry_size(&bufdesc, aligned_width, aligned_height);
 
-    LOG(LOG_DBG,"\n size=%d\n width=%d\n height=%d\n aligned_width=%d\n"
+    LOG(LOG_DBG," size=%d, width=%d, height=%d, aligned_width=%d,"
           " aligned_height=%d\n",size, width, height, aligned_width, aligned_height);
 
     /* First we will get ion / dma fd and gem handle for the frame buffer
@@ -849,7 +870,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
         LOG(LOG_ERR,"Failed to allocate buffer\n");
         return NULL;
     }
-    LOG(LOG_DBG,"allocated data fd := %d\n",data_fd);
+    LOG(LOG_DBG,"Successfully allocated ION buffer. File descriptor: %d\n",data_fd);
 
     //Do not mmap if it is secure operation.
     if(!(GetIonAllocFlags(usage) & ION_FLAG_SECURE)) {
@@ -911,7 +932,8 @@ msmgbm_bo_create(struct gbm_device *gbm,
       return NULL;
     }
 
-    LOG(LOG_DBG,"meta data fd:= %d\n",mt_data_fd);
+    LOG(LOG_DBG,"Successfully allocated meta data of ION buffer. File descriptor: %d\n",
+                                                                            mt_data_fd);
 
     mt_base = msmgbm_cpu_map_metafd(mt_data_fd, mt_size);
     if(mt_base == NULL) {
@@ -950,7 +972,7 @@ msmgbm_bo_create(struct gbm_device *gbm,
     }
 
     mt_gem_handle=drm_args.handle;
-    LOG(LOG_DBG,"Gem Handle for Metadata =:%p\n",mt_gem_handle);
+    LOG(LOG_DBG,"Gem Handle for Metadata =:%u\n",mt_gem_handle);
 
     //Update the secure buffer flag info
     if(usage & GBM_BO_USAGE_PROTECTED_QTI)
@@ -1041,13 +1063,31 @@ msmgbm_bo_create(struct gbm_device *gbm,
     gbmbo->stride = gbm_bo_get_stride(gbmbo);
     pitches[0] = gbmbo->stride;
 
+    LOG(LOG_DBG, "Buffer object created successfully\n");
+    msmgbm_get_bufinfo(gbmbo);
+    FUNCTION_EXIT();
     return gbmbo;
+}
+
+void msmgbm_get_bufinfo(struct gbm_bo *bo){
+    if(!bo){
+        LOG(LOG_ERR, "GBM BO is NULL\n");
+        return;
+    }
+    LOG(LOG_DBG,"GBM BO info is ion_fd = %d, ion_metadata_fd = %d, gem_handle = %u,"
+        " metadata_gem_handle = %u, format = 0x%x, width = %d, height = %d, aligned_width = %d,"
+        " aligned_height = %d, BPP = %d, stride = %d, size = %d, usage = %d, plane_count = %d\n",
+        bo->ion_fd, bo->ion_metadata_fd, bo->handle.u32, bo->metadata_handle.u32, bo->format,
+        bo->width, bo->height, bo->aligned_width, bo->aligned_height, bo->bpp, bo->stride,
+        bo->size, bo->usage_flags, bo->plane_count);
+    print_refcnt(bo->ion_fd);
 }
 
 struct gbm_bo *
 msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
                                                       void *buffer, uint32_t usage)
 {
+    FUNCTION_ENTRY();
     struct gbm_bo *gbmbo = NULL;
     struct msmgbm_bo *msm_gbmbo = NULL;
     struct drm_prime_handle gemimport_req;
@@ -1085,12 +1125,9 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     if(search_hashmap(buffer_info->fd, &gbo_info, &gbo_private_info) == GBM_ERROR_NONE)
     {
         LOG(LOG_DBG,"Map retrieved buf info\n");
-        LOG(LOG_DBG,"gbm_buf_info.fd=%d,gbm_buf_info.metadata_fd=%d\n"
-                    "gbm_buf_info.width=%d gbm_buf_info.height=%d\n"
-                    "gbm_buf_info.format=%d gbm_buf_info.fd_flg=%d src_fd=%d\n"
-                    "gbo_private_info.cpuaddr=%p gbo_private_info.mt_cpuaddr=%p\n",
-                    gbo_info.fd, gbo_info.metadata_fd, gbo_info.width, gbo_info.height,
-                    gbo_info.format, gbo_info.fd_flg, gbo_info.src_fd, gbo_private_info.cpuaddr, gbo_private_info.mt_cpuaddr);
+        LOG(LOG_DBG,"fd=%d, metadata_fd=%d, width=%d, height=%d, format=%d, fd_flg=%d src_fd=%d"
+            " cpuaddr=%p, mt_cpuaddr=%p\n", gbo_info.fd, gbo_info.metadata_fd, gbo_info.width, gbo_info.height,
+            gbo_info.format, gbo_info.fd_flg, gbo_info.src_fd, gbo_private_info.cpuaddr, gbo_private_info.mt_cpuaddr);
 
         /* we need check it's dup fd or new external fd
          * if dup fd, use the metadata and mmap info from map
@@ -1225,11 +1262,9 @@ msmgbm_bo_import_fd(struct msmgbm_device *msm_dev,
     msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
     LOG(LOG_DBG,"Imported BO Info as below:\n");
-    LOG(LOG_DBG,"gbmbo->ion_fd=%d,gbmbo->ion_metadata_fd=%d,"
-        "gbmbo->width=%d,gbmbo->height=%d,gbmbo->format=0x%x\n",
-        gbmbo->ion_fd,gbmbo->ion_metadata_fd,gbmbo->width,
-        gbmbo->height,gbmbo->format);
+    msmgbm_get_bufinfo(gbmbo);
 
+    FUNCTION_EXIT();
     return gbmbo;
 
 }
@@ -1247,6 +1282,7 @@ struct gbm_bo *
 msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
                                                       void *buffer, uint32_t usage)
 {
+  FUNCTION_ENTRY();
   struct gbm_bo *gbmbo = NULL;
   struct msmgbm_bo *msm_gbmbo = NULL;
   int Bpp=0;
@@ -1445,6 +1481,7 @@ msmgbm_bo_import_fd_modifier(struct msmgbm_device *msm_dev,
         gbmbo->ion_fd,gbmbo->ion_metadata_fd,gbmbo->width,
         gbmbo->height,gbmbo->format);
 
+    FUNCTION_EXIT();
     return gbmbo;
 }
 
@@ -1453,6 +1490,7 @@ struct gbm_bo *
 msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
                                                       void *buffer, uint32_t usage)
 {
+    FUNCTION_ENTRY();
     struct gbm_bo *gbmbo = NULL;
     struct msmgbm_bo *msm_gbmbo = NULL;
     struct drm_prime_handle gemimport_req;
@@ -1694,6 +1732,7 @@ msmgbm_bo_import_gbm_buf(struct msmgbm_device *msm_dev,
         gbmbo->ion_fd,gbmbo->ion_metadata_fd,gbmbo->width,
         gbmbo->height,gbmbo->format);
 
+    FUNCTION_EXIT();
     return gbmbo;
 
 }
@@ -1958,6 +1997,7 @@ msmgbm_device_is_format_supported(struct gbm_device *gbm,
 static void
 msmgbm_device_destroy(struct gbm_device *gbm)
 {
+    FUNCTION_ENTRY();
     struct msmgbm_device *msm_dev = to_msmgbm_device(gbm);
 
     //Destroy the platform wrapper cpp object
@@ -1973,12 +2013,15 @@ msmgbm_device_destroy(struct gbm_device *gbm)
     else {
          LOG(LOG_ERR,"NULL or Invalid device pointer\n");
     }
+    LOG(LOG_DBG,"Destroyed gbm device\n");
+    FUNCTION_EXIT();
     return;
 }
 
 static struct gbm_device *
 msmgbm_device_create(int fd)
 {
+    FUNCTION_ENTRY();
     struct gbm_device *gbmdevice = NULL;
     struct msmgbm_device *msm_gbmdevice =  NULL;
 
@@ -2010,8 +2053,9 @@ msmgbm_device_create(int fd)
     msm_gbmdevice->fd = fd;
     msm_gbmdevice->magic = QCMAGIC;
 
-    LOG(LOG_DBG,"gbm device fd= %d\n",gbmdevice->fd);
+    LOG(LOG_DBG,"Created gbm device with fd= %d\n",gbmdevice->fd);
 
+    FUNCTION_EXIT();
     return gbmdevice;
 }
 
@@ -2132,6 +2176,7 @@ struct gbm_bo* msmgbm_surface_get_free_bo(struct gbm_surface *surf)
 
 void* msmgbm_cpu_map_metafd(int meta_ion_fd, unsigned int metadata_size)
 {
+    FUNCTION_ENTRY();
     struct meta_data_t *mt_cpuaddr = NULL;
 
     //meta fd and gbm_bo must be valid at this point
@@ -2142,12 +2187,13 @@ void* msmgbm_cpu_map_metafd(int meta_ion_fd, unsigned int metadata_size)
         LOG(LOG_DBG," cpu Map failed for gbo_info->metadata_fd: %d %s\n",
             meta_ion_fd, strerror(errno));
     }
-
+    FUNCTION_EXIT();
     return mt_cpuaddr;
 }
 
 void* msmgbm_cpu_map_ionfd(int ion_fd, unsigned int size, struct meta_data_t *meta_data)
 {
+    FUNCTION_ENTRY();
     void *cpuaddr = NULL;
 
     if(meta_data != NULL) {
@@ -2161,36 +2207,50 @@ void* msmgbm_cpu_map_ionfd(int ion_fd, unsigned int size, struct meta_data_t *me
         LOG(LOG_DBG, "Can't map secure buffer", __func__, __LINE__);
     }
 
+    FUNCTION_EXIT();
     return cpuaddr;
 }
 
 void* msmgbm_bo_meta_map(struct gbm_bo *bo)
 {
-        struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
-        uint32_t mt_size;
-        void *mt_cpuaddr;
+    FUNCTION_ENTRY();
+    if (!bo) {
+        LOG(LOG_ERR, "Failed to map buffer : bo is NULL\n");
+        return NULL;
+    }
 
-        if(msm_gbm_bo) {
-            if(msm_gbm_bo->mt_cpuaddr)
-            {
-                mt_cpuaddr = msm_gbm_bo->mt_cpuaddr;
-            } else {
-                LOG(LOG_DBG, "This is not optimized path: %s,%d\n", __func__, __LINE__);
-                mt_size = query_metadata_size();
-                mt_cpuaddr = msmgbm_cpu_map_metafd(bo->ion_metadata_fd, mt_size);
-                msm_gbm_bo->mt_cpuaddr = mt_cpuaddr;
-            }
-        }
-        else {
-            LOG(LOG_ERR," NULL or Invalid bo pointer\n");
-            mt_cpuaddr = NULL;
-        }
+    struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
+    uint32_t mt_size;
+    void *mt_cpuaddr;
 
-        return mt_cpuaddr;
+    if(msm_gbm_bo) {
+        if(msm_gbm_bo->mt_cpuaddr)
+        {
+            mt_cpuaddr = msm_gbm_bo->mt_cpuaddr;
+        } else {
+            LOG(LOG_DBG, "This is not optimized path: %s,%d\n", __func__, __LINE__);
+            mt_size = query_metadata_size();
+            mt_cpuaddr = msmgbm_cpu_map_metafd(bo->ion_metadata_fd, mt_size);
+            msm_gbm_bo->mt_cpuaddr = mt_cpuaddr;
+        }
+    }
+    else {
+        LOG(LOG_ERR," NULL or Invalid bo pointer\n");
+        mt_cpuaddr = NULL;
+    }
+
+    FUNCTION_EXIT();
+    return mt_cpuaddr;
 }
 
 void* msmgbm_bo_cpu_map(struct gbm_bo *bo)
 {
+    FUNCTION_ENTRY();
+    if (!bo) {
+        LOG(LOG_ERR, "Failed to map buffer : bo is NULL\n");
+        return NULL;
+    }
+
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(bo);
     struct meta_data_t *mt_cpuaddr;
     void *cpuaddr = NULL;
@@ -2213,6 +2273,7 @@ void* msmgbm_bo_cpu_map(struct gbm_bo *bo)
         cpuaddr = NULL;
     }
 
+    FUNCTION_EXIT();
     return cpuaddr;
 }
 
@@ -2339,6 +2400,7 @@ int  msmgbm_device_authenticate_magic(struct gbm_device *dev, drm_magic_t magic)
 
 struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int name)
 {
+    FUNCTION_ENTRY();
     struct msmgbm_device *msm_dev = to_msmgbm_device(dev);
     struct drm_prime_handle gemimport_req;
     struct gbm_bo *gbmbo = NULL;
@@ -2399,11 +2461,13 @@ struct gbm_bo*  msmgbm_bo_import_from_name(struct gbm_device *dev, unsigned int 
 
     msmgbm_yuv_plane_info(gbmbo,&(gbmbo->buf_lyt));
 
+    FUNCTION_EXIT();
     return gbmbo;
 }
 
 int msmgbm_bo_get_name(struct gbm_bo* bo)
 {
+    FUNCTION_ENTRY();
     struct msmgbm_bo *msm_gbmbo = to_msmgbm_bo(bo);
     struct drm_prime_handle drm_args;
     int ret;
@@ -2420,6 +2484,7 @@ int msmgbm_bo_get_name(struct gbm_bo* bo)
         drm_args.handle = msm_gbmbo->base.handle.u32;
         msm_gbmbo->name = bo->ion_fd;
     }
+    FUNCTION_EXIT();
     return msm_gbmbo->name;
 }
 
@@ -2854,6 +2919,7 @@ int msmgbm_perform(int operation, ... )
 }
 
 int msmgbm_get_rgb_data_address(struct gbm_bo *gbo, void **rgb_data) {
+    FUNCTION_ENTRY();
     int ret = GBM_ERROR_NONE;
     int ubwc_status = 0;
     int Bpp; //Bytes per pixel
@@ -2881,10 +2947,12 @@ int msmgbm_get_rgb_data_address(struct gbm_bo *gbo, void **rgb_data) {
       *rgb_data = (void *) (msmgbm_bo_cpu_map(gbo) + metaBuffer_size);
     }
 
+    FUNCTION_EXIT();
     return ret;
 }
 
 int msmgbm_set_metadata(struct gbm_bo *gbo, int paramType,void *param) {
+    FUNCTION_ENTRY();
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(gbo);
     struct meta_data_t *data = NULL;
     size_t size = 0;
@@ -2967,10 +3035,12 @@ int msmgbm_set_metadata(struct gbm_bo *gbo, int paramType,void *param) {
             break;
     }
 
+    FUNCTION_EXIT();
     return res;
 }
 
 int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
+    FUNCTION_ENTRY();
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(gbo);
     struct meta_data_t *data = NULL;
     size_t size = 0;
@@ -3103,6 +3173,7 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
             break;
     }
 
+    FUNCTION_EXIT();
     return res;
 }
 
@@ -3110,6 +3181,7 @@ int msmgbm_get_metadata(struct gbm_bo *gbo, int paramType,void *param) {
 void get_yuv_sp_plane_info(int width, int height, int bpp,
                        generic_buf_layout_t *buf_lyt)
 {
+    FUNCTION_ENTRY();
     unsigned int ystride, cstride;
 
     ystride=width * bpp;
@@ -3134,6 +3206,7 @@ void get_yuv_sp_plane_info(int width, int height, int bpp,
     buf_lyt->planes[2].aligned_width = width;
     buf_lyt->planes[0].stride = width * bpp;
     buf_lyt->planes[1].stride = width * bpp;
+    FUNCTION_EXIT();
 }
 
 void get_c8_info(unsigned int y_meta_stride, unsigned int y_stride, unsigned int y_meta_height,
@@ -3151,6 +3224,7 @@ void get_c8_info(unsigned int y_meta_stride, unsigned int y_stride, unsigned int
 void get_yuv_ubwc_sp_plane_info(int width, int height,
                           int color_format, generic_buf_layout_t *buf_lyt)
 {
+    FUNCTION_ENTRY();
     unsigned int y_meta_stride = 0, y_meta_height = 0, y_meta_size = 0;
     unsigned int y_stride = 0, y_height = 0, y_size = 0;
     unsigned int c_meta_stride = 0, c_meta_height = 0, c_meta_size = 0;
@@ -3190,9 +3264,11 @@ void get_yuv_ubwc_sp_plane_info(int width, int height,
     buf_lyt->planes[1].stride = buf_lyt->planes[1].v_increment = c_stride;
     buf_lyt->planes[2].stride = buf_lyt->planes[2].v_increment = y_meta_stride;
     buf_lyt->planes[3].stride = buf_lyt->planes[3].v_increment = c_meta_stride;
+    FUNCTION_EXIT();
 }
 
 int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
+    FUNCTION_ENTRY();
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(gbo);
     int res = GBM_ERROR_NONE;
 
@@ -3261,7 +3337,7 @@ int msmgbm_yuv_plane_info(struct gbm_bo *gbo,generic_buf_layout_t *buf_lyt){
             res = GBM_ERROR_UNSUPPORTED;
             break;
     }
-
+    FUNCTION_EXIT();
     return res;
 }
 
@@ -3326,6 +3402,7 @@ void msmsgbm_default_init_hdr_color_info_mdata(ColorMetaData * color_mdata)
 
 int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
 {
+    FUNCTION_ENTRY();
     struct msmgbm_bo *msm_gbm_bo = to_msmgbm_bo(gbo);
     int res = GBM_ERROR_NONE;
     int Bpp;
@@ -3360,6 +3437,7 @@ int msmgbm_get_buf_lyout(struct gbm_bo *gbo, generic_buf_layout_t *buf_lyt)
     {
         res = msmgbm_yuv_plane_info(gbo, buf_lyt);
     }
+    FUNCTION_EXIT();
     return res;
 }
 
@@ -3371,7 +3449,7 @@ void config_dbg_lvl(void)
     fp = fopen("/data/misc/display/gbm_dbg_cfg.txt", "r");
     if(fp) {
         fscanf(fp, "%d", &g_debug_level);
-        LOG(LOG_INFO,"\nGBM debug level set=%d\n",g_debug_level);
+        LOG(LOG_DBG,"\nGBM debug level set=%d\n",g_debug_level);
         fclose(fp);
     }
 }
