@@ -89,8 +89,9 @@ static uint32_t GetDefaultIonAllocFlags(uint32_t alloc_flags)
     uint32_t ion_flags = 0;
 
     /*set heap specific flags*/
-    if(alloc_flags & GBM_BO_ALLOC_SECURE_HEAP_QTI){
-            ion_flags |= ION_FLAG_CP_PIXEL;
+    if((alloc_flags & GBM_BO_ALLOC_SECURE_HEAP_QTI) ||
+              (alloc_flags & GBM_BO_ALLOC_SECURE_DISPLAY_HEAP_QTI)){
+        ion_flags |= ION_FLAG_CP_PIXEL;
     }else if((alloc_flags & GBM_BO_ALLOC_SECURE_DISPLAY_HEAP_QTI) &&
 		    !(alloc_flags & GBM_BO_USAGE_CAMERA_WRITE_QTI)){
             /*check for secure display*/
