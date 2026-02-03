@@ -91,20 +91,24 @@ static uint32_t GetDefaultIonAllocFlags(uint32_t alloc_flags)
     /*set heap specific flags*/
     if((alloc_flags & GBM_BO_ALLOC_SECURE_HEAP_QTI) ||
               (alloc_flags & GBM_BO_ALLOC_SECURE_DISPLAY_HEAP_QTI)){
+        LOG(LOG_DBG, "ION_FLAG: Choosing secure pixel allocation\n");
         ion_flags |= ION_FLAG_CP_PIXEL;
     }else if((alloc_flags & GBM_BO_ALLOC_SECURE_DISPLAY_HEAP_QTI) &&
 		    !(alloc_flags & GBM_BO_USAGE_CAMERA_WRITE_QTI)){
-            /*check for secure display*/
-            ion_flags |= ION_FLAG_CP_SEC_DISPLAY;
+        /*check for secure display*/
+        LOG(LOG_DBG, "ION_FLAG: Choosing secure display allocation\n");
+        ion_flags |= ION_FLAG_CP_SEC_DISPLAY;
     }
 
     /*check if it is secure allocation*/
     if(alloc_flags & GBM_BO_USAGE_PROTECTED_QTI){
+        LOG(LOG_DBG, "ION_FLAG: Marking buffer as protected\n");
         ion_flags |= ION_FLAG_SECURE;
     }
 
     /*check if uncached buffer is requested*/
     if(!(alloc_flags & GBM_BO_USAGE_UNCACHED_QTI)){
+        LOG(LOG_DBG, "ION_FLAG: Cached buffer is selected\n");
         ion_flags |= ION_FLAG_CACHED;
     }
 
@@ -113,6 +117,7 @@ static uint32_t GetDefaultIonAllocFlags(uint32_t alloc_flags)
 
 uint32_t GetIonAllocFlags(uint32_t alloc_flags)
 {
+    FUNCTION_ENTRY();
     uint32_t ion_flags = 0;
 
     ion_flags |= GetDefaultIonAllocFlags(alloc_flags);
@@ -121,6 +126,7 @@ uint32_t GetIonAllocFlags(uint32_t alloc_flags)
 
     LOG(LOG_DBG,"%s: ion_flags 0x%x\n", __func__, ion_flags);
 
+    FUNCTION_EXIT();
     return ion_flags;
 }
 
@@ -129,25 +135,32 @@ static uint32_t GetDefaultIonHeapId(uint32_t alloc_flags)
     uint32_t ion_heap_id = 0;
 
     if(alloc_flags & GBM_BO_ALLOC_SECURE_HEAP_QTI){
+        LOG(LOG_DBG, "ION_HEAP: Selecting secure heap\n");
         ion_heap_id = ION_HEAP(ION_SECURE_HEAP_ID);
     }
     if(alloc_flags & GBM_BO_ALLOC_SECURE_DISPLAY_HEAP_QTI){
+        LOG(LOG_DBG, "ION_HEAP: Selecting secure display heap\n");
         ion_heap_id |= ION_HEAP(ION_SECURE_DISPLAY_HEAP_ID);
     }
     if(alloc_flags & GBM_BO_ALLOC_ADSP_HEAP_QTI){
+        LOG(LOG_DBG, "ION_HEAP: Selecting ADSP heap\n");
         ion_heap_id |= ION_HEAP(ION_ADSP_HEAP_ID);
     }
     if(alloc_flags & GBM_BO_ALLOC_CAMERA_HEAP_QTI){
+        LOG(LOG_DBG, "ION_HEAP: Selecting secure camera heap\n");
         ion_heap_id |= ION_HEAP(ION_CAMERA_HEAP_ID);
     }
     if(alloc_flags & GBM_BO_ALLOC_IOMMU_HEAP_QTI){
-      /*IOMMU_HEAP is deprecated, use ION_SYSTEM_HEAP_ID*/
-      ion_heap_id |= ION_HEAP(ION_SYSTEM_HEAP_ID);
+        /*IOMMU_HEAP is deprecated, use ION_SYSTEM_HEAP_ID*/
+        LOG(LOG_DBG, "ION_HEAP: IOMMU deprecated; using system heap\n");
+        ion_heap_id |= ION_HEAP(ION_SYSTEM_HEAP_ID);
     }
     if(alloc_flags & GBM_BO_ALLOC_MM_HEAP_QTI){
+        LOG(LOG_DBG, "ION_HEAP: Selecting multimedia heap\n");
         ion_heap_id |= ION_HEAP(ION_CP_MM_HEAP_ID);
     }
     if (!ion_heap_id) {
+        LOG(LOG_DBG, "ION_HEAP: No specific heap requested; defaulting to system heap\n");
         ion_heap_id = ION_HEAP(ION_SYSTEM_HEAP_ID);
     }
 
@@ -156,6 +169,7 @@ static uint32_t GetDefaultIonHeapId(uint32_t alloc_flags)
 
 uint32_t GetIonHeapId(uint32_t alloc_flags)
 {
+    FUNCTION_ENTRY();
     uint32_t ion_heap_id = 0;
 
     ion_heap_id |= GetDefaultIonHeapId(alloc_flags);
@@ -164,5 +178,6 @@ uint32_t GetIonHeapId(uint32_t alloc_flags)
 
     LOG(LOG_DBG,"%s: ion_heap_id 0x%x\n", __func__, ion_heap_id);
 
+    FUNCTION_EXIT();
     return ion_heap_id;
 }

@@ -2589,6 +2589,57 @@ static int test_secure_buffer_alloc_free()
     return 1;
 }
 
+static int test_buffer_refcnt()
+{
+    int i, j;
+    struct gbm_bo *bo1[100], *bo2[100];
+    struct gbm_import_fd_data buf_data;
+    int created_count = 0;
+    int imported_count = 0;
+
+    for (i = 0; i < 100; i++) {
+        printf("test_buffer_refcnt run(%d)\n",i);
+        bo1[i] = gbm_bo_create(gbm, 1920, 1080, GBM_FORMAT_XRGB8888, GBM_BO_USE_RENDERING);
+        if (!check_bo(bo1[i])) {
+            // Cleanup previously allocated buffers
+            for (j = 0; j < created_count; j++) {
+                gbm_bo_destroy(bo2[j]);
+                gbm_bo_destroy(bo1[j]);
+            }
+            return 0;
+        }
+        created_count++;
+        printf("Buffer allocated successfully\n");
+
+        buf_data.fd = bo1[i]->ion_fd;
+        buf_data.width = 1920;
+        buf_data.height = 1080;
+        buf_data.format = GBM_FORMAT_XRGB8888;
+        bo2[i] = gbm_bo_import(gbm, GBM_BO_IMPORT_FD,&buf_data,GBM_BO_USE_RENDERING);
+        printf("Buffer imported successfully\n");
+        if (!check_bo(bo2[i])) {
+            // Cleanup previously allocated buffers
+            gbm_bo_destroy(bo1[i]);
+            for (j = 0; j < imported_count; j++) {
+                gbm_bo_destroy(bo2[j]);
+                gbm_bo_destroy(bo1[j]);
+            }
+            return 0;
+        }
+        imported_count++;
+    }
+
+    for (i = 0; i < 100; i++) {
+        int fd = bo1[i]->ion_fd;
+        printf("Destroying the imported buffer object %d\n", i);
+        gbm_bo_destroy(bo2[i]);
+        printf("Destroying the created buffer object %d\n", i);
+        gbm_bo_destroy(bo1[i]);
+        printf("fd closed successfully..\n");
+    }
+    return 1;
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2621,6 +2672,7 @@ int gbm_test_help() {
   printf("28 Test  alloc with modifiers \n");
   printf("29 Test plane info \n");
   printf("30 for BO secure buffer Create/Destroy \n");
+  printf("31 Test refcnt of buffers \n");
   return 0;
 }
 int main(int argc, char *argv[])
@@ -2770,6 +2822,11 @@ int main(int argc, char *argv[])
         case 30:
             result &= test_init();
             result &= test_secure_buffer_alloc_free();
+            result &= test_destroy();
+            break;
+        case 31:
+            result &= test_init();
+            result &= test_buffer_refcnt();
             result &= test_destroy();
             break;
         default:

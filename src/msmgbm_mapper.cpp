@@ -118,6 +118,22 @@ void  incr_refcnt(int fd) {
 }
 
 /**
+ * C wrapper function to print the reference count for the valid map entry
+ * @input param: ion_fd
+ * @return     : none
+ *
+ */
+
+void print_refcnt(int fd) {
+    if (msmgbm_mapper_) {
+        msmgbm_mapper_->print_ref_cnt(fd);
+    }
+    else {
+        LOG(LOG_INFO,"gbm mapper had been de-instantiated\n");
+    }
+}
+
+/**
  * C wrapper function to decrement the reference count for the valid map entry
  * @input param: ion_fd
  * @return     : 1 for delete map entry /0 for decremented ref count
@@ -328,5 +344,21 @@ int msmgbm_mapper::del_map_entry(int fd) {
        }else
            return 0;
     return 1;
+}
+
+/**
+ * Function to print the reference count for the valid map entry
+ * @input param: ion_fd
+ * @return    : none
+ *
+ */
+void msmgbm_mapper::print_ref_cnt(int fd) {
+    auto it = gbm_buf_map_.find(fd);
+    if (it!= gbm_buf_map_.end()) {
+        LOG(LOG_INFO,"Reference count of fd %d = %d\n", fd, it->second->ref_count);
+    }
+    else {
+        LOG(LOG_INFO,"fd %d is unavailable or closed \n", fd);
+    }
 }
 }  // namespace msm_gbm
