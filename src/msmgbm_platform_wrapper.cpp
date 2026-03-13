@@ -865,6 +865,8 @@ bool platform_wrap::is_ubwc_support_enbld(int format) {
     case GBM_FORMAT_ABGR2101010:
     case GBM_FORMAT_RGBA8888:
     case GBM_FORMAT_RGBX8888:
+    case GBM_FORMAT_XRGB8888:
+    case GBM_FORMAT_ARGB8888:
       return true;
     default:
       break;
@@ -997,6 +999,10 @@ unsigned int platform_wrap::get_ubwc_size(int width, int height, int format, uns
     case GBM_FORMAT_BGR565:
     case GBM_FORMAT_XBGR8888:
     case GBM_FORMAT_ABGR8888:
+    case GBM_FORMAT_XRGB8888:
+    case GBM_FORMAT_ARGB8888:
+    case GBM_FORMAT_RGBA8888:
+    case GBM_FORMAT_RGBX8888:
     case GBM_FORMAT_ABGR2101010:
       bpp = get_bpp_for_uncmprsd_rgb_fmt(format);
       size = alignedw * alignedh * bpp;

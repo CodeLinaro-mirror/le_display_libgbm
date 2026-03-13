@@ -2640,6 +2640,122 @@ static int test_buffer_refcnt()
     return 1;
 }
 
+static int test_validate_rgb_ubwc_format()
+{
+    int j = 0;
+    int num_tests = 0;
+    char *test_result_buf = NULL, *buf = NULL;
+    size_t buf_size = 0;
+    char *failure = "FAIL";
+    char *success = "PASS";
+    struct gbm_bo *gb_bo = NULL;
+    int ret = -1;
+    void *prm = NULL;
+    size_t bo_size = 0;
+    int meta_fd = -1;
+    int ubwc_status = 0;
+    bool ubwc_test_status = true;
+    uint32_t align_wdth = 0;
+    uint32_t align_hght = 0;
+
+    static const struct gbm_image_format_list gbm_format_test[] =
+           {
+             {"GBM_FORMAT_XRGB8888", GBM_FORMAT_XRGB8888, "GBM_BO_USAGE_UBWC_ALIGNED_QTI",
+                                                          GBM_BO_USAGE_UBWC_ALIGNED_QTI, 1},
+             {"GBM_FORMAT_ARGB8888", GBM_FORMAT_ARGB8888, "GBM_BO_USAGE_UBWC_ALIGNED_QTI",
+                                                          GBM_BO_USAGE_UBWC_ALIGNED_QTI, 1},
+             {"GBM_FORMAT_BGR565", GBM_FORMAT_BGR565, "GBM_BO_USAGE_UBWC_ALIGNED_QTI",
+                                                          GBM_BO_USAGE_UBWC_ALIGNED_QTI, 1},
+             {"GBM_FORMAT_XBGR8888", GBM_FORMAT_XBGR8888, "GBM_BO_USAGE_UBWC_ALIGNED_QTI",
+                                                          GBM_BO_USAGE_UBWC_ALIGNED_QTI, 1},
+             {"GBM_FORMAT_ABGR8888", GBM_FORMAT_ABGR8888, "GBM_BO_USAGE_UBWC_ALIGNED_QTI",
+                                                          GBM_BO_USAGE_UBWC_ALIGNED_QTI, 1},
+             {"GBM_FORMAT_ABGR2101010", GBM_FORMAT_ABGR2101010, "GBM_BO_USAGE_UBWC_ALIGNED_QTI",
+                                                          GBM_BO_USAGE_UBWC_ALIGNED_QTI, 1},
+             {"GBM_FORMAT_RGBA8888", GBM_FORMAT_RGBA8888, "GBM_BO_USAGE_UBWC_ALIGNED_QTI",
+                                                          GBM_BO_USAGE_UBWC_ALIGNED_QTI, 1},
+             {"GBM_FORMAT_RGBX8888", GBM_FORMAT_RGBX8888, "GBM_BO_USAGE_UBWC_ALIGNED_QTI",
+                                                          GBM_BO_USAGE_UBWC_ALIGNED_QTI, 1},
+             {"GBM_FORMAT_NONE", -1, "GBM_BO_NONE", -1, 0},
+           };
+
+    for (j = 0; 0 != strncmp(gbm_format_test[j].gbm_format_str, "GBM_FORMAT_NONE", MAX_FORMAT_STRING_SIZE); j++) {
+        num_tests++;
+    }
+
+    buf_size = num_tests * (sizeof(struct gbm_image_format_list) + 5);
+    buf = (char *) malloc(buf_size);
+    test_result_buf = buf;
+
+    memset(buf, '\0', buf_size);
+
+    snprintf(buf, buf_size, "%stest_validate_rgb_ubwc_format:\n", buf);
+    snprintf(buf, buf_size, "%s=============================================================================\n", buf);
+    snprintf(buf, buf_size, "%sGBM Image Format\t\tUsage Flag\t\tExpected Result\tTestResult\n", buf);
+
+    unsigned int height = 600, width = 1024;
+
+    for (j = 0; j < num_tests; j++) {
+
+         gb_bo = gbm_bo_create(gbm, width, height, gbm_format_test[j].gbm_format,
+                                                   gbm_format_test[j].gbm_usage_flag);
+         CHECK(check_bo(gb_bo));
+
+         prm = (void *)&ubwc_status;
+
+         ret = gbm_perform(GBM_PERFORM_GET_UBWC_STATUS, gb_bo, prm);
+
+         if (ret == GBM_ERROR_NONE) {
+             printf("UBWC status for allocated BO for %s is: %d \n",
+                            gbm_format_test[j].gbm_format_str, ubwc_status);
+         } else {
+             printf("UBWC test for %s has failed.\n", gbm_format_test[j].gbm_format_str);
+             ubwc_test_status = false;
+         }
+
+         ret = gbm_perform(GBM_PERFORM_GET_BO_SIZE, gb_bo, &bo_size);
+         if (ret == GBM_ERROR_NONE) {
+             printf("GET BO size=%d success\n", bo_size);
+         } else {
+             printf("GET BO size failed\n");
+             return 0;
+         }
+
+         ret = gbm_perform(GBM_PERFORM_GET_BO_ALIGNED_WIDTH, gb_bo, &align_wdth);
+         if (ret == GBM_ERROR_NONE) {
+             printf("GET BO Aligned width=%d success\n", align_wdth);
+         } else {
+             printf("GET BO Aligned width failed\n");
+             return 0;
+         }
+
+        ret = gbm_perform(GBM_PERFORM_GET_BO_ALIGNED_HEIGHT, gb_bo, &align_hght);
+        if (ret == GBM_ERROR_NONE) {
+            printf("GET BO Aligned height=%d success\n", align_hght);
+        } else {
+            printf("GET BO Aligned height failed\n");
+            return 0;
+        }
+
+        printf("Format: %s => width: %d height:%d stride:%d size = %d align_wdth = %d align height = %d\n",
+                                                   gbm_format_test[j].gbm_format_str,
+                                                   gbm_bo_get_width(gb_bo),
+                                                   gbm_bo_get_height(gb_bo),
+                                                   gbm_bo_get_stride(gb_bo),
+                                                   bo_size, align_wdth, align_hght);
+
+        gbm_bo_destroy(gb_bo);
+    }
+
+    snprintf(buf, buf_size, "%s\nOVERALL TEST RESULT: %s\n\n", buf, ubwc_test_status? success: failure);
+    snprintf(buf, buf_size, "%s=============================================================================\n", buf);
+    snprintf(buf, buf_size, "%s \0", buf);
+    printf("%s", test_result_buf);
+    free(test_result_buf);
+
+    return (ubwc_test_status? 1:0);
+}
+
 int gbm_test_help() {
   printf("Please Enter Test No:\n");
   printf("1 for Create/Destroy GBM device\n");
@@ -2673,6 +2789,7 @@ int gbm_test_help() {
   printf("29 Test plane info \n");
   printf("30 for BO secure buffer Create/Destroy \n");
   printf("31 Test refcnt of buffers \n");
+  printf("32 Test Allocation of UBWC RGB formats \n");
   return 0;
 }
 int main(int argc, char *argv[])
@@ -2827,6 +2944,11 @@ int main(int argc, char *argv[])
         case 31:
             result &= test_init();
             result &= test_buffer_refcnt();
+            result &= test_destroy();
+            break;
+        case 32:
+            result &= test_init();
+            result &= test_validate_rgb_ubwc_format();
             result &= test_destroy();
             break;
         default:
