@@ -145,7 +145,6 @@ void  register_dup_fd_to_hashmap(int fd, int dup_fd) {
         buf_info.fd_flg = (IS_DUP_FD | EXTERNAL_FD);
         buf_info.src_fd = get_root_src_fd(fd);
         msmgbm_mapper_->register_to_map(dup_fd, &buf_info, &gbo_private_info);
-        msmgbm_mapper_->set_refcnt(dup_fd, 1);
         LOG(LOG_DBG,"register src_fd[%d] -> dup fd[%d]\n", buf_info.src_fd, buf_info.fd);
         LOG(LOG_DBG,"\t  meta_fd[%d]\n", buf_info.metadata_fd);
         LOG(LOG_DBG,"\t  width[%u] height[%u] format[%u]\n", buf_info.width, buf_info.height, buf_info.format);
@@ -390,18 +389,6 @@ void msmgbm_mapper::map_dump(void) {
   printf("***********************************************\n");
 }
 
-/**
- * Function to set the reference count for the valid map entry
- * @input param: ion_fd, ref count
- * @return     : none
- *
- */
-void msmgbm_mapper::set_refcnt(int fd, int count) {
-  auto it = gbm_buf_map_.find(fd);
-  if (it != gbm_buf_map_.end()){
-      it->second->SetRef(count);
-  }
-}
 
 /**
  * Function to increment the reference count for the valid map entry
@@ -429,7 +416,24 @@ int msmgbm_mapper::del_map_entry(int fd) {
     if (it->second->src_fd == -1) {
       is_src_fd = true;
     }
-    if(it->second->DecRef()) {
+
+    // Check current ref_count before DecRef to handle ref_count <= 0 case
+    int current_ref_count = it->second->ref_count;
+    bool should_delete = (current_ref_count <= 0) || it->second->DecRef();
+
+    if (should_delete) {
+      // Check if this is a dup_fd and src_fd still exists
+      if ((it->second->fd_flg & IS_DUP_FD) && it->second->src_fd != -1) {
+        auto src_it = gbm_buf_map_.find(it->second->src_fd);
+        if (src_it != gbm_buf_map_.end()) {
+          // src_fd still exists, don't delete dup_fd yet
+          // It will be cascade deleted when src_fd is deleted
+          LOG(LOG_DBG, "dup_fd[%d] ref_count=0 but src_fd[%d] exists,"
+                       "keeping entry\n", fd, it->second->src_fd);
+          return 0;
+        }
+      }
+
       gbm_buf_map_.erase(fd);
       if (is_src_fd) {
         // iterate and remove all dups of the src fd which is removed,
