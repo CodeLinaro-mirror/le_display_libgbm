@@ -13,7 +13,7 @@
 
 struct format_string_enum {
    const char *format_name;
-   uint64_t format_enum;
+   uint32_t format_enum;
 };
 
 struct meta_info {

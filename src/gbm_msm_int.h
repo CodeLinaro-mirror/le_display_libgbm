@@ -10,7 +10,7 @@
 #include <gbm_backend_abi.h>
 #include "gbm_msm.h"
 
-#define GBM_FORMAT_RGBA32323232F fourcc_mod_code(QCOM, 56)
+#define GBM_FORMAT_RGBA32323232F fourcc_code('A', 'B', '8', 'F')
 
 struct gbm_msm_device {
    struct gbm_device base;
@@ -36,7 +36,7 @@ struct gbm_bufdesc {
 
 struct gbm_msm_bo_ext {
     struct gbm_msm_bo msm_bo;
-    uint64_t gbm_format;
+    uint32_t gbm_format;
 };
 
 #endif
