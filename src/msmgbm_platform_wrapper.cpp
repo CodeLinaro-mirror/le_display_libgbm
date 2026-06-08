@@ -458,6 +458,7 @@ bool platform_wrap:: is_valid_yuv_fmt(int format) {
         case GBM_FORMAT_YCbCr_420_SP_VENUS:
         case GBM_FORMAT_NV12_ENCODEABLE: //Same as YCbCr_420_SP_VENUS
         case GBM_FORMAT_NV12_HEIF:
+        case GBM_FORMAT_YCbCr_420_P010_512:
         case GBM_FORMAT_NV12:
         case GBM_FORMAT_NV21_ZSL:
         case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
@@ -589,6 +590,11 @@ unsigned int platform_wrap::get_size(int format, int width, int height, int usag
             break;
         case GBM_FORMAT_NV12_HEIF:
             size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_NV12_512, width, height);
+            LOG(LOG_DBG," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
+                                  size, width, height);
+            break;
+        case GBM_FORMAT_YCbCr_420_P010_512:
+            size = MMM_COLOR_FMT_BUFFER_SIZE(MMM_COLOR_FMT_P010_512, width, height);
             LOG(LOG_DBG," MMM_COLOR_FMT_BUF_SIZE=%u, computed for Width=%u, Height=%u\n",
                                   size, width, height);
             break;
@@ -883,6 +889,10 @@ void platform_wrap::get_aligned_wdth_hght(gbm_bufdesc *descriptor, unsigned int 
       *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_512, width));
       *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_512, height));
       break;
+    case GBM_FORMAT_YCbCr_420_P010_512:
+      *alignedw = INT(MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_P010_512, width) / 2);
+      *alignedh = INT(MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_P010_512, height));
+      break;
     case GBM_FORMAT_YCbCr_420_SP_VENUS_UBWC:
       *alignedw = MMM_COLOR_FMT_Y_STRIDE(MMM_COLOR_FMT_NV12_UBWC, width);
       *alignedh = MMM_COLOR_FMT_Y_SCANLINES(MMM_COLOR_FMT_NV12_UBWC, height);
@@ -934,6 +944,9 @@ void platform_wrap::get_stride_scanline_size(gbm_bufdesc *descriptor, unsigned i
       break;
     case GBM_FORMAT_P010:
     case GBM_FORMAT_YCbCr_420_P010_VENUS:
+      *stride = alignedw * 2;
+      break;
+    case GBM_FORMAT_YCbCr_420_P010_512:
       *stride = alignedw * 2;
       break;
     case GBM_FORMAT_YCbCr_420_P010_UBWC:
