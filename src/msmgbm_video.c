@@ -48,7 +48,12 @@ uint32_t GetVideoImplDefinedFormat(uint32_t usage_flags, uint32_t format)
         pixel_format = GBM_FORMAT_NV12_ENCODEABLE;
     }
 
-    if((usage_flags & GBM_BO_USAGE_PRIVATE_HEIF)
+    if((usage_flags & GBM_BO_USAGE_PRIVATE_HEIF_P010)
+                    && (format == GBM_FORMAT_IMPLEMENTATION_DEFINED)) {
+        if(usage_flags & GBM_BO_USAGE_PRIVATE_HEIF)
+            LOG(LOG_WARN, "Both HEIF and HEIF_P010 flags set; HEIF_P010 takes precedence\n");
+        pixel_format = GBM_FORMAT_YCbCr_420_P010_512;
+    } else if((usage_flags & GBM_BO_USAGE_PRIVATE_HEIF)
                     && (format == GBM_FORMAT_IMPLEMENTATION_DEFINED)) {
         pixel_format = GBM_FORMAT_NV12_HEIF;
     }

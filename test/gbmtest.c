@@ -114,6 +114,7 @@ static const uint32_t format_list[] = {
     GBM_FORMAT_YCbCr_420_TP10_UBWC,
     GBM_FORMAT_P010,
     GBM_FORMAT_NV12_HEIF,
+    GBM_FORMAT_YCbCr_420_P010_512,
     GBM_FORMAT_YCbCr_422_I,
     GBM_FORMAT_NV12_UBWC_FLEX,
     GBM_FORMAT_NV12_UBWC_FLEX_2_BATCH,
@@ -185,6 +186,8 @@ static char *get_format_string(uint32_t format)
             return "GBM_FORMAT_RGBA8888";
         case GBM_FORMAT_NV12_HEIF:
             return "GBM_FORMAT_NV12_HEIF";
+        case GBM_FORMAT_YCbCr_420_P010_512:
+            return "GBM_FORMAT_YCbCr_420_P010_512";
         case GBM_FORMAT_YCbCr_420_P010_VENUS:
             return "GBM_FORMAT_YCbCr_420_P010_VENUS";
         case GBM_FORMAT_YCbCr_420_P010_UBWC:
@@ -1163,6 +1166,8 @@ static int test_get_ubwc_status()
                          "GBM_BO_USE_WRITE             ", GBM_BO_USE_WRITE, 0},
              {"GBM_FORMAT_P010", GBM_FORMAT_P010,
                          "GBM_BO_USE_WRITE             ", GBM_BO_USE_WRITE, 0},
+             {"GBM_FORMAT_YCbCr_420_P010_512", GBM_FORMAT_YCbCr_420_P010_512,
+                         "GBM_BO_USE_WRITE             ", GBM_BO_USE_WRITE, 0},
              {"GBM_FORMAT_NONE", -1, "GBM_BO_NONE", -1, 0},
            };
 
@@ -1518,6 +1523,8 @@ static int test_surface_ubwc_status()
            {"GBM_FORMAT_ABGR2101010", GBM_FORMAT_ABGR2101010,
                        "GBM_BO_USE_WRITE             ", GBM_BO_USE_WRITE, 0},
            {"GBM_FORMAT_P010", GBM_FORMAT_P010,
+                       "GBM_BO_USE_WRITE             ", GBM_BO_USE_WRITE, 0},
+           {"GBM_FORMAT_YCbCr_420_P010_512", GBM_FORMAT_YCbCr_420_P010_512,
                        "GBM_BO_USE_WRITE             ", GBM_BO_USE_WRITE, 0},
            {"GBM_FORMAT_NONE", -1, "GBM_BO_NONE", -1, 0},
          };
@@ -2107,6 +2114,8 @@ static int test_plane_info()
     {GBM_FORMAT_IMPLEMENTATION_DEFINED, GBM_BO_USAGE_10BIT_QTI | GBM_BO_USAGE_UBWC_ALIGNED_QTI, GBM_FORMAT_YCbCr_420_P010_UBWC},
     {GBM_FORMAT_IMPLEMENTATION_DEFINED, GBM_BO_USAGE_10BIT_TP_QTI | GBM_BO_USAGE_UBWC_ALIGNED_QTI, GBM_FORMAT_YCbCr_420_TP10_UBWC},
     {GBM_FORMAT_IMPLEMENTATION_DEFINED, GBM_BO_USAGE_10BIT_QTI, GBM_FORMAT_YCbCr_420_P010_VENUS},
+    {GBM_FORMAT_YCbCr_420_P010_512, GBM_BO_USE_WRITE, GBM_FORMAT_YCbCr_420_P010_512},
+    {GBM_FORMAT_IMPLEMENTATION_DEFINED, GBM_BO_USAGE_PRIVATE_HEIF_P010, GBM_FORMAT_YCbCr_420_P010_512},
     {-1, -1, -1},
   };
 
@@ -2269,6 +2278,7 @@ static int test_implement_defined_format()
              {GBM_FORMAT_IMPLEMENTATION_DEFINED, GBM_BO_USAGE_10BIT_QTI | GBM_BO_USAGE_UBWC_ALIGNED_QTI, GBM_FORMAT_YCbCr_420_P010_UBWC},
              {GBM_FORMAT_IMPLEMENTATION_DEFINED, GBM_BO_USAGE_10BIT_TP_QTI | GBM_BO_USAGE_UBWC_ALIGNED_QTI, GBM_FORMAT_YCbCr_420_TP10_UBWC},
              {GBM_FORMAT_IMPLEMENTATION_DEFINED, GBM_BO_USAGE_10BIT_QTI, GBM_FORMAT_YCbCr_420_P010_VENUS},
+             {GBM_FORMAT_IMPLEMENTATION_DEFINED, GBM_BO_USAGE_PRIVATE_HEIF_P010, GBM_FORMAT_YCbCr_420_P010_512},
              {-1, -1, -1},
            };
 
