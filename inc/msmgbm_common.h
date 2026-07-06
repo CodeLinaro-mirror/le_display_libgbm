@@ -38,6 +38,7 @@ extern "C" {
 #include <stdbool.h>
 
 bool IsImplDefinedFormat(uint32_t format);
+const char *get_format_string(uint32_t format);
 uint32_t GetImplDefinedFormat(uint32_t usage_flags, uint32_t format);
 uint32_t GetIonAllocFlags(uint32_t alloc_flags);
 uint32_t GetIonHeapId(uint32_t alloc_flags);
