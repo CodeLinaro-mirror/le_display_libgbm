@@ -110,6 +110,12 @@ if test "x${enable_waylandsupport}" = "xyes"; then
     AC_DEFINE(BUILD_HAS_WAYLAND_SUPPORT, 1, [Enable when build has wayland support])
 fi
 
+AC_ARG_ENABLE([target-qrbx210],
+	AC_HELP_STRING([--enable-target-qrbx210],
+		[Enable conditional compile for target qrbx210]),
+	[target_qrbx210="${enableval}"],
+	target_qrbx210=no)
+AM_CONDITIONAL([IS_QRBX210], [test "x$target_qrbx210" = xyes])
 
 # Checks for programs.
 AC_PROG_CC
