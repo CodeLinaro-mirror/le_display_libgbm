@@ -131,6 +131,7 @@ extern "C" {
 #define GBM_BO_USAGE_10BIT_QTI    	      0x04000000 /*BO allocation for 10 bit */
 #define GBM_BO_USAGE_10BIT_TP_QTI    	      0x08000000 /*BO allocation for 10 bit TP */
 #define GBM_BO_USAGE_PRIVATE_HEIF    	      0x00000010 /*BO allocation for HEIF */
+#define GBM_BO_USAGE_PRIVATE_HEIF_P010        0x00000040 /*BO allocation for P010 512-aligned (HW image encoder) */
 
 /**
  *  These are the parameter types to be used by the clients to query metadata info from gbm backend
@@ -505,6 +506,8 @@ extern "C" {
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_4_BATCH         fourcc_mod_code_qti(QTI, 71)
 
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC_FLEX_8_BATCH         fourcc_mod_code_qti(QTI, 72)
+
+#define GBM_FORMAT_YCbCr_420_P010_512                        fourcc_mod_code_qti(QTI, 73)
 
 #define GBM_FORMAT_YCbCr_420_TP10_UBWC                      __gbm_fourcc_code('Q', '1', '2', 'A')
 
