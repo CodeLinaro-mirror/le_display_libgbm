@@ -110,28 +110,3 @@ cc_binary {
         "test/gbmtest.c",
     ],
 }
-
-//gbmutilstest
-cc_binary {
-    name: "gbmutilstest",
-    sanitize: {
-        integer_overflow: true,
-    },
-    vendor: true,
-    double_loadable:true,
-    header_libs: [
-        "libgbm-headers",
-        "display_headers",
-        "qti_display_kernel_headers",
-        "libcutils_headers",
-    ],
-    shared_libs: [
-        "libgbm_la",
-        "libgbmutils",
-        "libcutils",
-    ],
-    srcs: [
-        "test/gbm_utils_test.cpp",
-    ],
-}
-
